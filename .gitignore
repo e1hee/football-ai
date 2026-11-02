@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Experiment artifacts (keep configs, notes, small metrics; drop heavy files)
+experiments/**/checkpoints/
+experiments/**/*.pt
+experiments/**/*.zip
+experiments/**/*.mp4
+experiments/**/*.gif
+experiments/**/tb/
+runs/
+
+# Rendered media (regenerable)
+render/out/
+content/**/*.mp4
+content/**/*.wav
+content/**/*.m4a
+
+# External data (licensed, never commit)
+data/
+analysis/data/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

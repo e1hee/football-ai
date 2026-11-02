@@ -1,0 +1,34 @@
+experiment: EXP-000-baseline-scripted
+date: 2026-11-01
+seed: 0
+learning: none  # scripted policies only
+
+field:
+  length: 60.0
+  width: 53.3
+  runner_start_x: 5.0
+  tackler_gap: 10.0
+  tackler_lateral_spawn: [5.0, 48.3]   # uniform; too wide, see notes.md
+  dt: 0.1
+  max_steps: 100
+  tackle_radius: 1.0
+
+players:
+  runner:  {max_speed: 9.0, accel: 8.0}
+  tackler: {max_speed: 9.0, accel: 8.0}
+
+reward:
+  yards_scale: 1.0
+  touchdown_bonus: 0.0
+  tackle_penalty: 0.0
+  out_of_bounds_penalty: 0.0
+  time_penalty: 0.0
+
+policies:
+  runner: [random, straight]
+  tackler: pursuit (lead_time 0.3s)
+
+bench:
+  n_envs: 4096
+  steps: 200
+  command: uv run python -m scripts.bench_env --n 4096 --steps 200 [--runner straight]

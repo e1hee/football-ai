@@ -6,7 +6,7 @@ pit any runner against any tackler.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 import numpy as np
@@ -22,6 +22,7 @@ class Play:
     t_pos: np.ndarray   # (T, 2) tackler positions
     outcome: str
     yards: float
+    events: list[tuple[int, str]] = field(default_factory=list)  # (step, "made" | "missed")
 
     @property
     def steps(self) -> int:
@@ -46,10 +47,14 @@ def record_plays(
     outcome = np.zeros(n_plays, np.int8)
     yards = np.zeros(n_plays, np.float32)
 
+    events: list[list[tuple[int, str]]] = [[] for _ in range(n_plays)]
     step = 0
     while not finished.all():
         obs, _, done, info = sim.step(runner(sim, obs), tackler(sim, obs))
         step += 1
+        for kind, key in (("made", "tackle_made"), ("missed", "tackle_missed")):
+            for i in np.nonzero(info[key] & ~finished)[0]:
+                events[i].append((step, kind))
         # info holds positions *before* auto-reset, which is what we want.
         r_hist.append(info["r_pos"])
         t_hist.append(info["t_pos"])
@@ -63,7 +68,7 @@ def record_plays(
     t_all = np.stack(t_hist)
     return [
         Play(r_all[: end_step[i] + 1, i], t_all[: end_step[i] + 1, i],
-             OUTCOME_NAMES[outcome[i]], float(yards[i]))
+             OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i])
         for i in range(n_plays)
     ]
 

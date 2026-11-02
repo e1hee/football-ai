@@ -1,0 +1,408 @@
+{
+  "source": "NFL Big Data Bowl 2027 game tracking, REG 2024, aggregates only",
+  "units": "yd, yd/s, yd/s^2, deg/s; percentiles over 0.1 s frames",
+  "groups": {
+    "DB": {
+      "frames": 1694613,
+      "player_plays": 23922,
+      "weight_lb_median": 194.0,
+      "top_speed_p50": 5.57,
+      "top_speed_p99": 9.35,
+      "top_speed_max": 10.8,
+      "speed_bins_yd_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0
+      ],
+      "accel_p99_by_speed": [
+        4.32,
+        6.0,
+        6.06,
+        5.6,
+        5.0,
+        4.3,
+        3.6,
+        3.0,
+        2.4,
+        1.9
+      ],
+      "brake_p99_by_speed": [
+        3.92,
+        5.9,
+        6.24,
+        6.11,
+        5.8,
+        5.3,
+        4.8,
+        4.3,
+        3.6,
+        2.9
+      ],
+      "lateral_p99_by_speed": [
+        4.73,
+        6.42,
+        6.7,
+        6.73,
+        6.6,
+        6.63,
+        6.6,
+        6.26,
+        5.61,
+        4.44
+      ],
+      "turn_deg_s_p99_by_speed": [
+        159.4,
+        113.0,
+        85.3,
+        70.0,
+        59.1,
+        48.6,
+        38.8,
+        27.4
+      ]
+    },
+    "DL": {
+      "frames": 797231,
+      "player_plays": 11379,
+      "weight_lb_median": 285.0,
+      "top_speed_p50": 4.04,
+      "top_speed_p99": 7.68,
+      "top_speed_max": 9.19,
+      "speed_bins_yd_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0
+      ],
+      "accel_p99_by_speed": [
+        4.1,
+        5.2,
+        5.1,
+        4.4,
+        3.8,
+        3.4,
+        3.0,
+        2.6,
+        2.63,
+        1.95
+      ],
+      "brake_p99_by_speed": [
+        3.41,
+        4.52,
+        4.5,
+        4.3,
+        4.0,
+        3.7,
+        3.5,
+        3.1,
+        2.46,
+        1.38
+      ],
+      "lateral_p99_by_speed": [
+        3.96,
+        4.83,
+        4.93,
+        5.32,
+        5.73,
+        5.69,
+        5.18,
+        4.96,
+        5.13,
+        3.79
+      ],
+      "turn_deg_s_p99_by_speed": [
+        116.7,
+        87.9,
+        74.0,
+        60.6,
+        46.8,
+        38.6,
+        36.2,
+        23.9
+      ]
+    },
+    "OL": {
+      "frames": 2005597,
+      "player_plays": 28583,
+      "weight_lb_median": 315.0,
+      "top_speed_p50": 3.16,
+      "top_speed_p99": 6.23,
+      "top_speed_max": 8.51,
+      "speed_bins_yd_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0
+      ],
+      "accel_p99_by_speed": [
+        3.6,
+        4.0,
+        3.72,
+        3.31,
+        3.1,
+        2.71,
+        2.5,
+        2.23,
+        2.02
+      ],
+      "brake_p99_by_speed": [
+        3.01,
+        3.6,
+        3.5,
+        3.2,
+        3.1,
+        2.9,
+        2.7,
+        2.49,
+        1.96
+      ],
+      "lateral_p99_by_speed": [
+        3.3,
+        3.8,
+        3.92,
+        4.1,
+        4.25,
+        4.24,
+        3.95,
+        3.59,
+        2.14
+      ],
+      "turn_deg_s_p99_by_speed": [
+        94.5,
+        69.0,
+        55.7,
+        45.3,
+        36.5,
+        28.4,
+        14.5
+      ]
+    },
+    "TE": {
+      "frames": 228730,
+      "player_plays": 3026,
+      "weight_lb_median": 250.0,
+      "top_speed_p50": 6.33,
+      "top_speed_p99": 8.62,
+      "top_speed_max": 9.67,
+      "speed_bins_yd_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0
+      ],
+      "accel_p99_by_speed": [
+        4.3,
+        5.84,
+        6.0,
+        5.6,
+        4.82,
+        3.9,
+        2.9,
+        2.2,
+        1.9,
+        1.65
+      ],
+      "brake_p99_by_speed": [
+        3.8,
+        5.94,
+        6.3,
+        6.1,
+        5.5,
+        4.7,
+        3.7,
+        2.9,
+        2.4,
+        1.8
+      ],
+      "lateral_p99_by_speed": [
+        4.47,
+        6.06,
+        6.23,
+        6.33,
+        6.27,
+        6.38,
+        6.17,
+        5.85,
+        5.52,
+        3.52
+      ],
+      "turn_deg_s_p99_by_speed": [
+        145.9,
+        105.4,
+        81.7,
+        67.1,
+        54.8,
+        45.5,
+        39.0,
+        22.1
+      ]
+    },
+    "WR": {
+      "frames": 962925,
+      "player_plays": 12907,
+      "weight_lb_median": 198.0,
+      "top_speed_p50": 7.2,
+      "top_speed_p99": 9.72,
+      "top_speed_max": 10.83,
+      "speed_bins_yd_s": [
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0
+      ],
+      "accel_p99_by_speed": [
+        4.6,
+        6.21,
+        6.7,
+        6.5,
+        5.9,
+        5.1,
+        4.0,
+        2.9,
+        2.2,
+        1.8
+      ],
+      "brake_p99_by_speed": [
+        3.8,
+        6.21,
+        7.01,
+        7.11,
+        6.8,
+        6.2,
+        5.0,
+        3.8,
+        2.9,
+        2.28
+      ],
+      "lateral_p99_by_speed": [
+        4.13,
+        6.07,
+        6.64,
+        6.72,
+        6.87,
+        7.16,
+        7.3,
+        6.82,
+        6.04,
+        5.19
+      ],
+      "turn_deg_s_p99_by_speed": [
+        154.4,
+        111.4,
+        87.6,
+        74.5,
+        64.9,
+        53.1,
+        41.7,
+        32.5
+      ]
+    }
+  },
+  "fit": {
+    "DB": {
+      "max_speed": 9.65,
+      "accel": 5.95,
+      "accel_k": 2.7,
+      "brake": 6.25,
+      "brake_k": 3.95,
+      "agility": 7.0,
+      "agility_drop": 0.28,
+      "mass_lb": 194,
+      "rmse": {
+        "accel": 0.63,
+        "brake": 0.94,
+        "lateral": 0.38
+      }
+    },
+    "DL": {
+      "max_speed": 7.98,
+      "accel": 4.9,
+      "accel_k": 3.95,
+      "brake": 4.75,
+      "brake_k": 3.95,
+      "agility": 5.25,
+      "agility_drop": 0.0,
+      "mass_lb": 285,
+      "rmse": {
+        "accel": 0.67,
+        "brake": 0.87,
+        "lateral": 0.34
+      }
+    },
+    "OL": {
+      "max_speed": 6.53,
+      "accel": 4.0,
+      "accel_k": 3.95,
+      "brake": 3.8,
+      "brake_k": 3.95,
+      "agility": 4.05,
+      "agility_drop": 0.0,
+      "mass_lb": 315,
+      "rmse": {
+        "accel": 1.05,
+        "brake": 1.17,
+        "lateral": 0.17
+      }
+    },
+    "TE": {
+      "max_speed": 8.92,
+      "accel": 6.05,
+      "accel_k": 2.4,
+      "brake": 6.1,
+      "brake_k": 3.6,
+      "agility": 6.35,
+      "agility_drop": 0.11,
+      "mass_lb": 250,
+      "rmse": {
+        "accel": 0.48,
+        "brake": 0.56,
+        "lateral": 0.18
+      }
+    },
+    "WR": {
+      "max_speed": 10.02,
+      "accel": 6.75,
+      "accel_k": 2.35,
+      "brake": 6.9,
+      "brake_k": 3.4,
+      "agility": 6.95,
+      "agility_drop": 0.16,
+      "mass_lb": 198,
+      "rmse": {
+        "accel": 0.43,
+        "brake": 0.53,
+        "lateral": 0.54
+      }
+    }
+  }
+}

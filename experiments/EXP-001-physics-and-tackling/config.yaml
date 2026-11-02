@@ -1,0 +1,39 @@
+experiment: EXP-001-physics-and-tackling
+date: 2026-11-01
+based_on: EXP-000-baseline-scripted
+seed: 0
+learning: none  # scripted policies only
+
+physics:
+  source: sim/physics_params.json  # fitted by analysis/physics_from_bdb.py --season 2024 (BDB 2027 game tracking, aggregates only)
+  model: |
+    forward accel(v) = A0 (1 - (v/V)^k); brake(v) = B0 (1 - (v/V)^kb), floor 15%;
+    lateral(v) = L0 (1 - c (v/V)^2), floor 20%; push = unit-disk action split along/across velocity
+  runner_profile: WR   # V 10.02, A0 6.75, k 2.35, B0 6.9, kb 3.4, L0 6.95, c 0.16, 198 lb
+  tackler_profile: DB  # V 9.65, A0 5.95, k 2.7, B0 6.25, kb 3.95, L0 7.0, c 0.28, 194 lb
+  radius_yd: 0.45
+  collision_restitution: 0.1  # cross-checked against pymunk (tests/test_physics_vs_pymunk.py)
+
+tackle:  # assumed, not fitted: BDB has no contact data
+  reach_yd: 0.5
+  logit: 1.2 + 1.0 * headon - 3.0 * (runner_momentum_share - 0.5)
+  wrap_time_s: 0.4
+  wrap_decel: 6.0
+  miss_stun_s: 0.6
+  miss_cooldown_s: 0.9
+  miss_slowdown: 0.85
+
+field:
+  length: 60.0
+  width: 53.3
+  tackler_gap: 10.0
+  tackler_lateral_spread: [null, 8.0]  # null = whole field (EXP-000), 8 = within 8 yd of runner lane
+  dt: 0.1
+  max_steps: 100
+
+policies:
+  runner: [random, straight, evasive]
+  tackler: [pursuit, angle]
+
+bench:
+  command: uv run python -m scripts.bench_env --all --n 4096 --steps 300

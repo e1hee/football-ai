@@ -143,6 +143,20 @@ class PlayRenderer:
             d.rectangle([4, 15, 8 + tw, 25], fill=TAG_BG)
             d.text((6, 15), tag, font=self.font_small, fill=(255, 255, 255))
 
+    EVENT_TEXT = {"made": ("태클!", TAG_BG), "missed": ("놓쳤다!", (230, 180, 40))}
+    EVENT_SHOW_STEPS = 7   # 0.7 s on screen
+
+    def _events(self, d: ImageDraw.ImageDraw, play: Play, step: float, at) -> None:
+        """Pop a small label above the runner for a moment after each tackle event."""
+        for s, kind in play.events:
+            if s <= step < s + self.EVENT_SHOW_STEPS:
+                text, color = self.EVENT_TEXT[kind]
+                x, y = self._xy(*at)
+                y -= 4 * self.L.px_per_yd   # above the runner on screen
+                w = d.textlength(text, font=self.font_small)
+                d.rectangle([x - w / 2 - 2, y - 6, x + w / 2 + 2, y + 5], fill=color)
+                d.text((x - w / 2, y - 6), text, font=self.font_small, fill=(255, 255, 255))
+
     def frame(self, play: Play, step: int, title: str, tag: str | None = None) -> Image.Image:
         """Draw the state at (fractional) `step`; positions are interpolated."""
         img = Image.new("RGB", (self.W, self.H), BG)
@@ -160,10 +174,23 @@ class PlayRenderer:
         self._trail(d, play.t_pos[lo:i0 + 1], TACKLER)
         self._player(d, t, TACKLER, TACKLER_DARK, has_ball=False)
         self._player(d, r, RUNNER, RUNNER_DARK, has_ball=True)
+        self._events(d, play, step, r)
         self._caption(d, title, tag)
 
         s = self.L.scale
         return img.resize((self.W * s, self.H * s), Image.NEAREST)
+
+
+def fit_canvas(img: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Letterbox onto an exact output size (1080x1920 shorts, 1920x1080 episode),
+    shrinking with nearest-neighbour if needed so pixels stay crisp."""
+    W, H = size
+    k = min(W / img.width, H / img.height, 1.0)
+    if k < 1.0:
+        img = img.resize((int(img.width * k), int(img.height * k)), Image.NEAREST)
+    out = Image.new("RGB", size, BG)
+    out.paste(img, ((W - img.width) // 2, (H - img.height) // 2))
+    return out
 
 
 def stack(frames: list[Image.Image], vertical: bool, gap: int = 12) -> Image.Image:

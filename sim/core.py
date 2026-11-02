@@ -1,8 +1,15 @@
 """Vectorized 1v1 sim: one ball carrier (runner) vs one defender (tackler).
 
-Everything is batched over N parallel plays so training can step thousands
-of plays per second without a Python loop. No physics engine: players are
-circles with velocity caps, and a tackle is a proximity check.
+Everything is batched over N parallel plays. Players are discs with
+NFL-fitted movement limits (`physics.py`): momentum, speed-dependent
+acceleration, limited cutting at speed, and body collisions.
+
+Tackling is a contest, not a switch. When the tackler gets within arm's
+reach, it attempts a tackle whose success depends on
+  - angle: meeting the runner head-on beats chasing from behind, and
+  - momentum: a runner carrying more momentum than the tackler can break it.
+A made tackle wraps the runner up for a moment (they keep sliding forward
+together: yards after contact). A missed tackle leaves the tackler stumbling.
 
 Coordinates: x runs downfield (0 = runner's start side, `length` = goal
 line), y runs across the field (0 and `width` are the sidelines).
@@ -14,6 +21,10 @@ from dataclasses import field as dc_field
 
 import numpy as np
 
+from .physics import PROFILES, Bodies, Profile, apply_controls, resolve_collisions
+
+RUNNER, TACKLER = 0, 1
+
 
 @dataclass
 class FieldConfig:
@@ -21,21 +32,24 @@ class FieldConfig:
     width: float = 53.3         # NFL field width in yards
     runner_start_x: float = 5.0
     tackler_gap: float = 10.0   # tackler starts this many yards downfield of the runner
-    dt: float = 0.1             # seconds per step (10 Hz)
+    # None: tackler anywhere across the field (EXP-000). A number: within that
+    # many yards of the runner's lane.
+    tackler_lateral_spread: float | None = None
+    dt: float = 0.1             # seconds per step (10 Hz, same as NFL tracking)
     max_steps: int = 100        # 10 s play clock
-    tackle_radius: float = 1.0  # yards; closer than this = tackled
 
 
 @dataclass
-class PlayerAttrs:
-    """Per-player physical attributes. Arrays of shape (N,) so each play can
-    use different players (roster experiments change these)."""
-    max_speed: np.ndarray   # yd/s. NFL ball carriers top out around 9-10 yd/s
-    accel: np.ndarray       # yd/s^2
-
-    @classmethod
-    def uniform(cls, n: int, max_speed: float, accel: float) -> "PlayerAttrs":
-        return cls(np.full(n, max_speed, np.float32), np.full(n, accel, np.float32))
+class TackleConfig:
+    reach: float = 0.5          # yd of arm reach beyond body contact
+    base_logit: float = 1.2     # side-on, equal momentum -> ~77% success
+    headon_weight: float = 1.0  # head-on (+1) vs from behind (-1)
+    momentum_weight: float = 3.0
+    wrap_time: float = 0.4      # s the pile keeps moving after a made tackle
+    wrap_decel: float = 6.0     # yd/s^2 while wrapped up
+    miss_stun: float = 0.6      # s the tackler has no control after a miss
+    miss_cooldown: float = 0.9  # s before the same tackler can try again
+    miss_slowdown: float = 0.85 # runner keeps this share of velocity after breaking a tackle
 
 
 @dataclass
@@ -52,13 +66,11 @@ class RewardConfig:
 class SimConfig:
     field: FieldConfig = dc_field(default_factory=FieldConfig)
     reward: RewardConfig = dc_field(default_factory=RewardConfig)
-    runner_speed: float = 9.0
-    runner_accel: float = 8.0
-    tackler_speed: float = 9.0
-    tackler_accel: float = 8.0
+    tackle: TackleConfig = dc_field(default_factory=TackleConfig)
+    runner: Profile = dc_field(default_factory=lambda: PROFILES["WR"])
+    tackler: Profile = dc_field(default_factory=lambda: PROFILES["DB"])
 
 
-# Observation layout for the runner (egocentric where it matters).
 OBS_DIM = 10
 RUNNER_OBS_NAMES = [
     "x_norm", "y_norm",                     # own position / field size
@@ -69,7 +81,6 @@ RUNNER_OBS_NAMES = [
     "dist_sideline_norm",                   # yards to nearest sideline / half width
 ]
 
-# Episode outcome codes written to `info`.
 OUTCOME_RUNNING, OUTCOME_TOUCHDOWN, OUTCOME_TACKLED, OUTCOME_OUT_OF_BOUNDS, OUTCOME_TIMEOUT = 0, 1, 2, 3, 4
 OUTCOME_NAMES = ["running", "touchdown", "tackled", "out_of_bounds", "timeout"]
 
@@ -86,76 +97,125 @@ class OneVOneSim:
         self.n = n
         self.cfg = cfg or SimConfig()
         self.rng = np.random.default_rng(seed)
-        f = self.cfg.field
-        self.runner = PlayerAttrs.uniform(n, self.cfg.runner_speed, self.cfg.runner_accel)
-        self.tackler = PlayerAttrs.uniform(n, self.cfg.tackler_speed, self.cfg.tackler_accel)
+        self.bodies = Bodies(n, [self.cfg.runner, self.cfg.tackler])
 
-        self.r_pos = np.zeros((n, 2), np.float32)
-        self.r_vel = np.zeros((n, 2), np.float32)
-        self.t_pos = np.zeros((n, 2), np.float32)
-        self.t_vel = np.zeros((n, 2), np.float32)
+        self.pos = np.zeros((n, 2, 2), np.float32)   # (play, player, xy)
+        self.vel = np.zeros((n, 2, 2), np.float32)
         self.t = np.zeros(n, np.int32)
-        self.yards = np.zeros(n, np.float32)  # yards gained so far in this play
-        self._half_w = f.width / 2.0
+        self.yards = np.zeros(n, np.float32)
+        self.wrap = np.zeros(n, np.float32)          # >0: runner wrapped up, play ending
+        self.stun = np.zeros((n, 2), np.float32)     # >0: no control
+        self.cooldown = np.zeros(n, np.float32)      # >0: tackler can't attempt
+        self._half_w = self.cfg.field.width / 2.0
+
+    # Views kept for renderers/tests written against the original API.
+    @property
+    def r_pos(self): return self.pos[:, RUNNER]
+    @property
+    def t_pos(self): return self.pos[:, TACKLER]
+    @property
+    def r_vel(self): return self.vel[:, RUNNER]
+    @property
+    def t_vel(self): return self.vel[:, TACKLER]
 
     # ------------------------------------------------------------------ reset
     def reset(self, mask: np.ndarray | None = None) -> np.ndarray:
-        """Reset all plays (mask=None) or only those where mask is True."""
         if mask is None:
             mask = np.ones(self.n, bool)
         k = int(mask.sum())
         if k == 0:
             return self.observe()
         f = self.cfg.field
-        # Runner starts centered-ish with a little jitter; tackler lines up
-        # `tackler_gap` yards downfield at a random lateral spot.
-        self.r_pos[mask, 0] = f.runner_start_x
-        self.r_pos[mask, 1] = self._half_w + self.rng.uniform(-5, 5, k)
-        self.t_pos[mask, 0] = f.runner_start_x + f.tackler_gap
-        self.t_pos[mask, 1] = self.rng.uniform(5, f.width - 5, k)
-        self.r_vel[mask] = 0
-        self.t_vel[mask] = 0
+        ry = self._half_w + self.rng.uniform(-5, 5, k)
+        self.pos[mask, RUNNER, 0] = f.runner_start_x
+        self.pos[mask, RUNNER, 1] = ry
+        self.pos[mask, TACKLER, 0] = f.runner_start_x + f.tackler_gap
+        if f.tackler_lateral_spread is None:
+            self.pos[mask, TACKLER, 1] = self.rng.uniform(5, f.width - 5, k)
+        else:
+            s = f.tackler_lateral_spread
+            self.pos[mask, TACKLER, 1] = np.clip(ry + self.rng.uniform(-s, s, k), 1, f.width - 1)
+        self.vel[mask] = 0
         self.t[mask] = 0
         self.yards[mask] = 0
+        self.wrap[mask] = 0
+        self.stun[mask] = 0
+        self.cooldown[mask] = 0
         return self.observe()
 
-    # ---------------------------------------------------------------- physics
-    @staticmethod
-    def _integrate(pos, vel, action, attrs: PlayerAttrs, dt: float):
-        """action: (N,2) desired acceleration direction in [-1,1]^2."""
-        a = np.clip(action, -1.0, 1.0).astype(np.float32)
-        norm = np.linalg.norm(a, axis=1, keepdims=True)
-        a = np.where(norm > 1.0, a / np.maximum(norm, 1e-6), a)   # keep inside unit disk
-        vel += a * attrs.accel[:, None] * dt
-        speed = np.linalg.norm(vel, axis=1, keepdims=True)
-        cap = attrs.max_speed[:, None]
-        vel *= np.where(speed > cap, cap / np.maximum(speed, 1e-6), 1.0)
-        pos += vel * dt
+    # --------------------------------------------------------------- tackling
+    def _tackle_attempts(self, pre_vel: np.ndarray):
+        """Decide new tackle attempts. Returns (attempt, made) bool arrays."""
+        tc, b = self.cfg.tackle, self.bodies
+        d = self.pos[:, RUNNER] - self.pos[:, TACKLER]               # tackler -> runner
+        dist = np.linalg.norm(d, axis=1)
+        reach = b.radius[:, RUNNER] + b.radius[:, TACKLER] + tc.reach
+        attempt = (dist < reach) & (self.wrap <= 0) & (self.cooldown <= 0) & (self.stun[:, TACKLER] <= 0)
+        made = np.zeros(self.n, bool)
+        if not attempt.any():
+            return attempt, made
+
+        u = d / np.maximum(dist, 1e-6)[:, None]
+        vr, vt = pre_vel[:, RUNNER], pre_vel[:, TACKLER]
+        r_speed = np.linalg.norm(vr, axis=1)
+        # Head-on: runner moving toward the tackler. From behind: moving away.
+        headon = np.clip(np.sum(vr * -u, axis=1) / np.maximum(r_speed, 1.0), -1, 1)
+        p_r = b.mass_lb[:, RUNNER] * r_speed
+        p_t = b.mass_lb[:, TACKLER] * np.maximum(0.0, np.sum(vt * u, axis=1))
+        ratio = p_r / (p_r + p_t + 1e-6)
+        logit = tc.base_logit + tc.headon_weight * headon - tc.momentum_weight * (ratio - 0.5)
+        p = 1.0 / (1.0 + np.exp(-logit))
+        made = attempt & (self.rng.random(self.n) < p)
+        return attempt, made
 
     # ------------------------------------------------------------------- step
     def step(self, runner_action: np.ndarray, tackler_action: np.ndarray):
         """Returns (obs, reward, done, info). Reward is the runner's; the
         tackler's is its negation (zero-sum) and is exposed in info."""
-        f, rw = self.cfg.field, self.cfg.reward
-        prev_x = self.r_pos[:, 0].copy()
+        f, rw, tc = self.cfg.field, self.cfg.reward, self.cfg.tackle
+        dt = f.dt
+        prev_x = self.pos[:, RUNNER, 0].copy()
+        wrapped = self.wrap > 0
 
-        self._integrate(self.r_pos, self.r_vel, runner_action, self.runner, f.dt)
-        self._integrate(self.t_pos, self.t_vel, tackler_action, self.tackler, f.dt)
+        action = np.stack([runner_action, tackler_action], axis=1).astype(np.float32)
+        apply_controls(self.pos, self.vel, action, self.bodies, dt, stunned=self.stun > 0)
+
+        # Wrapped-up pile: both move together at their shared momentum, slowing down.
+        if wrapped.any():
+            m = self.bodies.mass_lb[wrapped]
+            v_pile = (self.vel[wrapped] * m[..., None]).sum(1) / m.sum(1)[:, None]
+            sp = np.linalg.norm(v_pile, axis=1, keepdims=True)
+            v_pile *= np.maximum(0.0, sp - tc.wrap_decel * dt) / np.maximum(sp, 1e-6)
+            prev = self.pos[wrapped] - self.vel[wrapped] * dt     # undo free movement
+            self.vel[wrapped] = v_pile[:, None, :]
+            self.pos[wrapped] = prev + v_pile[:, None, :] * dt
+
+        pre_vel = self.vel.copy()
+        resolve_collisions(self.pos, self.vel, self.bodies)
+        attempt, made = self._tackle_attempts(pre_vel)
+        missed = attempt & ~made
+        self.wrap[made] = tc.wrap_time
+        self.stun[missed, TACKLER] = tc.miss_stun
+        self.cooldown[missed] = tc.miss_cooldown
+        self.vel[missed, RUNNER] *= tc.miss_slowdown
+
         self.t += 1
+        self.stun = np.maximum(0.0, self.stun - dt)
+        self.cooldown = np.maximum(0.0, self.cooldown - dt)
+        self.wrap[wrapped] -= dt                     # plays wrapped before this step
+        tackled_now = wrapped & (self.wrap <= 1e-6)
 
-        # Field edges: x is clamped (you can't run backwards out of the sim),
-        # crossing a sideline in y ends the play.
-        self.r_pos[:, 0] = np.clip(self.r_pos[:, 0], 0.0, f.length)
-        self.t_pos[:, 0] = np.clip(self.t_pos[:, 0], 0.0, f.length)
-        self.t_pos[:, 1] = np.clip(self.t_pos[:, 1], 0.0, f.width)
+        # Field edges: x is clamped, crossing a sideline in y ends the play.
+        self.pos[:, :, 0] = np.clip(self.pos[:, :, 0], 0.0, f.length)
+        self.pos[:, TACKLER, 1] = np.clip(self.pos[:, TACKLER, 1], 0.0, f.width)
 
-        gained = self.r_pos[:, 0] - prev_x
+        gained = self.pos[:, RUNNER, 0] - prev_x
         self.yards += gained
 
-        dist = np.linalg.norm(self.r_pos - self.t_pos, axis=1)
-        touchdown = self.r_pos[:, 0] >= f.length
-        out_of_bounds = (self.r_pos[:, 1] < 0.0) | (self.r_pos[:, 1] > f.width)
-        tackled = (dist < f.tackle_radius) & ~touchdown & ~out_of_bounds
+        ry = self.pos[:, RUNNER, 1]
+        touchdown = self.pos[:, RUNNER, 0] >= f.length
+        out_of_bounds = ((ry < 0.0) | (ry > f.width)) & ~touchdown
+        tackled = tackled_now & ~touchdown & ~out_of_bounds
         timeout = (self.t >= f.max_steps) & ~touchdown & ~out_of_bounds & ~tackled
         done = touchdown | tackled | out_of_bounds | timeout
 
@@ -178,35 +238,31 @@ class OneVOneSim:
             "yards": self.yards.copy(),
             "steps": self.t.copy(),
             "tackler_reward": -reward,
+            "tackle_attempt": attempt, "tackle_made": made, "tackle_missed": missed,
+            "wrapped": self.wrap > 0,
             # Final positions before auto-reset, for rendering/analysis.
-            "r_pos": self.r_pos.copy(), "t_pos": self.t_pos.copy(),
+            "r_pos": self.pos[:, RUNNER].copy(), "t_pos": self.pos[:, TACKLER].copy(),
         }
         if done.any():
             self.reset(done)
         return self.observe(), reward, done, info
 
     # ------------------------------------------------------------ observation
-    def observe(self) -> np.ndarray:
-        f = self.cfg.field
+    def _obs(self, me: int, other: int) -> np.ndarray:
+        f, b = self.cfg.field, self.bodies
         obs = np.empty((self.n, OBS_DIM), np.float32)
-        obs[:, 0] = self.r_pos[:, 0] / f.length
-        obs[:, 1] = self.r_pos[:, 1] / f.width
-        obs[:, 2:4] = self.r_vel / self.runner.max_speed[:, None]
-        obs[:, 4:6] = (self.t_pos - self.r_pos) / 20.0
-        obs[:, 6:8] = self.t_vel / self.tackler.max_speed[:, None]
-        obs[:, 8] = (f.length - self.r_pos[:, 0]) / f.length
-        obs[:, 9] = np.minimum(self.r_pos[:, 1], f.width - self.r_pos[:, 1]) / self._half_w
+        obs[:, 0] = self.pos[:, me, 0] / f.length
+        obs[:, 1] = self.pos[:, me, 1] / f.width
+        obs[:, 2:4] = self.vel[:, me] / b.max_speed[:, me, None]
+        obs[:, 4:6] = (self.pos[:, other] - self.pos[:, me]) / 20.0
+        obs[:, 6:8] = self.vel[:, other] / b.max_speed[:, other, None]
+        obs[:, 8] = (f.length - self.pos[:, RUNNER, 0]) / f.length
+        obs[:, 9] = np.minimum(self.pos[:, me, 1], f.width - self.pos[:, me, 1]) / self._half_w
         return obs
+
+    def observe(self) -> np.ndarray:
+        return self._obs(RUNNER, TACKLER)
 
     def observe_tackler(self) -> np.ndarray:
         """Mirror observation for the tackler (used once it learns too)."""
-        f = self.cfg.field
-        obs = np.empty((self.n, OBS_DIM), np.float32)
-        obs[:, 0] = self.t_pos[:, 0] / f.length
-        obs[:, 1] = self.t_pos[:, 1] / f.width
-        obs[:, 2:4] = self.t_vel / self.tackler.max_speed[:, None]
-        obs[:, 4:6] = (self.r_pos - self.t_pos) / 20.0
-        obs[:, 6:8] = self.r_vel / self.runner.max_speed[:, None]
-        obs[:, 8] = (f.length - self.r_pos[:, 0]) / f.length
-        obs[:, 9] = np.minimum(self.t_pos[:, 1], f.width - self.t_pos[:, 1]) / self._half_w
-        return obs
+        return self._obs(TACKLER, RUNNER)

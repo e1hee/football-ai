@@ -1,0 +1,178 @@
+[
+ {
+  "runner": "random",
+  "tackler": "pursuit",
+  "spread": null,
+  "steps_per_s": 1255150,
+  "plays": 22790,
+  "outcomes": {
+   "touchdown": 0.0,
+   "tackled": 0.811,
+   "out_of_bounds": 0.062,
+   "timeout": 0.127
+  },
+  "mean_yards": 1.06,
+  "tackle_attempts_per_play": 1.08,
+  "tackle_success": 0.772
+ },
+ {
+  "runner": "straight",
+  "tackler": "pursuit",
+  "spread": null,
+  "steps_per_s": 1524488,
+  "plays": 19335,
+  "outcomes": {
+   "touchdown": 0.84,
+   "tackled": 0.16
+  },
+  "mean_yards": 47.04,
+  "tackle_attempts_per_play": 0.21,
+  "tackle_success": 0.764
+ },
+ {
+  "runner": "evasive",
+  "tackler": "pursuit",
+  "spread": null,
+  "steps_per_s": 1411136,
+  "plays": 18799,
+  "outcomes": {
+   "touchdown": 0.867,
+   "tackled": 0.133
+  },
+  "mean_yards": 48.37,
+  "tackle_attempts_per_play": 0.18,
+  "tackle_success": 0.734
+ },
+ {
+  "runner": "random",
+  "tackler": "pursuit",
+  "spread": 8.0,
+  "steps_per_s": 1246718,
+  "plays": 30124,
+  "outcomes": {
+   "touchdown": 0.0,
+   "tackled": 0.901,
+   "out_of_bounds": 0.04,
+   "timeout": 0.059
+  },
+  "mean_yards": -0.22,
+  "tackle_attempts_per_play": 1.18,
+  "tackle_success": 0.778
+ },
+ {
+  "runner": "straight",
+  "tackler": "pursuit",
+  "spread": 8.0,
+  "steps_per_s": 1364266,
+  "plays": 24694,
+  "outcomes": {
+   "touchdown": 0.596,
+   "tackled": 0.404
+  },
+  "mean_yards": 34.94,
+  "tackle_attempts_per_play": 0.54,
+  "tackle_success": 0.76
+ },
+ {
+  "runner": "evasive",
+  "tackler": "pursuit",
+  "spread": 8.0,
+  "steps_per_s": 1286423,
+  "plays": 23289,
+  "outcomes": {
+   "touchdown": 0.654,
+   "tackled": 0.346
+  },
+  "mean_yards": 37.77,
+  "tackle_attempts_per_play": 0.47,
+  "tackle_success": 0.737
+ },
+ {
+  "runner": "random",
+  "tackler": "angle",
+  "spread": null,
+  "steps_per_s": 1136298,
+  "plays": 25406,
+  "outcomes": {
+   "touchdown": 0.0,
+   "tackled": 0.873,
+   "out_of_bounds": 0.042,
+   "timeout": 0.084
+  },
+  "mean_yards": 0.24,
+  "tackle_attempts_per_play": 1.13,
+  "tackle_success": 0.79
+ },
+ {
+  "runner": "straight",
+  "tackler": "angle",
+  "spread": null,
+  "steps_per_s": 1204708,
+  "plays": 21880,
+  "outcomes": {
+   "touchdown": 0.716,
+   "tackled": 0.284
+  },
+  "mean_yards": 41.13,
+  "tackle_attempts_per_play": 0.36,
+  "tackle_success": 0.786
+ },
+ {
+  "runner": "evasive",
+  "tackler": "angle",
+  "spread": null,
+  "steps_per_s": 1165184,
+  "plays": 21028,
+  "outcomes": {
+   "touchdown": 0.756,
+   "tackled": 0.244
+  },
+  "mean_yards": 43.03,
+  "tackle_attempts_per_play": 0.32,
+  "tackle_success": 0.764
+ },
+ {
+  "runner": "random",
+  "tackler": "angle",
+  "spread": 8.0,
+  "steps_per_s": 1119798,
+  "plays": 35054,
+  "outcomes": {
+   "touchdown": 0.0,
+   "tackled": 0.942,
+   "out_of_bounds": 0.027,
+   "timeout": 0.031
+  },
+  "mean_yards": -0.79,
+  "tackle_attempts_per_play": 1.22,
+  "tackle_success": 0.789
+ },
+ {
+  "runner": "straight",
+  "tackler": "angle",
+  "spread": 8.0,
+  "steps_per_s": 1149216,
+  "plays": 36883,
+  "outcomes": {
+   "touchdown": 0.288,
+   "tackled": 0.712
+  },
+  "mean_yards": 20.25,
+  "tackle_attempts_per_play": 0.91,
+  "tackle_success": 0.786
+ },
+ {
+  "runner": "evasive",
+  "tackler": "angle",
+  "spread": 8.0,
+  "steps_per_s": 1090180,
+  "plays": 31797,
+  "outcomes": {
+   "touchdown": 0.382,
+   "tackled": 0.618
+  },
+  "mean_yards": 24.74,
+  "tackle_attempts_per_play": 0.82,
+  "tackle_success": 0.757
+ }
+]

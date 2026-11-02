@@ -5,7 +5,10 @@ requires-python = ">=3.12"
 dependencies = [
     "gymnasium>=1.4.0",
     "numpy>=2.5.4",
+    "pandas>=3.1.0",
     "pillow>=13.0.0",
+    "pyarrow>=26.0.0",
+    "pymunk>=7.3.1",
     "pytest>=9.2.0",
     "pyyaml>=6.0.3",
     "stable-baselines3>=2.9.2",

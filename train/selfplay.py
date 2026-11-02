@@ -38,33 +38,53 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Frozen:
-    """A saved PPO policy acting for one side, as `fn(sim) -> (N, 2)`."""
+    """A saved PPO policy acting for one side, as `fn(sim) -> (N, act)`."""
 
     def __init__(self, path: Path, side: str):
         self.path, self.side = path, side
         self.model = PPO.load(str(path), device="cpu")
 
-    def __call__(self, sim: OneVOneSim) -> np.ndarray:
-        obs = sim.observe() if self.side == "runner" else sim.observe_tackler()
+    def observe(self, sim: OneVOneSim) -> np.ndarray:
+        return sim.observe() if self.side == "runner" else sim.observe_tackler()
+
+    def act(self, obs: np.ndarray) -> np.ndarray:
         a, _ = self.model.predict(obs, deterministic=False)
         return a.astype(np.float32)
 
+    def __call__(self, sim: OneVOneSim) -> np.ndarray:
+        return self.act(self.observe(sim))
+
 
 class Pool:
-    """Assign each play slot to one opponent; recomputed whenever the pool changes."""
+    """Assign each play slot to one opponent; recomputed whenever the pool changes.
+
+    Frozen opponents only run on the slots assigned to them, from one shared
+    observation: late in self-play the pool holds 12+ networks, and running
+    each on every slot made the pool ~3/4 of the rollout time."""
 
     def __init__(self, n: int, opponents: list, weights: list[float], seed: int):
         rng = np.random.default_rng(seed)
         w = np.asarray(weights, float)
         self.assign = rng.choice(len(opponents), size=n, p=w / w.sum())
         self.opponents = opponents
+        self.masks = [self.assign == k for k in range(len(opponents))]
 
     def __call__(self, sim: OneVOneSim) -> np.ndarray:
-        acts = {k: opp(sim) for k, opp in enumerate(self.opponents) if (self.assign == k).any()}
+        obs: dict[str, np.ndarray] = {}
+        acts = {}
+        for k, opp in enumerate(self.opponents):
+            m = self.masks[k]
+            if not m.any():
+                continue
+            if isinstance(opp, Frozen):
+                if opp.side not in obs:
+                    obs[opp.side] = opp.observe(sim)
+                acts[k] = opp.act(obs[opp.side][m])
+            else:
+                acts[k] = opp(sim)[m]
         out = np.zeros((sim.n, max(a.shape[1] for a in acts.values())), np.float32)
         for k, a in acts.items():   # 1v1 scripted 2-column actions get square-up 0
-            m = self.assign == k
-            out[m, :a.shape[1]] = a[m]
+            out[self.masks[k], :a.shape[1]] = a
         return out
 
 
@@ -118,6 +138,7 @@ def main() -> None:
                    help="end plays once the runner leads every defender by this many yd (see scripts/breakaway_check.py)")
     p.add_argument("--full-play-share", type=float, default=0.1)
     p.add_argument("--yards-scale", type=float, default=0.1)
+    p.add_argument("--blocker-shaping", type=float, default=0.0, help="team sim: OL shaping per yard (EXP-010)")
     p.add_argument("--sim", choices=["1v1", "3v3"], default="1v1", help="3v3 = RB screen (sim/team.py)")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--seed", type=int, default=0)
@@ -132,7 +153,8 @@ def main() -> None:
                                       full_play_share=args.full_play_share, reaction_delay=args.delay),
                     tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
                                         sidestep_weight=args.sidestep),
-                    reward=RewardConfig(yards_scale=args.yards_scale), facing=args.facing)
+                    reward=RewardConfig(yards_scale=args.yards_scale, blocker_shaping=args.blocker_shaping),
+                    facing=args.facing)
     if args.sim == "3v3":
         # Same field/tackle/reward settings; formation and rosters from TeamConfig defaults.
         cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, reward=cfg.reward, facing=args.facing)

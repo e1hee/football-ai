@@ -1,4 +1,7 @@
-"""Train the runner with PPO against a fixed scripted tackler.
+"""Train one side with PPO against a fixed opponent (scripted or a frozen checkpoint).
+
+Default: the runner learns against the scripted angle tackler. With
+`--side tackler --opponent ckpt:path/to/runner.zip` the tackler learns instead.
 
 Each "generation" is a checkpoint saved at an even fraction of training
 (gen 0 = untrained). Every generation is evaluated on the same 4096 starting
@@ -22,11 +25,19 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from sim.core import FieldConfig, RewardConfig, SimConfig
 from sim.policies import angle_tackler, pursuit_tackler
-from train.evaluate import evaluate
-from train.vec_env import RunnerVecEnv
+from sim.policies import evasive_runner, straight_runner
+from train.evaluate import evaluate, ppo_runner
+from train.vec_env import SideVecEnv
 
 ROOT = Path(__file__).resolve().parents[1]
 TACKLERS = {"angle": angle_tackler, "pursuit": pursuit_tackler}
+
+
+def make_runner(name: str):
+    """Fixed runner opponent as fn(sim, obs) -> actions."""
+    if name.startswith("ckpt:"):
+        return ppo_runner(name[5:])
+    return {"evasive": lambda sim, obs: evasive_runner(sim), "straight": lambda sim, obs: straight_runner(sim)}[name]
 
 
 class GenerationCallback(BaseCallback):
@@ -91,7 +102,10 @@ def main() -> None:
     p.add_argument("--gamma", type=float, default=0.995)
     p.add_argument("--ent", type=float, default=0.0)
     p.add_argument("--net", type=int, nargs="+", default=[128, 128])
-    p.add_argument("--tackler", choices=list(TACKLERS), default="angle")
+    p.add_argument("--tackler", choices=list(TACKLERS), default="angle", help="scripted opponent when --side runner")
+    p.add_argument("--side", choices=["runner", "tackler"], default="runner")
+    p.add_argument("--opponent", default=None,
+                   help="when --side tackler: evasive | straight | ckpt:path/to/runner.zip")
     p.add_argument("--spread", type=float, default=8.0)
     p.add_argument("--breakaway-lead", type=float, default=None,
                    help="end plays once the runner leads every defender by this many yd (see scripts/breakaway_check.py)")
@@ -116,8 +130,12 @@ def main() -> None:
                             tackle_penalty=args.tackle_penalty, out_of_bounds_penalty=args.oob_penalty,
                             time_penalty=args.time_penalty),
     )
-    tackler = TACKLERS[args.tackler]
-    venv = RunnerVecEnv(args.n_envs, cfg, tackler, seed=args.seed)
+    if args.side == "runner":
+        tackler = TACKLERS[args.tackler]
+        venv = SideVecEnv(args.n_envs, cfg, tackler, side="runner", seed=args.seed)
+    else:
+        runner_eval = make_runner(args.opponent or "evasive")
+        venv = SideVecEnv(args.n_envs, cfg, lambda sim: runner_eval(sim, sim.observe()), side="tackler", seed=args.seed)
 
     cfg_dump = {"experiment": args.exp, "args": vars(args), "sim": dataclasses.asdict(cfg)}
     (out / "config.yaml").write_text(yaml.safe_dump(json.loads(json.dumps(cfg_dump)), allow_unicode=True, sort_keys=False))
@@ -130,10 +148,14 @@ def main() -> None:
     )
 
     def eval_fn(m):
-        def act(sim, obs):
-            a, _ = m.predict(obs, deterministic=True)
-            return a
-        return evaluate(act, tackler, cfg, n_plays=4096)
+        if args.side == "runner":
+            def act(sim, obs):
+                return m.predict(obs, deterministic=True)[0]
+            return evaluate(act, tackler, cfg, n_plays=4096)
+
+        def t_act(sim, *_):
+            return m.predict(sim.observe_tackler(), deterministic=True)[0]
+        return evaluate(runner_eval, t_act, cfg, n_plays=4096)
 
     every = args.timesteps // args.gens
     cb = GenerationCallback(out, every, eval_fn, venv)

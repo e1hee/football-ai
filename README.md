@@ -6,7 +6,8 @@ The whole process is logged experiment by experiment for a narrated video series
 
 > 보상만으로 AI에게 미식축구를 가르치고, 그 과정을 실험 하나하나 기록해 영상으로 만드는 프로젝트.
 
-<p align="center"><img src="experiments/EXP-002-ppo-runner-v1/curves.png" width="720"></p>
+<p align="center"><img src="experiments/EXP-004-fine-gens-runner/clips/exp004_runner_grid.png" width="540"></p>
+<p align="center"><sub>Same 9 starting setups, 61 generations of the AI runner drawn at once (purple = generation 0, yellow = generation 60).</sub></p>
 
 ## Experiments so far
 
@@ -16,6 +17,7 @@ The whole process is logged experiment by experiment for a narrated video series
 | [EXP-001](experiments/EXP-001-physics-and-tackling/notes.md) | NFL-fitted acceleration/braking/cutting, collisions (checked against Pymunk), probabilistic tackles | With momentum, a chasing defender overruns the runner. Taking an angle and breaking down drops straight-run TDs to 29% |
 | [EXP-002](experiments/EXP-002-ppo-runner-v1/notes.md) | PPO runner vs the scripted tackler | 0% → 99% touchdowns in 2 generations (4 minutes). It found a hole in the tackler's prediction rule, not football |
 | [EXP-003](experiments/EXP-003-selfplay-v1/notes.md) | Self-play: the tackler learns too | The champion runner drops 100% → 61% in one phase, then both sides stall near 60% (the 1v1 equilibrium). The tackler learned to wait in the runner's lane instead of chasing |
+| [EXP-004](experiments/EXP-004-fine-gens-runner/notes.md) | Retrain with a checkpoint every 100k steps; draw all 61 generations at once on a colour gradient (`render/ghosts.py`) | The runner switched strategies mid-evolution (right side in gens 38-51, left from gen 52). Tackler that can't make the play just gives up and drifts to a corner |
 
 Each experiment folder has `notes.md` (hypothesis → attempt → result → surprises → next), `config.yaml`, metrics, and charts.
 Daily log: [`devlog/`](devlog/). Plan and milestones: [`PLAN.md`](PLAN.md).

@@ -1,0 +1,75 @@
+experiment: EXP-004-fine-gens-tackler
+args:
+  exp: EXP-004-fine-gens-tackler
+  timesteps: 6000000
+  gens: 60
+  n_envs: 512
+  n_steps: 64
+  batch: 8192
+  epochs: 5
+  lr: 0.0003
+  gamma: 0.995
+  ent: 0.0
+  net:
+  - 128
+  - 128
+  tackler: angle
+  side: tackler
+  opponent: ckpt:experiments/EXP-002-ppo-runner-v1/checkpoints/gen_025.zip
+  spread: 8.0
+  breakaway_lead: null
+  full_play_share: 0.1
+  yards_scale: 0.1
+  td_bonus: 0.0
+  tackle_penalty: 0.0
+  oob_penalty: 0.0
+  time_penalty: 0.0
+  seed: 0
+  threads: 4
+sim:
+  field:
+    length: 60.0
+    width: 53.3
+    runner_start_x: 5.0
+    tackler_gap: 10.0
+    tackler_lateral_spread: 8.0
+    dt: 0.1
+    max_steps: 100
+    breakaway_lead: null
+    full_play_share: 0.1
+  reward:
+    yards_scale: 0.1
+    touchdown_bonus: 0.0
+    tackle_penalty: 0.0
+    out_of_bounds_penalty: 0.0
+    time_penalty: 0.0
+  tackle:
+    reach: 0.5
+    base_logit: 1.2
+    headon_weight: 1.0
+    momentum_weight: 3.0
+    wrap_time: 0.4
+    wrap_decel: 6.0
+    miss_stun: 0.6
+    miss_cooldown: 0.9
+    miss_slowdown: 0.85
+  runner:
+    max_speed: 10.02
+    accel: 6.75
+    accel_k: 2.35
+    brake: 6.9
+    brake_k: 3.4
+    agility: 6.95
+    agility_drop: 0.16
+    mass_lb: 198
+    radius: 0.45
+  tackler:
+    max_speed: 9.65
+    accel: 5.95
+    accel_k: 2.7
+    brake: 6.25
+    brake_k: 3.95
+    agility: 7.0
+    agility_drop: 0.28
+    mass_lb: 194
+    radius: 0.45

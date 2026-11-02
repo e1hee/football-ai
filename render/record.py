@@ -23,6 +23,9 @@ class Play:
     outcome: str
     yards: float
     events: list[tuple[int, str]] = field(default_factory=list)  # (step, "made" | "missed")
+    # (T, 2) unit hips directions; None when the sim ran without facing.
+    r_face: np.ndarray | None = None
+    t_face: np.ndarray | None = None
 
     @property
     def steps(self) -> int:
@@ -42,6 +45,7 @@ def record_plays(
     obs = sim.reset()
     r_hist = [sim.r_pos.copy()]
     t_hist = [sim.t_pos.copy()]
+    f_hist = [sim.facing.copy()]
     finished = np.zeros(n_plays, bool)
     end_step = np.full(n_plays, -1)
     outcome = np.zeros(n_plays, np.int8)
@@ -58,6 +62,7 @@ def record_plays(
         # info holds positions *before* auto-reset, which is what we want.
         r_hist.append(info["r_pos"])
         t_hist.append(info["t_pos"])
+        f_hist.append(info["facing"])
         newly = done & ~finished
         end_step[newly] = step
         outcome[newly] = info["outcome"][newly]
@@ -66,9 +71,12 @@ def record_plays(
 
     r_all = np.stack(r_hist)  # (T+1, N, 2)
     t_all = np.stack(t_hist)
+    f_all = np.stack(f_hist) if sim.cfg.facing else None   # (T+1, N, 2 players, 2)
     return [
         Play(r_all[: end_step[i] + 1, i], t_all[: end_step[i] + 1, i],
-             OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i])
+             OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i],
+             None if f_all is None else f_all[: end_step[i] + 1, i, 0],
+             None if f_all is None else f_all[: end_step[i] + 1, i, 1])
         for i in range(n_plays)
     ]
 

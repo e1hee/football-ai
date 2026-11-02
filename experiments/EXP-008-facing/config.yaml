@@ -1,0 +1,82 @@
+experiment: EXP-008-facing
+args:
+  exp: EXP-008-facing
+  phases: '24'
+  phase_steps: '4000000'
+  runner_init: None
+  first: tackler
+  scripted_share: '0.3'
+  delay: '2'
+  scripted_tackler: angle
+  tackle_base: '2.3'
+  overspeed: '0.25'
+  sidestep: '0.2'
+  facing: 'True'
+  n_envs: '512'
+  spread: '8.0'
+  breakaway_lead: '2.0'
+  full_play_share: '0.1'
+  yards_scale: '0.1'
+  seed: '0'
+  threads: '4'
+sim:
+  field:
+    length: 60.0
+    width: 53.3
+    runner_start_x: 5.0
+    tackler_gap: 10.0
+    tackler_lateral_spread: 8.0
+    dt: 0.1
+    max_steps: 100
+    breakaway_lead: 2.0
+    breakaway_min_speed: 5.0
+    full_play_share: 0.1
+    reaction_delay: 2
+  reward:
+    yards_scale: 0.1
+    touchdown_bonus: 0.0
+    tackle_penalty: 0.0
+    out_of_bounds_penalty: 0.0
+    time_penalty: 0.0
+  tackle:
+    reach: 0.5
+    base_logit: 2.3
+    headon_weight: 1.0
+    momentum_weight: 3.0
+    wrap_time: 0.4
+    wrap_decel: 6.0
+    miss_stun: 0.6
+    miss_cooldown: 0.9
+    miss_slowdown: 0.85
+    control_speed: 4.5
+    overspeed_weight: 0.25
+    sidestep_weight: 0.2
+  runner:
+    max_speed: 10.02
+    accel: 6.75
+    accel_k: 2.35
+    brake: 6.9
+    brake_k: 3.4
+    agility: 6.95
+    agility_drop: 0.16
+    mass_lb: 198
+    radius: 0.45
+    back_speed: 0.784
+    back_accel: 0.873
+    turn_rate: 335.0
+    turn_rate_top: 174.0
+  tackler:
+    max_speed: 9.65
+    accel: 5.95
+    accel_k: 2.7
+    brake: 6.25
+    brake_k: 3.95
+    agility: 7.0
+    agility_drop: 0.28
+    mass_lb: 194
+    radius: 0.45
+    back_speed: 0.638
+    back_accel: 0.779
+    turn_rate: 252.0
+    turn_rate_top: 149.0
+  facing: true

@@ -114,6 +114,7 @@ def main() -> None:
     p.add_argument("--tackle-base", type=float, default=1.2)
     p.add_argument("--overspeed", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
+    p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
     p.add_argument("--yards-scale", type=float, default=0.1, help="reward per yard (scaled for PPO)")
     p.add_argument("--td-bonus", type=float, default=0.0)
     p.add_argument("--tackle-penalty", type=float, default=0.0)
@@ -135,6 +136,7 @@ def main() -> None:
         reward=RewardConfig(yards_scale=args.yards_scale, touchdown_bonus=args.td_bonus,
                             tackle_penalty=args.tackle_penalty, out_of_bounds_penalty=args.oob_penalty,
                             time_penalty=args.time_penalty),
+        facing=args.facing,
     )
     if args.side == "runner":
         tackler = TACKLERS[args.tackler]

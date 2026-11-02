@@ -11,6 +11,13 @@ reach, it attempts a tackle whose success depends on
 A made tackle wraps the runner up for a moment (they keep sliding forward
 together: yards after contact). A missed tackle leaves the tackler stumbling.
 
+With `SimConfig.facing` on, players also have hips (EXP-008): actions get a
+third number, "square up" in [0, 1]. 0 = face where you push (run), 1 = face
+the opponent (backpedal/shuffle while watching him). Facing turns at a
+limited rate and moving away from it is slower, so a defender who has turned
+his hips the wrong way can be beaten by a cut. Each player sees the other's
+facing (delayed like everything else).
+
 Coordinates: x runs downfield (0 = runner's start side, `length` = goal
 line), y runs across the field (0 and `width` are the sidelines).
 """
@@ -21,7 +28,7 @@ from dataclasses import field as dc_field
 
 import numpy as np
 
-from .physics import PROFILES, Bodies, Profile, apply_controls, resolve_collisions
+from .physics import PROFILES, Bodies, Profile, apply_controls, resolve_collisions, turn_facing
 
 RUNNER, TACKLER = 0, 1
 
@@ -90,9 +97,11 @@ class SimConfig:
     tackle: TackleConfig = dc_field(default_factory=TackleConfig)
     runner: Profile = dc_field(default_factory=lambda: PROFILES["WR"])
     tackler: Profile = dc_field(default_factory=lambda: PROFILES["DB"])
+    facing: bool = False        # body facing (hips); adds an action and 4 observations
 
 
-OBS_DIM = 12
+OBS_DIM = 12            # without facing; `sim.obs_dim` is the real size
+FACING_OBS_DIM = OBS_DIM + 4
 RUNNER_OBS_NAMES = [
     "x_norm", "y_norm",                     # own position / field size
     "vx_norm", "vy_norm",                   # own velocity / max speed
@@ -102,6 +111,9 @@ RUNNER_OBS_NAMES = [
     "dist_sideline_norm",                   # yards to nearest sideline / half width
     "tackler_stunned",                      # remaining stumble / miss_stun (0 = recovered)
     "wrapped",                              # 1 while the runner is wrapped up
+    # With facing on:
+    "facing_x", "facing_y",                 # own hips direction (unit)
+    "tackler_facing_x", "tackler_facing_y", # opponent's hips direction as seen
 ]
 
 OUTCOME_RUNNING, OUTCOME_TOUCHDOWN, OUTCOME_TACKLED, OUTCOME_OUT_OF_BOUNDS, OUTCOME_TIMEOUT = 0, 1, 2, 3, 4
@@ -130,11 +142,15 @@ class OneVOneSim:
         self.stun = np.zeros((n, 2), np.float32)     # >0: no control
         self.cooldown = np.zeros(n, np.float32)      # >0: tackler can't attempt
         self.full_run = np.ones(n, bool)             # False: breakaway early end applies
+        self.facing = np.zeros((n, 2, 2), np.float32)  # unit hips direction (used when cfg.facing)
+        self.obs_dim = FACING_OBS_DIM if self.cfg.facing else OBS_DIM
+        self.act_dim = 3 if self.cfg.facing else 2
         self._half_w = self.cfg.field.width / 2.0
         # Past states for the reaction delay: index 0 = `reaction_delay` steps ago.
         d = self.cfg.field.reaction_delay
         self._hist_pos = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
         self._hist_vel = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
+        self._hist_face = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
 
     def seen(self, player: int) -> tuple[np.ndarray, np.ndarray]:
         """(pos, vel) of `player` as the OTHER player perceives it: delayed by
@@ -143,17 +159,26 @@ class OneVOneSim:
             return self.pos[:, player], self.vel[:, player]
         return self._hist_pos[0, :, player], self._hist_vel[0, :, player]
 
+    def seen_facing(self, player: int) -> np.ndarray:
+        """Hips direction of `player` as the other player perceives it."""
+        if self._hist_face is None:
+            return self.facing[:, player]
+        return self._hist_face[0, :, player]
+
     def _push_history(self, mask: np.ndarray | None = None) -> None:
         if self._hist_pos is None:
             return
         if mask is None:   # one step forward for every play
             self._hist_pos[:-1] = self._hist_pos[1:]
             self._hist_vel[:-1] = self._hist_vel[1:]
+            self._hist_face[:-1] = self._hist_face[1:]
             self._hist_pos[-1] = self.pos
             self._hist_vel[-1] = self.vel
+            self._hist_face[-1] = self.facing
         else:              # fresh plays: the past is the starting position
             self._hist_pos[:, mask] = self.pos[mask]
             self._hist_vel[:, mask] = self.vel[mask]
+            self._hist_face[:, mask] = self.facing[mask]
 
     # Views kept for renderers/tests written against the original API.
     @property
@@ -183,6 +208,8 @@ class OneVOneSim:
             s = f.tackler_lateral_spread
             self.pos[mask, TACKLER, 1] = np.clip(ry + self.rng.uniform(-s, s, k), 1, f.width - 1)
         self.vel[mask] = 0
+        self.facing[mask, RUNNER] = (1.0, 0.0)      # facing downfield
+        self.facing[mask, TACKLER] = (-1.0, 0.0)    # facing the runner
         self.t[mask] = 0
         self.yards[mask] = 0
         self.wrap[mask] = 0
@@ -233,8 +260,12 @@ class OneVOneSim:
         prev_x = self.pos[:, RUNNER, 0].copy()
         wrapped = self.wrap > 0
 
-        action = np.stack([runner_action, tackler_action], axis=1).astype(np.float32)
-        apply_controls(self.pos, self.vel, action, self.bodies, dt, stunned=self.stun > 0)
+        action = np.stack([self._pad(runner_action), self._pad(tackler_action)], axis=1)
+        push = action[..., :2]
+        if self.cfg.facing:
+            self._turn_hips(push, np.clip(action[..., 2], 0.0, 1.0))
+        apply_controls(self.pos, self.vel, push, self.bodies, dt, stunned=self.stun > 0,
+                       facing=self.facing if self.cfg.facing else None)
 
         # Wrapped-up pile: both move together at their shared momentum, slowing down.
         if wrapped.any():
@@ -318,6 +349,7 @@ class OneVOneSim:
             "breakaway": breakaway,
             # Final positions before auto-reset, for rendering/analysis.
             "r_pos": self.pos[:, RUNNER].copy(), "t_pos": self.pos[:, TACKLER].copy(),
+            "facing": self.facing.copy(),
             # Last observation of finished plays (RL bootstrapping on time-outs).
             "terminal_obs": self.observe() if done.any() else None,
             "terminal_obs_tackler": self.observe_tackler() if done.any() else None,
@@ -326,12 +358,31 @@ class OneVOneSim:
             self.reset(done)
         return self.observe(), reward, done, info
 
+    def _pad(self, a: np.ndarray) -> np.ndarray:
+        """Actions as (N, 3); a 2-column action means square-up 0 (face where you push)."""
+        a = np.asarray(a, np.float32)
+        if a.shape[1] >= 3:
+            return a[:, :3]
+        return np.concatenate([a, np.zeros((self.n, 1), np.float32)], axis=1)
+
+    def _turn_hips(self, push: np.ndarray, square: np.ndarray) -> None:
+        """Turn each player's hips toward a blend of the push direction and the
+        (perceived) opponent, at the body's limited turn rate."""
+        p_norm = np.linalg.norm(push, axis=-1, keepdims=True)
+        push_dir = push / np.maximum(p_norm, 1e-6) * (p_norm > 0.05)
+        to_opp = np.stack([self.seen(TACKLER)[0] - self.pos[:, RUNNER],
+                           self.seen(RUNNER)[0] - self.pos[:, TACKLER]], axis=1)
+        to_opp /= np.maximum(np.linalg.norm(to_opp, axis=-1, keepdims=True), 1e-6)
+        target = (1.0 - square[..., None]) * push_dir + square[..., None] * to_opp
+        speed = np.linalg.norm(self.vel, axis=-1)
+        turn_facing(self.facing, target, speed, self.bodies, self.cfg.field.dt, stunned=self.stun > 0)
+
     # ------------------------------------------------------------ observation
     def _obs(self, me: int, other: int) -> np.ndarray:
         f, b = self.cfg.field, self.bodies
         o_pos, o_vel = self.seen(other)          # the opponent as perceived (maybe delayed)
         runner_x = self.pos[:, RUNNER, 0] if me == RUNNER else o_pos[:, 0]
-        obs = np.empty((self.n, OBS_DIM), np.float32)
+        obs = np.empty((self.n, self.obs_dim), np.float32)
         obs[:, 0] = self.pos[:, me, 0] / f.length
         obs[:, 1] = self.pos[:, me, 1] / f.width
         obs[:, 2:4] = self.vel[:, me] / b.max_speed[:, me, None]
@@ -343,6 +394,9 @@ class OneVOneSim:
         # tackler: own recovery), so both observe it.
         obs[:, 10] = self.stun[:, TACKLER] / max(self.cfg.tackle.miss_stun, 1e-6)
         obs[:, 11] = (self.wrap > 0).astype(np.float32)
+        if self.cfg.facing:
+            obs[:, 12:14] = self.facing[:, me]
+            obs[:, 14:16] = self.seen_facing(other)
         return obs
 
     def observe(self) -> np.ndarray:

@@ -11,6 +11,9 @@ Arrays are shaped (N plays, P players, ...). Three pieces:
      - sideways: lateral(v) = L0 (1 - c (v/V)^2) -> sharp cuts only at low speed
    Turning at speed therefore costs: the lateral cap bends the path slowly,
    and slowing down first to cut harder is a real trade-off.
+   Optional body facing (hips), from NFL tracking `o` (see
+   `analysis/orientation_from_bdb.py`): facing turns at a limited rate, and
+   pushing or moving away from where you face is weaker / slower (backpedal).
 
 2. `resolve_collisions`: players are discs that can't overlap. Overlaps are
    pushed apart by inverse mass, and the approaching velocity component is
@@ -43,6 +46,11 @@ class Profile:
     agility_drop: float
     mass_lb: float
     radius: float = 0.45  # yd; ~shoulder half-width plus pads
+    # Body facing (only used when the sim turns facing on). Defaults: DB.
+    back_speed: float = 0.64     # top speed moving straight backwards / forwards
+    back_accel: float = 0.78     # push strength straight backwards / forwards
+    turn_rate: float = 250.0     # deg/s the hips can turn when slow ...
+    turn_rate_top: float = 150.0 # ... and at top speed
 
     def scaled(self, **mult: float) -> "Profile":
         """Copy with some fields multiplied, e.g. scaled(max_speed=0.9)."""
@@ -52,14 +60,33 @@ class Profile:
         return Profile(**d)
 
 
-def load_profiles(path: Path = PARAMS_PATH) -> dict[str, Profile]:
+ORIENT_PATH = Path(__file__).with_name("orientation_params.json")
+
+
+def facing_params(g: dict) -> dict:
+    """Facing limits from one group's `orientation_from_bdb` aggregates (p99s)."""
+    acc = list(g["acc_p99_by_angle_slow"].values())
+    turn = list(g["o_turn_p99_by_speed"].values())
+    return {
+        "back_speed": round(g["speed_p99_off_135_181"] / g["speed_p99_off_0_45"], 3),
+        "back_accel": round(acc[-1] / max(acc), 3),
+        "turn_rate": float(max(turn[:5])),      # slower than 5 yd/s
+        "turn_rate_top": float(turn[-1]),       # 8+ yd/s
+    }
+
+
+def load_profiles(path: Path = PARAMS_PATH, orient_path: Path = ORIENT_PATH) -> dict[str, Profile]:
     fit = json.loads(path.read_text())["fit"]
-    return {g: Profile(**{k: v for k, v in p.items() if k != "rmse"}) for g, p in fit.items()}
+    orient = json.loads(orient_path.read_text())["groups"] if orient_path.exists() else {}
+    return {g: Profile(**{k: v for k, v in p.items() if k != "rmse"},
+                       **(facing_params(orient[g]) if g in orient else {}))
+            for g, p in fit.items()}
 
 
 # Fallback numbers (from the 2024 fit) so the sim runs without the json.
 DEFAULT_PROFILES = {
-    "WR": Profile(10.02, 6.75, 2.35, 6.9, 3.4, 6.95, 0.16, 198),
+    "WR": Profile(10.02, 6.75, 2.35, 6.9, 3.4, 6.95, 0.16, 198,
+                  back_speed=0.78, back_accel=0.87, turn_rate=335, turn_rate_top=174),
     "DB": Profile(9.65, 5.95, 2.7, 6.25, 3.95, 7.0, 0.28, 194),
 }
 try:
@@ -72,7 +99,8 @@ class Bodies:
     """Per-player physical attributes as (N, P) arrays, so every play and
     every player can differ (roster experiments edit these)."""
 
-    FIELDS = ("max_speed", "accel", "accel_k", "brake", "brake_k", "agility", "agility_drop", "mass_lb", "radius")
+    FIELDS = ("max_speed", "accel", "accel_k", "brake", "brake_k", "agility", "agility_drop", "mass_lb", "radius",
+              "back_speed", "back_accel", "turn_rate", "turn_rate_top")
 
     def __init__(self, n: int, profiles: list[Profile]):
         self.n, self.p = n, len(profiles)
@@ -94,12 +122,40 @@ def _caps(speed: np.ndarray, b: Bodies):
     return fwd, brk, lat
 
 
-def apply_controls(pos, vel, action, b: Bodies, dt: float, stunned=None):
+def _away(dir_a, dir_b):
+    """0 when two unit vectors agree, 1 when opposite."""
+    return np.clip((1.0 - np.sum(dir_a * dir_b, axis=-1)) / 2.0, 0.0, 1.0)
+
+
+def turn_facing(facing, target, speed, b: Bodies, dt: float, stunned=None):
+    """Rotate unit `facing` (N, P, 2) toward `target` directions in place, at most
+    turn_rate(v) * dt. Zero-length targets (or stunned players) keep facing."""
+    t_norm = np.linalg.norm(target, axis=-1)
+    tgt = target / np.maximum(t_norm, 1e-6)[..., None]
+    ang = np.arctan2(facing[..., 0] * tgt[..., 1] - facing[..., 1] * tgt[..., 0],
+                     np.sum(facing * tgt, axis=-1))                     # signed, radians
+    r = np.clip(speed / b.max_speed, 0.0, 1.0)
+    rate = np.deg2rad(b.turn_rate - (b.turn_rate - b.turn_rate_top) * r) * dt
+    step = np.clip(ang, -rate, rate) * (t_norm > 1e-3)
+    if stunned is not None:
+        step = np.where(stunned, 0.0, step)
+    c, s = np.cos(step), np.sin(step)
+    fx, fy = facing[..., 0].copy(), facing[..., 1].copy()
+    facing[..., 0] = c * fx - s * fy
+    facing[..., 1] = s * fx + c * fy
+    facing /= np.maximum(np.linalg.norm(facing, axis=-1, keepdims=True), 1e-6)
+
+
+def apply_controls(pos, vel, action, b: Bodies, dt: float, stunned=None, facing=None):
     """Advance positions/velocities in place.
 
     action: (N, P, 2) desired push direction and strength, clipped to the unit disk.
     stunned: optional (N, P) bool; stunned players get no control (they coast
     and decelerate, e.g. after whiffing a tackle).
+    facing: optional (N, P, 2) unit hips direction. Pushing away from it is
+    weaker (down to `back_accel`), and moving away from it has a lower top
+    speed (down to `back_speed` when backpedalling); above that cap you slow
+    down at braking rate rather than stopping dead.
     """
     a = np.asarray(action, np.float32)
     norm = np.linalg.norm(a, axis=-1, keepdims=True)
@@ -119,6 +175,8 @@ def apply_controls(pos, vel, action, b: Bodies, dt: float, stunned=None):
     acc_t = np.where(a_t >= 0, a_t * fwd_cap, a_t * brk_cap)
     acc_l = a_l * lat_cap
     acc = acc_t[..., None] * u + acc_l[..., None] * n_
+    if facing is not None:
+        acc *= (1.0 - (1.0 - b.back_accel) * _away(push_dir, facing))[..., None]
 
     if stunned is not None and stunned.any():
         # No control: friction slows them at a third of their braking power.
@@ -128,6 +186,12 @@ def apply_controls(pos, vel, action, b: Bodies, dt: float, stunned=None):
     vel += acc * dt
     new_speed = np.linalg.norm(vel, axis=-1, keepdims=True)
     vel *= np.where(new_speed > b.max_speed[..., None], b.max_speed[..., None] / np.maximum(new_speed, 1e-6), 1.0)
+    if facing is not None:
+        sp = np.linalg.norm(vel, axis=-1)
+        v_dir = vel / np.maximum(sp, 1e-6)[..., None]
+        cap = b.max_speed * (1.0 - (1.0 - b.back_speed) * _away(v_dir, facing) ** 0.8)
+        allowed = np.maximum(cap, speed - brk_cap * dt)
+        vel *= np.where(sp > allowed, allowed / np.maximum(sp, 1e-6), 1.0)[..., None]
     pos += vel * dt
 
 

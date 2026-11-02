@@ -217,3 +217,60 @@ def test_breakaway_needs_the_runner_to_be_running_away():
     sim.t_pos[:] = [[17.0, 30.0]] * 2      # 3 yd behind, off to the side
     _, _, done, info = sim.step(np.zeros((2, 2), np.float32), np.zeros((2, 2), np.float32))
     assert not info["breakaway"].any() and not done.any()
+
+
+# ---------------------------------------------------------------- facing (EXP-008)
+def _facing_sim(n=4, **field):
+    sim = OneVOneSim(n, SimConfig(field=FieldConfig(**field), facing=True), seed=3)
+    sim.reset()
+    sim.t_pos[:] = (40.0, 5.0)   # tackler far away: no contact
+    return sim
+
+
+def test_facing_adds_an_action_and_observations():
+    sim = _facing_sim()
+    assert sim.act_dim == 3 and sim.observe().shape == (4, OBS_DIM + 4)
+    assert np.allclose(sim.facing[:, 0], (1, 0)) and np.allclose(sim.facing[:, 1], (-1, 0))
+
+
+def test_hips_turn_at_a_limited_rate():
+    sim = _facing_sim()
+    back = np.tile([-1.0, 0.0, 0.0], (4, 1)).astype(np.float32)     # push straight back, face it
+    sim.step(back, np.zeros((4, 2)))
+    turned = np.degrees(np.arccos(np.clip(sim.facing[:, 0, 0], -1, 1)))
+    assert np.allclose(turned, sim.cfg.runner.turn_rate * 0.1, atol=1.0)  # 33.5 deg, not 180
+
+
+def test_backpedal_is_slower_than_running():
+    sim = _facing_sim(max_steps=1000)
+    sim.r_pos[:] = (30.0, 26.0)
+    sim.t_pos[:] = (55.0, 26.0)
+    # Square up to the tackler (downfield at x=40) while pushing away from him: backpedal.
+    away = np.tile([-1.0, 0.0, 1.0], (4, 1)).astype(np.float32)
+    for _ in range(25):
+        sim.step(away, np.zeros((4, 2)))
+    back_speed = np.linalg.norm(sim.r_vel, axis=1)
+    V = sim.cfg.runner.max_speed
+    assert np.all(back_speed < sim.cfg.runner.back_speed * V + 0.05)
+    assert np.all(back_speed > 0.9 * sim.cfg.runner.back_speed * V)
+
+
+def test_square_up_faces_the_opponent_while_shuffling():
+    sim = _facing_sim()
+    sim.r_pos[:] = (30.0, 26.0)
+    sim.t_pos[:] = (40.0, 26.0)
+    side = np.tile([0.0, 1.0, 1.0], (4, 1)).astype(np.float32)        # shuffle sideways, hips square
+    for _ in range(8):
+        sim.step(side, np.zeros((4, 2)))
+    to_t = sim.t_pos - sim.r_pos
+    to_t /= np.linalg.norm(to_t, axis=1, keepdims=True)
+    assert np.all(np.sum(sim.facing[:, 0] * to_t, axis=1) > 0.95)
+    assert np.all(sim.r_vel[:, 1] > 3.0)
+
+
+def test_opponent_facing_is_seen_late():
+    sim = _facing_sim(reaction_delay=2)
+    back = np.tile([-1.0, 0.0, 0.0], (4, 1)).astype(np.float32)
+    sim.step(back, np.zeros((4, 2)))
+    assert np.allclose(sim.seen_facing(0), (1, 0))       # tackler still sees the old hips
+    assert not np.allclose(sim.facing[:, 0], (1, 0))

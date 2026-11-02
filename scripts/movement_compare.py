@@ -140,6 +140,7 @@ def main() -> None:
     ap.add_argument("--base", type=float, default=1.2)
     ap.add_argument("--over", type=float, default=0.0)
     ap.add_argument("--sidestep", type=float, default=0.0)
+    ap.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
     args = ap.parse_args()
 
     real_tk, real_bc = real_segments()
@@ -147,7 +148,7 @@ def main() -> None:
     if args.pair:
         cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=8.0, reaction_delay=args.delay),
                         tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over,
-                                            sidestep_weight=args.sidestep))
+                                            sidestep_weight=args.sidestep), facing=args.facing)
         sims = {}
         for spec in args.pair:
             label, pair = spec.split("=", 1)

@@ -27,12 +27,13 @@ def add_sim_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--tackle-base", type=float, default=1.2)
     p.add_argument("--overspeed", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
+    p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
 
 
 def sim_config(args, spread: float | None) -> SimConfig:
     return SimConfig(field=FieldConfig(tackler_lateral_spread=spread, reaction_delay=args.delay),
                      tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
-                                         sidestep_weight=args.sidestep))
+                                         sidestep_weight=args.sidestep), facing=args.facing)
 from sim.policies import (angle_tackler, evasive_runner, pursuit_tackler, random_policy,
                           read_react_tackler, straight_runner)
 from .frames import Layout, PlayRenderer, fit_canvas, stack

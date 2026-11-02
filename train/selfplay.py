@@ -58,11 +58,12 @@ class Pool:
         self.opponents = opponents
 
     def __call__(self, sim: OneVOneSim) -> np.ndarray:
-        out = np.zeros((sim.n, 2), np.float32)
+        out = np.zeros((sim.n, sim.act_dim), np.float32)   # scripted 2-column actions: square-up 0
         for k, opp in enumerate(self.opponents):
             m = self.assign == k
             if m.any():
-                out[m] = opp(sim)[m]
+                a = opp(sim)[m]
+                out[m, :a.shape[1]] = a
         return out
 
 
@@ -109,6 +110,7 @@ def main() -> None:
     p.add_argument("--tackle-base", type=float, default=1.2)
     p.add_argument("--overspeed", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
+    p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
     p.add_argument("--n-envs", type=int, default=512)
     p.add_argument("--spread", type=float, default=8.0)
     p.add_argument("--breakaway-lead", type=float, default=None,
@@ -127,7 +129,7 @@ def main() -> None:
                                       full_play_share=args.full_play_share, reaction_delay=args.delay),
                     tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
                                         sidestep_weight=args.sidestep),
-                    reward=RewardConfig(yards_scale=args.yards_scale))
+                    reward=RewardConfig(yards_scale=args.yards_scale), facing=args.facing)
     (out / "config.yaml").write_text(yaml.safe_dump(json.loads(json.dumps(
         {"experiment": args.exp, "args": {k: str(v) for k, v in vars(args).items()}, "sim": dataclasses.asdict(cfg)})),
         allow_unicode=True, sort_keys=False))

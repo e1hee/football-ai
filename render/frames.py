@@ -118,10 +118,14 @@ class PlayRenderer:
             a, b = self._xy(0, sy), self._xy(f.length, sy)
             d.line([a, b], fill=LINE, width=1)
 
-    def _player(self, d: ImageDraw.ImageDraw, pos, color, dark, has_ball: bool) -> None:
+    def _player(self, d: ImageDraw.ImageDraw, pos, color, dark, has_ball: bool, face=None) -> None:
         x, y = self._xy(*pos)
         r = max(2, self.L.px_per_yd * 0.7)
         d.ellipse([x - r, y - r, x + r, y + r], fill=color, outline=dark)
+        if face is not None:
+            # Hips: a short stick from the centre the way the body faces.
+            fx, fy = self._xy(*(np.asarray(pos) + face * 1.6))
+            d.line([(x, y), (fx, fy)], fill=dark, width=1)
         if has_ball:
             d.ellipse([x - 1, y - 1, x + 1, y + 1], fill=BALL)
 
@@ -172,8 +176,11 @@ class PlayRenderer:
         lo = max(0, i0 - self.L.trail)
         self._trail(d, play.r_pos[lo:i0 + 1], RUNNER)
         self._trail(d, play.t_pos[lo:i0 + 1], TACKLER)
-        self._player(d, t, TACKLER, TACKLER_DARK, has_ball=False)
-        self._player(d, r, RUNNER, RUNNER_DARK, has_ball=True)
+        rf = tf = None
+        if play.r_face is not None:
+            rf, tf = play.r_face[i0], play.t_face[i0]
+        self._player(d, t, TACKLER, TACKLER_DARK, has_ball=False, face=tf)
+        self._player(d, r, RUNNER, RUNNER_DARK, has_ball=True, face=rf)
         self._events(d, play, step, r)
         self._caption(d, title, tag)
 

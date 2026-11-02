@@ -105,12 +105,14 @@ def main() -> None:
     p.add_argument("--base", type=float, default=1.2)
     p.add_argument("--over", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
+    p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
     p.add_argument("--style-vs", choices=["first", "last"], default="first",
                    help="tackler style measured against the first (R00) or the last runner")
     args = p.parse_args()
     ck = args.exp / "checkpoints"
     cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread, reaction_delay=args.delay),
-                    tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over, sidestep_weight=args.sidestep))
+                    tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over, sidestep_weight=args.sidestep),
+                    facing=args.facing)
     rs = sorted(ck.glob("runner_g*.zip"))
     ts = sorted(ck.glob("tackler_g*.zip"))
     R = [ppo_runner(p) for p in rs]

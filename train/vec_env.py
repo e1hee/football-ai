@@ -12,7 +12,7 @@ import gymnasium as gym
 import numpy as np
 from stable_baselines3.common.vec_env import VecEnv
 
-from sim.core import OBS_DIM, OUTCOME_NAMES, OUTCOME_TIMEOUT, OneVOneSim, SimConfig
+from sim.core import OUTCOME_NAMES, OUTCOME_TIMEOUT, OneVOneSim, SimConfig
 
 Opponent = Callable[[OneVOneSim], np.ndarray]
 
@@ -33,8 +33,8 @@ class SideVecEnv(VecEnv):
         self.side = side
         self.sim = OneVOneSim(n_envs, cfg, seed=seed)
         self.opponent = opponent
-        obs_space = gym.spaces.Box(-np.inf, np.inf, (OBS_DIM,), np.float32)
-        act_space = gym.spaces.Box(-ACTION_BOUND, ACTION_BOUND, (2,), np.float32)
+        obs_space = gym.spaces.Box(-np.inf, np.inf, (self.sim.obs_dim,), np.float32)
+        act_space = gym.spaces.Box(-ACTION_BOUND, ACTION_BOUND, (self.sim.act_dim,), np.float32)
         super().__init__(n_envs, obs_space, act_space)
         self._actions: np.ndarray | None = None
         self.ep_returns = np.zeros(n_envs, np.float32)

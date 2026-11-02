@@ -21,6 +21,7 @@ The whole process is logged experiment by experiment for a narrated video series
 | [EXP-005](experiments/EXP-005-delay-control/notes.md) | 0.2 s reaction delay + tackle control (overspeed / sidestep), compared to NFL pre-contact movement | Runner cuts reach NFL level (17-21° vs 19°) but nobody brakes. The tackler's learning collapsed: in ~1/3 of plays it runs away from the runner from the first step |
 | [EXP-006](experiments/EXP-006-joystick-fix/notes.md) | Fix actions collapsing to 8 directions (SB3 clips each axis; widened the box) | Failed: tacklers learned to flee downfield 100% of the time, exploiting a loose breakaway rule against a runner that barely moved |
 | [EXP-007](experiments/EXP-007-fixed-selfplay/notes.md) | Stricter breakaway rule, no untrained opponents in pools, plus a hand-written read-and-react tackler | First real arms race: the cross table forms a triangle (new generations beat old ones on both sides). Tacklers learned to pin runners to the sideline |
+| [EXP-008](experiments/EXP-008-facing/notes.md) | Body facing (hips) measured from NFL tracking `o`: limited turn rate, slower moving away from where you face | First pre-contact braking: tacklers now brake before contact (median 2.5 yd/s², NFL 4.0). Runners still don't juke in open-field 1v1 |
 
 Each experiment folder has `notes.md` (hypothesis → attempt → result → surprises → next), `config.yaml`, metrics, and charts.
 Daily log: [`devlog/`](devlog/). Plan and milestones: [`PLAN.md`](PLAN.md).

@@ -84,7 +84,8 @@ def read_react_tackler(sim: OneVOneSim, cushion: float = 5.0, read_dist: float =
     controlled speed.
     React: once he commits (moves sideways faster than `commit_speed`) or gets
     close, attack the intercept point like the angle tackler, breaking down.
-    Perception is delayed like everyone else's (`sim.seen`).
+    Perception is delayed like everyone else's (`sim.seen`). With facing on,
+    it keeps its hips square to the runner while reading (backpedal/shuffle).
     """
     r_pos, r_vel = sim.seen(RUNNER)
     rel = r_pos - sim.t_pos
@@ -101,4 +102,7 @@ def read_react_tackler(sim: OneVOneSim, cushion: float = 5.0, read_dist: float =
 
     committed = (np.abs(r_vel[:, 1]) > commit_speed) | (dist < read_dist)
     react = angle_tackler(sim)
-    return np.where(committed[:, None], react, read).astype(np.float32)
+    a = np.where(committed[:, None], react, read)
+    if sim.cfg.facing:   # hips square to the runner while reading, then run to him
+        a = np.concatenate([a, (~committed)[:, None].astype(np.float32)], axis=1)
+    return a.astype(np.float32)

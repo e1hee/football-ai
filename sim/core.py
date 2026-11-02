@@ -42,6 +42,7 @@ class FieldConfig:
     # and pay the remaining yards at once. Measured in scripts/breakaway_check.py:
     # with a 1+ yd lead no runner was ever caught; this skips 50-75% of steps.
     breakaway_lead: float | None = None
+    breakaway_min_speed: float = 5.0   # yd/s downfield the runner must be moving
     # Share of plays that ignore the early end and run to the goal line, so a
     # policy still sees (and can be rendered in) the open-field part.
     full_play_share: float = 0.1
@@ -275,7 +276,15 @@ class OneVOneSim:
         if f.breakaway_lead is not None:
             # Lead over every defender (one tackler for now; min over defenders later).
             lead = self.pos[:, RUNNER, 0] - self.pos[:, TACKLER, 0]
-            breakaway = (lead >= f.breakaway_lead) & ~self.full_run & (self.wrap <= 0) & ~touchdown & ~out_of_bounds
+            # Being ahead is not enough: the runner must also be running away
+            # downfield, fast, and not slower than the tackler. Without this, a
+            # tackler slipping behind a runner who is standing still "gave up" a
+            # 55-yard touchdown, and EXP-006's tacklers learned to flee downfield
+            # so they could never be behind anyone.
+            r_vx, t_vx = self.vel[:, RUNNER, 0], self.vel[:, TACKLER, 0]
+            outrunning = (r_vx >= f.breakaway_min_speed) & (r_vx >= t_vx)
+            breakaway = ((lead >= f.breakaway_lead) & outrunning & ~self.full_run & (self.wrap <= 0)
+                         & ~touchdown & ~out_of_bounds)
             if breakaway.any():
                 rest = f.length - self.pos[breakaway, RUNNER, 0]
                 gained[breakaway] += rest               # pay the remaining yards now

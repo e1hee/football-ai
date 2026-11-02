@@ -28,7 +28,7 @@ import yaml
 from stable_baselines3 import PPO
 
 from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
-from sim.policies import angle_tackler, evasive_runner
+from sim.policies import angle_tackler, evasive_runner, read_react_tackler
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
 
@@ -67,10 +67,17 @@ class Pool:
 
 
 def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
-              scripted_share: float | None = None) -> Pool:
+              scripted_share: float | None = None, skip_untrained: bool = False) -> Pool:
     """`scripted_share=None`: EXP-003 behaviour, the scripted opponent shares the
     leftover with the history (its weight shrinks as generations pile up).
-    A number keeps it fixed, so learners never forget how to handle it."""
+    A number keeps it fixed, so learners never forget how to handle it.
+    `skip_untrained`: generation 0 is a random policy; facing it teaches nothing
+    useful (EXP-006: a runner that barely moves taught tacklers to flee), so it is
+    left out, and with no trained opponent yet the pool is all scripted."""
+    if skip_untrained:
+        history = history[1:]
+        if not history:
+            return Pool(n, [scripted], [1.0], seed)
     if scripted_share is None:
         if len(history) == 1:
             return Pool(n, [history[-1], scripted], [0.8, 0.2], seed)
@@ -97,6 +104,8 @@ def main() -> None:
     p.add_argument("--first", choices=["tackler", "runner"], default="tackler", help="which side learns in phase 0")
     p.add_argument("--scripted-share", type=float, default=None, help="fixed share of scripted opponents in every pool")
     p.add_argument("--delay", type=int, default=0, help="reaction delay in steps")
+    p.add_argument("--scripted-tackler", choices=["angle", "read"], default="angle",
+                   help="scripted tackler mixed into the runner's opponent pool")
     p.add_argument("--tackle-base", type=float, default=1.2)
     p.add_argument("--overspeed", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
@@ -151,7 +160,8 @@ def main() -> None:
         side = "tackler" if (phase % 2 == 0) == first_is_tackler else "runner"
         if side == "tackler":
             venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, evasive_runner, args.seed + phase,
-                                                              scripted_share=args.scripted_share),
+                                                              scripted_share=args.scripted_share,
+                                                              skip_untrained=args.runner_init is None),
                               side="tackler", seed=args.seed + phase)
             tackler_model.set_env(venv)
             tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler")
@@ -160,8 +170,10 @@ def main() -> None:
             tackler_model.save(path)
             tacklers.append(Frozen(path, "tackler"))
         else:
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, angle_tackler, args.seed + phase,
-                                                              scripted_share=args.scripted_share),
+            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, {"angle": angle_tackler, "read": read_react_tackler}[args.scripted_tackler],
+                                                              args.seed + phase,
+                                                              scripted_share=args.scripted_share,
+                                                              skip_untrained=True),
                               side="runner", seed=args.seed + phase)
             if runner_model is None:
                 runner_model = PPO.load(str(runner_path), env=venv, device="cpu",

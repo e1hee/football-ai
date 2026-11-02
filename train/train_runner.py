@@ -23,14 +23,14 @@ import yaml
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
-from sim.core import FieldConfig, RewardConfig, SimConfig
-from sim.policies import angle_tackler, pursuit_tackler
+from sim.core import FieldConfig, RewardConfig, SimConfig, TackleConfig
+from sim.policies import angle_tackler, pursuit_tackler, read_react_tackler
 from sim.policies import evasive_runner, straight_runner
 from train.evaluate import evaluate, ppo_runner
 from train.vec_env import SideVecEnv
 
 ROOT = Path(__file__).resolve().parents[1]
-TACKLERS = {"angle": angle_tackler, "pursuit": pursuit_tackler}
+TACKLERS = {"angle": angle_tackler, "pursuit": pursuit_tackler, "read": read_react_tackler}
 
 
 def make_runner(name: str):
@@ -110,6 +110,10 @@ def main() -> None:
     p.add_argument("--breakaway-lead", type=float, default=None,
                    help="end plays once the runner leads every defender by this many yd (see scripts/breakaway_check.py)")
     p.add_argument("--full-play-share", type=float, default=0.1)
+    p.add_argument("--delay", type=int, default=0, help="reaction delay in steps")
+    p.add_argument("--tackle-base", type=float, default=1.2)
+    p.add_argument("--overspeed", type=float, default=0.0)
+    p.add_argument("--sidestep", type=float, default=0.0)
     p.add_argument("--yards-scale", type=float, default=0.1, help="reward per yard (scaled for PPO)")
     p.add_argument("--td-bonus", type=float, default=0.0)
     p.add_argument("--tackle-penalty", type=float, default=0.0)
@@ -125,7 +129,9 @@ def main() -> None:
 
     cfg = SimConfig(
         field=FieldConfig(tackler_lateral_spread=args.spread, breakaway_lead=args.breakaway_lead,
-                          full_play_share=args.full_play_share),
+                          full_play_share=args.full_play_share, reaction_delay=args.delay),
+        tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
+                            sidestep_weight=args.sidestep),
         reward=RewardConfig(yards_scale=args.yards_scale, touchdown_bonus=args.td_bonus,
                             tackle_penalty=args.tackle_penalty, out_of_bounds_penalty=args.oob_penalty,
                             time_penalty=args.time_penalty),

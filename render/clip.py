@@ -34,7 +34,7 @@ def sim_config(args, spread: float | None) -> SimConfig:
                      tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
                                          sidestep_weight=args.sidestep))
 from sim.policies import (angle_tackler, evasive_runner, pursuit_tackler, random_policy,
-                          straight_runner)
+                          read_react_tackler, straight_runner)
 from .frames import Layout, PlayRenderer, fit_canvas, stack
 from .record import Play, Policy, pick, record_plays
 
@@ -43,7 +43,7 @@ OUT_FPS = 30               # interpolate 10 Hz sim to 30 fps
 HOLD_END_S = 1.2           # freeze on the final frame so the outcome registers
 OUT_SIZE = {"shorts": (1080, 1920), "episode": (1920, 1080)}
 LABEL = {"random": "무작위", "straight": "직진", "evasive": "회피",
-         "pursuit": "추격", "angle": "각도+브레이크다운", "still": "정지"}
+         "pursuit": "추격", "angle": "각도+브레이크다운", "read": "읽고 반응", "still": "정지"}
 
 
 def make_policy(name: str, seed: int = 0) -> Policy:
@@ -62,6 +62,7 @@ def make_policy(name: str, seed: int = 0) -> Policy:
         "evasive": lambda sim, obs: evasive_runner(sim),
         "pursuit": lambda sim, obs: pursuit_tackler(sim),
         "angle": lambda sim, obs: angle_tackler(sim),
+        "read": lambda sim, obs: read_react_tackler(sim),
         "still": lambda sim, obs: np.zeros((sim.n, 2), np.float32),
     }
     if name not in table:

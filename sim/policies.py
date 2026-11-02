@@ -72,3 +72,33 @@ def angle_tackler(sim: OneVOneSim, breakdown: float = 3.0, breakdown_speed: floa
     brake = -sim.t_vel / np.maximum(t_speed, 1e-6)[:, None]
     a = np.where(too_fast[:, None], 0.5 * a + 0.5 * brake, a)
     return a.astype(np.float32)
+
+
+def read_react_tackler(sim: OneVOneSim, cushion: float = 5.0, read_dist: float = 6.0,
+                       commit_speed: float = 3.0, shuffle_speed: float = 4.5, shade: float = 1.0) -> np.ndarray:
+    """Read first, then react (the user's idea, written by hand as a baseline).
+
+    Read: while the runner is far and hasn't committed, don't rush him. Hold a
+    cushion goal-side of him, shaded a yard toward the middle of the field (so
+    the sideline is your help), and shuffle sideways to mirror him at a
+    controlled speed.
+    React: once he commits (moves sideways faster than `commit_speed`) or gets
+    close, attack the intercept point like the angle tackler, breaking down.
+    Perception is delayed like everyone else's (`sim.seen`).
+    """
+    r_pos, r_vel = sim.seen(RUNNER)
+    rel = r_pos - sim.t_pos
+    dist = np.linalg.norm(rel, axis=1)
+    mid = sim.cfg.field.width / 2
+    toward_mid = np.sign(mid - r_pos[:, 1])
+    target = np.stack([r_pos[:, 0] + cushion, r_pos[:, 1] + shade * toward_mid], axis=1)
+    d = target - sim.t_pos
+    want_v = d / 0.5                                   # get there in ~0.5 s ...
+    sp = np.linalg.norm(want_v, axis=1, keepdims=True)
+    want_v *= np.minimum(1.0, shuffle_speed / np.maximum(sp, 1e-6))   # ... but under control
+    read = want_v - sim.t_vel                          # push toward the wanted velocity
+    read /= np.maximum(np.linalg.norm(read, axis=1, keepdims=True), 1.0)
+
+    committed = (np.abs(r_vel[:, 1]) > commit_speed) | (dist < read_dist)
+    react = angle_tackler(sim)
+    return np.where(committed[:, None], react, read).astype(np.float32)

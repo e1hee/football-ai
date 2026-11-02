@@ -40,6 +40,7 @@ def style(runner, tackler, cfg: SimConfig, n: int = 2048, seed: int = 777) -> di
     live = np.ones(n, bool)
     close_t = inside_t = goal_t = all_t = 0
     att_speed, att_across, att_made = [], [], []
+    angles, away_1s, step = [], None, 0
     end_side = np.zeros(n)
     outcome = np.zeros(n, np.int8)
     while live.any():
@@ -55,7 +56,14 @@ def style(runner, tackler, cfg: SimConfig, n: int = 2048, seed: int = 777) -> di
         rel = sim.r_pos - sim.t_pos
         u = rel / np.maximum(np.linalg.norm(rel, axis=1, keepdims=True), 1e-6)
         across = np.abs(sim.r_vel[:, 0] * u[:, 1] - sim.r_vel[:, 1] * u[:, 0])
-        obs, _, done, info = sim.step(runner(sim, obs), tackler(sim))
+        t_act = np.asarray(tackler(sim))
+        if step < 20:
+            angles.append(np.degrees(np.arctan2(t_act[live, 1], t_act[live, 0])))
+        obs, _, done, info = sim.step(runner(sim, obs), t_act)
+        step += 1
+        if step == 10:   # health check: is the tackler heading away from the runner after 1 s?
+            rel = sim.r_pos - sim.t_pos
+            away_1s = float(((np.sum(rel * sim.t_vel, axis=1) < 0) & live).sum() / max(live.sum(), 1))
         a = info["tackle_attempt"] & live
         att_speed.extend(t_speed_before[a].tolist())
         att_across.extend(across[a].tolist())
@@ -76,7 +84,16 @@ def style(runner, tackler, cfg: SimConfig, n: int = 2048, seed: int = 777) -> di
         "runner_across_at_attempt": float(np.median(att_across)) if att_across else float("nan"),
         "miss_rate": float(1 - np.mean(att_made)) if att_made else float("nan"),
         "attempts_per_play": len(att_made) / n,
+        # Health checks (EXP-005 collapse): action directions squeezed into a few
+        # bins = "keyboard" control; heading away from the runner = gave up.
+        "top8_direction_share": _top8(np.concatenate(angles)) if angles else float("nan"),
+        "moving_away_after_1s": away_1s if away_1s is not None else float("nan"),
     }
+
+
+def _top8(angles_deg: np.ndarray) -> float:
+    h, _ = np.histogram((angles_deg + 180) % 360, bins=36, range=(0, 360))
+    return float(np.sort(h)[::-1][:8].sum() / max(h.sum(), 1))
 
 
 def main() -> None:
@@ -127,13 +144,14 @@ def main() -> None:
     ref_name = "R00" if args.style_vs == "first" else f"R{len(R) - 1:02d}"
     styles = {}
     print(f"tackler | TD vs {ref_name} | inside lev | goal-side | end-to-sideline | oob | "
-          f"tackler speed @attempt | runner across @attempt | miss rate | attempts/play")
+          f"tackler speed @attempt | runner across @attempt | miss rate | attempts/play | top8 dirs | away@1s")
     for j, t in enumerate(T):
         s = style(ref, t, cfg)
         styles[f"T{j:02d}"] = s
         print(f"   T{j:02d} | {s['touchdown']:9.1%} | {s['inside_leverage']:10.0%} | {s['goal_side']:9.0%} | "
               f"{s['end_dist_to_sideline']:15.1f} | {s['out_of_bounds']:4.0%} | {s['tackler_speed_at_attempt']:22.1f} | "
-              f"{s['runner_across_at_attempt']:22.1f} | {s['miss_rate']:9.0%} | {s['attempts_per_play']:.2f}")
+              f"{s['runner_across_at_attempt']:22.1f} | {s['miss_rate']:9.0%} | {s['attempts_per_play']:13.2f} | "
+              f"{s['top8_direction_share']:9.0%} | {s['moving_away_after_1s']:7.0%}")
     (args.exp / "tackler_style.json").write_text(json.dumps(styles, indent=1))
     print("\ncross table (rows runner gen, cols tackler gen):")
     print("      " + " ".join(f"T{j:02d}" for j in range(len(T))))

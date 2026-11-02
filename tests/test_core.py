@@ -126,11 +126,12 @@ def test_breakaway_ends_play_as_touchdown_with_full_yards():
     sim.reset()
     sim.r_pos[:] = [[20.0, 26.0]] * 4
     sim.t_pos[:] = [[17.0, 26.0]] * 4     # runner already 3 yd past the tackler
+    sim.r_vel[:] = [[8.0, 0.0]] * 4       # ...and running away
     _, r, done, info = sim.step(straight_runner(sim), np.zeros((4, 2), np.float32))
     assert done.all() and info["breakaway"].all()
     assert np.all(info["outcome"] == OUTCOME_TOUCHDOWN)
-    # Teleported to x=20 with 0 yards logged: the rest of the field (40 yd) is paid
-    # in this single step, so reward == yards for the play.
+    # Teleported to x=20 with 0 yards logged: this step's own movement plus the rest
+    # of the field is paid at once, so yards = 40 and reward == yards for the play.
     assert np.allclose(info["yards"], 40.0, atol=0.01)
     assert np.allclose(r, 40.0, atol=0.01)
 
@@ -187,3 +188,32 @@ def test_overspeed_tackler_misses_more():
         attempt, made = sim._tackle_attempts(sim.vel.copy())
         return made.sum() / attempt.sum()
     assert made_rate(9.0) < made_rate(4.0) - 0.15
+
+
+def test_long_push_keeps_its_direction():
+    """A push longer than 1 must be shortened along its own direction, not clipped per axis."""
+    from sim.physics import Bodies, PROFILES, apply_controls
+    b = Bodies(1, [PROFILES["WR"], PROFILES["DB"]])
+    pos = np.zeros((1, 2, 2), np.float32)
+    vel = np.zeros((1, 2, 2), np.float32)
+    apply_controls(pos, vel, np.array([[[3.0, 1.0], [0.0, 0.0]]], np.float32), b, 0.1)
+    v = vel[0, 0]
+    assert np.isclose(np.degrees(np.arctan2(v[1], v[0])), np.degrees(np.arctan2(1.0, 3.0)), atol=0.5)
+
+
+def test_vec_env_action_box_is_wide():
+    from train.vec_env import ACTION_BOUND, SideVecEnv
+    from sim.policies import angle_tackler
+    env = SideVecEnv(4, SimConfig(), angle_tackler)
+    assert env.action_space.high[0] == ACTION_BOUND >= 3
+
+
+def test_breakaway_needs_the_runner_to_be_running_away():
+    """A tackler slipping behind a runner who is standing still must not hand him a touchdown."""
+    cfg = SimConfig(field=FieldConfig(breakaway_lead=2.0, full_play_share=0.0))
+    sim = OneVOneSim(2, cfg, seed=15)
+    sim.reset()
+    sim.r_pos[:] = [[20.0, 26.0]] * 2
+    sim.t_pos[:] = [[17.0, 30.0]] * 2      # 3 yd behind, off to the side
+    _, _, done, info = sim.step(np.zeros((2, 2), np.float32), np.zeros((2, 2), np.float32))
+    assert not info["breakaway"].any() and not done.any()

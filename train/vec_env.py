@@ -16,6 +16,14 @@ from sim.core import OBS_DIM, OUTCOME_NAMES, OUTCOME_TIMEOUT, OneVOneSim, SimCon
 
 Opponent = Callable[[OneVOneSim], np.ndarray]
 
+# Action box half-width. SB3 clips each axis to the box *separately*; with a
+# [-1, 1] box, PPO's Gaussian mean drifts outside and every clipped action lands
+# on an edge or corner: in EXP-005 96% of tackler actions fell into 8 directions
+# (a keyboard, not a joystick). With a wide box nothing gets clipped per axis,
+# and the sim scales any push longer than 1 back onto the unit circle along its
+# own direction (physics.apply_controls), so direction is always preserved.
+ACTION_BOUND = 5.0
+
 
 class SideVecEnv(VecEnv):
     """The learner controls `side` ("runner" or "tackler"); `opponent` the other."""
@@ -26,7 +34,7 @@ class SideVecEnv(VecEnv):
         self.sim = OneVOneSim(n_envs, cfg, seed=seed)
         self.opponent = opponent
         obs_space = gym.spaces.Box(-np.inf, np.inf, (OBS_DIM,), np.float32)
-        act_space = gym.spaces.Box(-1.0, 1.0, (2,), np.float32)
+        act_space = gym.spaces.Box(-ACTION_BOUND, ACTION_BOUND, (2,), np.float32)
         super().__init__(n_envs, obs_space, act_space)
         self._actions: np.ndarray | None = None
         self.ep_returns = np.zeros(n_envs, np.float32)

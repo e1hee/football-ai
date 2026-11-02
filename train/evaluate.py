@@ -26,6 +26,17 @@ def ppo_runner(path: str | Path, deterministic: bool = True) -> RunnerPolicy:
     return act
 
 
+def ppo_tackler(path: str | Path, deterministic: bool = True):
+    """Saved SB3 tackler as `fn(sim, *_) -> (N, 2)`; it builds its own observation."""
+    from stable_baselines3 import PPO
+    model = PPO.load(str(path), device="cpu")
+
+    def act(sim: OneVOneSim, *_) -> np.ndarray:
+        a, _ = model.predict(sim.observe_tackler(), deterministic=deterministic)
+        return a.astype(np.float32)
+    return act
+
+
 def evaluate(runner: RunnerPolicy, tackler: Callable[[OneVOneSim], np.ndarray], cfg: SimConfig,
              n_plays: int = 4096, seed: int = 12345) -> dict:
     """Play exactly one play in each of `n_plays` slots (fixed seed = same starts every time)."""

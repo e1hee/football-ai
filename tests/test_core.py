@@ -118,3 +118,35 @@ def test_auto_reset_keeps_running():
         obs, _, _, _ = sim.step(straight_runner(sim), pursuit_tackler(sim))
     assert obs.shape == (16, OBS_DIM)
     assert np.all(sim.t <= sim.cfg.field.max_steps)
+
+
+def test_breakaway_ends_play_as_touchdown_with_full_yards():
+    cfg = SimConfig(field=FieldConfig(breakaway_lead=2.0, full_play_share=0.0))
+    sim = OneVOneSim(4, cfg, seed=9)
+    sim.reset()
+    sim.r_pos[:] = [[20.0, 26.0]] * 4
+    sim.t_pos[:] = [[17.0, 26.0]] * 4     # runner already 3 yd past the tackler
+    _, r, done, info = sim.step(straight_runner(sim), np.zeros((4, 2), np.float32))
+    assert done.all() and info["breakaway"].all()
+    assert np.all(info["outcome"] == OUTCOME_TOUCHDOWN)
+    # Teleported to x=20 with 0 yards logged: the rest of the field (40 yd) is paid
+    # in this single step, so reward == yards for the play.
+    assert np.allclose(info["yards"], 40.0, atol=0.01)
+    assert np.allclose(r, 40.0, atol=0.01)
+
+
+def test_breakaway_off_keeps_spawns_identical():
+    a = OneVOneSim(64, SimConfig(field=FieldConfig(tackler_lateral_spread=8.0)), seed=10)
+    b = OneVOneSim(64, SimConfig(field=FieldConfig(tackler_lateral_spread=8.0, breakaway_lead=None)), seed=10)
+    a.reset(); b.reset()
+    assert np.array_equal(a.pos, b.pos)
+
+
+def test_full_play_share_plays_run_to_the_goal():
+    cfg = SimConfig(field=FieldConfig(breakaway_lead=2.0, full_play_share=1.0))
+    sim = OneVOneSim(4, cfg, seed=11)
+    sim.reset()
+    sim.r_pos[:] = [[20.0, 26.0]] * 4
+    sim.t_pos[:] = [[17.0, 26.0]] * 4
+    _, _, done, info = sim.step(straight_runner(sim), np.zeros((4, 2), np.float32))
+    assert not done.any() and not info["breakaway"].any()

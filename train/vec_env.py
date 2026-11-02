@@ -1,8 +1,8 @@
 """Expose the batched sim to Stable-Baselines3 as a VecEnv without copying
 plays into Python objects: one `OneVOneSim` with N plays = N "envs".
 
-The opponent is a fixed function of the sim (a scripted policy now, a
-frozen learned policy later for self-play).
+Either side can be the learner. The other side is `opponent(sim) -> (N, 2)`:
+a scripted policy, a frozen learned policy, or a mix (self-play pools).
 """
 from __future__ import annotations
 
@@ -17,10 +17,12 @@ from sim.core import OBS_DIM, OUTCOME_NAMES, OUTCOME_TIMEOUT, OneVOneSim, SimCon
 Opponent = Callable[[OneVOneSim], np.ndarray]
 
 
-class RunnerVecEnv(VecEnv):
-    """The learner controls the runner; `opponent` controls the tackler."""
+class SideVecEnv(VecEnv):
+    """The learner controls `side` ("runner" or "tackler"); `opponent` the other."""
 
-    def __init__(self, n_envs: int, cfg: SimConfig, opponent: Opponent, seed: int = 0):
+    def __init__(self, n_envs: int, cfg: SimConfig, opponent: Opponent, side: str = "runner", seed: int = 0):
+        assert side in ("runner", "tackler")
+        self.side = side
         self.sim = OneVOneSim(n_envs, cfg, seed=seed)
         self.opponent = opponent
         obs_space = gym.spaces.Box(-np.inf, np.inf, (OBS_DIM,), np.float32)
@@ -28,24 +30,34 @@ class RunnerVecEnv(VecEnv):
         super().__init__(n_envs, obs_space, act_space)
         self._actions: np.ndarray | None = None
         self.ep_returns = np.zeros(n_envs, np.float32)
-        # Rolling outcome counts since the last `pop_stats()` (for logging).
         self._outcomes = np.zeros(len(OUTCOME_NAMES), np.int64)
         self._yards: list[float] = []
+
+    def _my_obs(self) -> np.ndarray:
+        return self.sim.observe() if self.side == "runner" else self.sim.observe_tackler()
 
     # SB3 VecEnv API ----------------------------------------------------------
     def reset(self):
         self.ep_returns[:] = 0
-        return self.sim.reset()
+        self.sim.reset()
+        return self._my_obs()
 
     def step_async(self, actions: np.ndarray) -> None:
         self._actions = np.asarray(actions, np.float32)
 
     def step_wait(self):
-        obs, rew, done, info = self.sim.step(self._actions, self.opponent(self.sim))
+        other = self.opponent(self.sim)
+        if self.side == "runner":
+            _, rew, done, info = self.sim.step(self._actions, other)
+            term = info["terminal_obs"]
+        else:
+            _, r_rew, done, info = self.sim.step(other, self._actions)
+            rew = info["tackler_reward"]
+            term = info["terminal_obs_tackler"]
+        obs = self._my_obs()
         self.ep_returns += rew
         infos: list[dict] = [{} for _ in range(self.num_envs)]
         if done.any():
-            term = info["terminal_obs"]
             idx = np.nonzero(done)[0]
             np.add.at(self._outcomes, info["outcome"][idx], 1)
             self._yards.extend(info["yards"][idx].tolist())
@@ -89,3 +101,10 @@ class RunnerVecEnv(VecEnv):
 
     def env_is_wrapped(self, wrapper_class, indices=None):
         return [False] * self.num_envs
+
+
+class RunnerVecEnv(SideVecEnv):
+    """Kept for EXP-002's train_runner.py: learner = runner."""
+
+    def __init__(self, n_envs: int, cfg: SimConfig, opponent: Opponent, seed: int = 0):
+        super().__init__(n_envs, cfg, opponent, side="runner", seed=seed)

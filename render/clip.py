@@ -33,10 +33,14 @@ LABEL = {"random": "무작위", "straight": "직진", "evasive": "회피",
 
 
 def make_policy(name: str, seed: int = 0) -> Policy:
-    """Scripted policy by name, or a saved PPO runner via 'ckpt:path/to/gen_010.zip'."""
+    """Scripted policy by name, a saved PPO runner via 'ckpt:path.zip', or a
+    saved PPO tackler via 'tckpt:path.zip' (it sees the tackler's observation)."""
     if name.startswith("ckpt:"):
         from train.evaluate import ppo_runner
         return ppo_runner(name[5:])
+    if name.startswith("tckpt:"):
+        from train.evaluate import ppo_tackler
+        return ppo_tackler(name[6:])
     rng = np.random.default_rng(seed)
     table = {
         "random": lambda sim, obs: random_policy(sim, rng),
@@ -86,9 +90,11 @@ def write_mp4(frames, out: Path, size: tuple[int, int]) -> int:
 
 
 def label(name: str) -> str:
-    if name.startswith("ckpt:"):
-        stem = Path(name[5:]).stem            # gen_010
-        return f"AI {int(stem.split('_')[-1])}세대" if stem.startswith("gen_") else f"AI {stem}"
+    if name.startswith(("ckpt:", "tckpt:")):
+        stem = Path(name.split(":", 1)[1]).stem       # gen_010, runner_g03, tackler_g07
+        num = int("".join(ch for ch in stem.split("_")[-1] if ch.isdigit()) or 0)
+        who = "AI 수비" if name.startswith("tckpt:") or stem.startswith("tackler") else "AI 러너"
+        return f"{who} {num}세대"
     return LABEL.get(name, name)
 
 
@@ -102,7 +108,7 @@ def main() -> None:
     p.add_argument("--runner", default="straight", help="random|straight|evasive (ckpt:... later)")
     p.add_argument("--tackler", default="angle", help="pursuit|angle|still")
     p.add_argument("--compare", default=None,
-                   help="comma list of runner/tackler pairs shown together, e.g. straight/pursuit,straight/angle")
+                   help="comma list of pairs shown together: straight/pursuit,straight/angle or ckpt:a.zip::tckpt:b.zip")
     p.add_argument("--sequence", default=None,
                    help="comma list of runners played one after another on the SAME start "
                         "(generation evolution), e.g. ckpt:.../gen_000.zip,ckpt:.../gen_025.zip")
@@ -127,7 +133,8 @@ def main() -> None:
     if args.sequence:
         pairs = [(r, args.tackler) for r in args.sequence.split(",")]
     elif args.compare:
-        pairs = [tuple(x.rsplit("/", 1)) for x in args.compare.split(",")]  # rsplit: ckpt paths contain '/'
+        # "runner::tackler" (any names/paths), or the short "runner/tackler" for scripted names.
+        pairs = [tuple(x.split("::", 1)) if "::" in x else tuple(x.rsplit("/", 1)) for x in args.compare.split(",")]
     else:
         pairs = [(args.runner, args.tackler)]
     # Same seed for every pair so compared plays start from identical setups.

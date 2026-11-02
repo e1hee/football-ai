@@ -1,0 +1,93 @@
+{
+ "T00": {
+  "inside_leverage": 0.4734983911333572,
+  "goal_side": 0.298719634266591,
+  "end_dist_to_sideline": 24.248703002929688,
+  "out_of_bounds": 0.0,
+  "touchdown": 1.0
+ },
+ "T01": {
+  "inside_leverage": 0.5744113029827316,
+  "goal_side": 0.4027571050397083,
+  "end_dist_to_sideline": 21.160402297973633,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.62646484375
+ },
+ "T02": {
+  "inside_leverage": 0.5002610187187709,
+  "goal_side": 0.34945169503418133,
+  "end_dist_to_sideline": 20.24796772003174,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.59619140625
+ },
+ "T03": {
+  "inside_leverage": 0.5652270210409746,
+  "goal_side": 0.3528429625858997,
+  "end_dist_to_sideline": 23.290682792663574,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.60009765625
+ },
+ "T04": {
+  "inside_leverage": 0.5892697466467959,
+  "goal_side": 0.34752377762213627,
+  "end_dist_to_sideline": 23.456363677978516,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.60546875
+ },
+ "T05": {
+  "inside_leverage": 0.5366389099167298,
+  "goal_side": 0.3567045199698261,
+  "end_dist_to_sideline": 23.309714317321777,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.59375
+ },
+ "T06": {
+  "inside_leverage": 0.5074821579310874,
+  "goal_side": 0.34724815994727015,
+  "end_dist_to_sideline": 23.49415111541748,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.61865234375
+ },
+ "T07": {
+  "inside_leverage": 0.5204176334106728,
+  "goal_side": 0.349622999072618,
+  "end_dist_to_sideline": 23.4770450592041,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.60986328125
+ },
+ "T08": {
+  "inside_leverage": 0.5226992920898738,
+  "goal_side": 0.3451777156549521,
+  "end_dist_to_sideline": 23.54989242553711,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.623046875
+ },
+ "T09": {
+  "inside_leverage": 0.4187664244860102,
+  "goal_side": 0.3373638237314751,
+  "end_dist_to_sideline": 23.601662635803223,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.640625
+ },
+ "T10": {
+  "inside_leverage": 0.45122887864823347,
+  "goal_side": 0.33877607431611995,
+  "end_dist_to_sideline": 23.41990375518799,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.6376953125
+ },
+ "T11": {
+  "inside_leverage": 0.5799954396898989,
+  "goal_side": 0.34645046871041296,
+  "end_dist_to_sideline": 23.186294555664062,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.6123046875
+ },
+ "T12": {
+  "inside_leverage": 0.5367608086620731,
+  "goal_side": 0.34921294560050276,
+  "end_dist_to_sideline": 21.713526725769043,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.6083984375
+ }
+}

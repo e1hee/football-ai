@@ -37,6 +37,14 @@ class FieldConfig:
     tackler_lateral_spread: float | None = None
     dt: float = 0.1             # seconds per step (10 Hz, same as NFL tracking)
     max_steps: int = 100        # 10 s play clock
+    # Breakaway early end (None = off). Once the runner is this many yards
+    # downfield of every defender, the play is decided: end it as a touchdown
+    # and pay the remaining yards at once. Measured in scripts/breakaway_check.py:
+    # with a 1+ yd lead no runner was ever caught; this skips 50-75% of steps.
+    breakaway_lead: float | None = None
+    # Share of plays that ignore the early end and run to the goal line, so a
+    # policy still sees (and can be rendered in) the open-field part.
+    full_play_share: float = 0.1
 
 
 @dataclass
@@ -108,6 +116,7 @@ class OneVOneSim:
         self.wrap = np.zeros(n, np.float32)          # >0: runner wrapped up, play ending
         self.stun = np.zeros((n, 2), np.float32)     # >0: no control
         self.cooldown = np.zeros(n, np.float32)      # >0: tackler can't attempt
+        self.full_run = np.ones(n, bool)             # False: breakaway early end applies
         self._half_w = self.cfg.field.width / 2.0
 
     # Views kept for renderers/tests written against the original API.
@@ -143,6 +152,8 @@ class OneVOneSim:
         self.wrap[mask] = 0
         self.stun[mask] = 0
         self.cooldown[mask] = 0
+        if f.breakaway_lead is not None:   # only draw when on, so spawns stay identical when off
+            self.full_run[mask] = self.rng.random(k) < f.full_play_share
         return self.observe()
 
     # --------------------------------------------------------------- tackling
@@ -217,6 +228,16 @@ class OneVOneSim:
         ry = self.pos[:, RUNNER, 1]
         touchdown = self.pos[:, RUNNER, 0] >= f.length
         out_of_bounds = ((ry < 0.0) | (ry > f.width)) & ~touchdown
+        breakaway = np.zeros(self.n, bool)
+        if f.breakaway_lead is not None:
+            # Lead over every defender (one tackler for now; min over defenders later).
+            lead = self.pos[:, RUNNER, 0] - self.pos[:, TACKLER, 0]
+            breakaway = (lead >= f.breakaway_lead) & ~self.full_run & (self.wrap <= 0) & ~touchdown & ~out_of_bounds
+            if breakaway.any():
+                rest = f.length - self.pos[breakaway, RUNNER, 0]
+                gained[breakaway] += rest               # pay the remaining yards now
+                self.yards[breakaway] += rest
+                touchdown = touchdown | breakaway
         tackled = tackled_now & ~touchdown & ~out_of_bounds
         timeout = (self.t >= f.max_steps) & ~touchdown & ~out_of_bounds & ~tackled
         done = touchdown | tackled | out_of_bounds | timeout
@@ -242,10 +263,12 @@ class OneVOneSim:
             "tackler_reward": -reward,
             "tackle_attempt": attempt, "tackle_made": made, "tackle_missed": missed,
             "wrapped": self.wrap > 0,
+            "breakaway": breakaway,
             # Final positions before auto-reset, for rendering/analysis.
             "r_pos": self.pos[:, RUNNER].copy(), "t_pos": self.pos[:, TACKLER].copy(),
             # Last observation of finished plays (RL bootstrapping on time-outs).
             "terminal_obs": self.observe() if done.any() else None,
+            "terminal_obs_tackler": self.observe_tackler() if done.any() else None,
         }
         if done.any():
             self.reset(done)
@@ -262,7 +285,9 @@ class OneVOneSim:
         obs[:, 6:8] = self.vel[:, other] / b.max_speed[:, other, None]
         obs[:, 8] = (f.length - self.pos[:, RUNNER, 0]) / f.length
         obs[:, 9] = np.minimum(self.pos[:, me, 1], f.width - self.pos[:, me, 1]) / self._half_w
-        obs[:, 10] = self.stun[:, other] / max(self.cfg.tackle.miss_stun, 1e-6)
+        # The tackler's stumble matters to both sides (runner: window to escape;
+        # tackler: own recovery), so both observe it.
+        obs[:, 10] = self.stun[:, TACKLER] / max(self.cfg.tackle.miss_stun, 1e-6)
         obs[:, 11] = (self.wrap > 0).astype(np.float32)
         return obs
 

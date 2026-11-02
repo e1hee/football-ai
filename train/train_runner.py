@@ -93,6 +93,9 @@ def main() -> None:
     p.add_argument("--net", type=int, nargs="+", default=[128, 128])
     p.add_argument("--tackler", choices=list(TACKLERS), default="angle")
     p.add_argument("--spread", type=float, default=8.0)
+    p.add_argument("--breakaway-lead", type=float, default=None,
+                   help="end plays once the runner leads every defender by this many yd (see scripts/breakaway_check.py)")
+    p.add_argument("--full-play-share", type=float, default=0.1)
     p.add_argument("--yards-scale", type=float, default=0.1, help="reward per yard (scaled for PPO)")
     p.add_argument("--td-bonus", type=float, default=0.0)
     p.add_argument("--tackle-penalty", type=float, default=0.0)
@@ -107,7 +110,8 @@ def main() -> None:
     (out / "checkpoints").mkdir(parents=True, exist_ok=True)
 
     cfg = SimConfig(
-        field=FieldConfig(tackler_lateral_spread=args.spread),
+        field=FieldConfig(tackler_lateral_spread=args.spread, breakaway_lead=args.breakaway_lead,
+                          full_play_share=args.full_play_share),
         reward=RewardConfig(yards_scale=args.yards_scale, touchdown_bonus=args.td_bonus,
                             tackle_penalty=args.tackle_penalty, out_of_bounds_penalty=args.oob_penalty,
                             time_penalty=args.time_penalty),

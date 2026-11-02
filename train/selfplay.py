@@ -27,7 +27,7 @@ import torch
 import yaml
 from stable_baselines3 import PPO
 
-from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig
+from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
 from sim.policies import angle_tackler, evasive_runner
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
@@ -66,12 +66,22 @@ class Pool:
         return out
 
 
-def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6) -> Pool:
-    if len(history) == 1:
-        return Pool(n, [history[-1], scripted], [0.8, 0.2], seed)
+def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
+              scripted_share: float | None = None) -> Pool:
+    """`scripted_share=None`: EXP-003 behaviour, the scripted opponent shares the
+    leftover with the history (its weight shrinks as generations pile up).
+    A number keeps it fixed, so learners never forget how to handle it."""
+    if scripted_share is None:
+        if len(history) == 1:
+            return Pool(n, [history[-1], scripted], [0.8, 0.2], seed)
+        older = history[:-1]
+        rest = (1 - latest_share) / (len(older) + 1)
+        return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed)
     older = history[:-1]
-    rest = (1 - latest_share) / (len(older) + 1)
-    return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed)
+    if not older:
+        return Pool(n, [history[-1], scripted], [1 - scripted_share, scripted_share], seed)
+    rest = (1 - latest_share - scripted_share) / len(older)
+    return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), scripted_share], seed)
 
 
 def as_runner(fn):
@@ -83,7 +93,13 @@ def main() -> None:
     p.add_argument("--exp", required=True)
     p.add_argument("--phases", type=int, default=24, help="total phases; even = tackler learns, odd = runner")
     p.add_argument("--phase-steps", type=int, default=4_000_000)
-    p.add_argument("--runner-init", type=Path, required=True)
+    p.add_argument("--runner-init", type=Path, default=None, help="start the runner from this checkpoint (else fresh)")
+    p.add_argument("--first", choices=["tackler", "runner"], default="tackler", help="which side learns in phase 0")
+    p.add_argument("--scripted-share", type=float, default=None, help="fixed share of scripted opponents in every pool")
+    p.add_argument("--delay", type=int, default=0, help="reaction delay in steps")
+    p.add_argument("--tackle-base", type=float, default=1.2)
+    p.add_argument("--overspeed", type=float, default=0.0)
+    p.add_argument("--sidestep", type=float, default=0.0)
     p.add_argument("--n-envs", type=int, default=512)
     p.add_argument("--spread", type=float, default=8.0)
     p.add_argument("--breakaway-lead", type=float, default=None,
@@ -99,7 +115,9 @@ def main() -> None:
     ck = out / "checkpoints"
     ck.mkdir(parents=True, exist_ok=True)
     cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread, breakaway_lead=args.breakaway_lead,
-                          full_play_share=args.full_play_share),
+                                      full_play_share=args.full_play_share, reaction_delay=args.delay),
+                    tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
+                                        sidestep_weight=args.sidestep),
                     reward=RewardConfig(yards_scale=args.yards_scale))
     (out / "config.yaml").write_text(yaml.safe_dump(json.loads(json.dumps(
         {"experiment": args.exp, "args": {k: str(v) for k, v in vars(args).items()}, "sim": dataclasses.asdict(cfg)})),
@@ -108,24 +126,32 @@ def main() -> None:
     ppo_kw = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=3e-4, gamma=0.995, gae_lambda=0.95,
                   clip_range=0.2, policy_kwargs={"net_arch": [128, 128]}, device="cpu", verbose=0)
 
-    # Generation 0 of each side: the EXP-002 champion runner, an untrained tackler.
+    # Generation 0 of each side: a given runner (e.g. the EXP-002 champion) or a fresh one,
+    # and a fresh tackler.
     runner_path = ck / "runner_g00.zip"
-    runner_path.write_bytes(args.runner_init.read_bytes())
+    if args.runner_init is not None:
+        runner_path.write_bytes(args.runner_init.read_bytes())
+        runner_model = None
+    else:
+        venv_r = SideVecEnv(args.n_envs, cfg, angle_tackler, side="runner", seed=args.seed)
+        runner_model = PPO("MlpPolicy", venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
+        runner_model.save(runner_path)
     venv_t = SideVecEnv(args.n_envs, cfg, angle_tackler, side="tackler", seed=args.seed)
     tackler_model = PPO("MlpPolicy", venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
     tackler_path = ck / "tackler_g00.zip"
     tackler_model.save(tackler_path)
     runners = [Frozen(runner_path, "runner")]
     tacklers = [Frozen(tackler_path, "tackler")]
-    runner_model = None
 
     log = open(out / "metrics.csv", "w", newline="")
     writer = None
     t0 = time.time()
     for phase in range(args.phases):
-        side = "tackler" if phase % 2 == 0 else "runner"
+        first_is_tackler = args.first == "tackler"
+        side = "tackler" if (phase % 2 == 0) == first_is_tackler else "runner"
         if side == "tackler":
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, evasive_runner, args.seed + phase),
+            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, evasive_runner, args.seed + phase,
+                                                              scripted_share=args.scripted_share),
                               side="tackler", seed=args.seed + phase)
             tackler_model.set_env(venv)
             tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler")
@@ -134,7 +160,8 @@ def main() -> None:
             tackler_model.save(path)
             tacklers.append(Frozen(path, "tackler"))
         else:
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, angle_tackler, args.seed + phase),
+            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, angle_tackler, args.seed + phase,
+                                                              scripted_share=args.scripted_share),
                               side="runner", seed=args.seed + phase)
             if runner_model is None:
                 runner_model = PPO.load(str(runner_path), env=venv, device="cpu",

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .core import OneVOneSim
+from .core import RUNNER, TACKLER, OneVOneSim
 
 
 def random_policy(sim: OneVOneSim, rng: np.random.Generator) -> np.ndarray:
@@ -21,7 +21,8 @@ def evasive_runner(sim: OneVOneSim, danger: float = 6.0) -> np.ndarray:
     """Hand-written 'smart' runner: sprint downfield, and when the tackler is
     within `danger` yards ahead, veer away from it (harder the closer it is),
     staying off the sideline. The first bar a learned runner has to clear."""
-    rel = sim.t_pos - sim.r_pos
+    t_pos, _ = sim.seen(TACKLER)
+    rel = t_pos - sim.r_pos
     dist = np.linalg.norm(rel, axis=1)
     ahead = rel[:, 0] > -1.0
     side = -np.sign(rel[:, 1] + 1e-3)
@@ -40,7 +41,8 @@ def pursuit_tackler(sim: OneVOneSim, lead_time: float = 0.3) -> np.ndarray:
     A plain pursuit curve is what a learner has to beat first; it is also the
     scripted opponent for the earliest runner-training experiments.
     """
-    target = sim.r_pos + sim.r_vel * lead_time
+    r_pos, r_vel = sim.seen(RUNNER)
+    target = r_pos + r_vel * lead_time
     d = target - sim.t_pos
     norm = np.linalg.norm(d, axis=1, keepdims=True)
     return (d / np.maximum(norm, 1e-6)).astype(np.float32)
@@ -54,14 +56,15 @@ def angle_tackler(sim: OneVOneSim, breakdown: float = 3.0, breakdown_speed: floa
     - Inside `breakdown` yards, chop your feet: cap your speed so you can
       still change direction with him instead of flying past.
     """
-    rel = sim.r_pos - sim.t_pos
+    r_pos, r_vel = sim.seen(RUNNER)
+    rel = r_pos - sim.t_pos
     dist = np.linalg.norm(rel, axis=1)
     t_speed = np.linalg.norm(sim.t_vel, axis=1)
     closing = np.maximum(sim.bodies.max_speed[:, 1] * 0.8, 1.0)
     t_hit = np.clip(dist / closing, 0.0, 1.5)
-    target = sim.r_pos + sim.r_vel * t_hit[:, None]
+    target = r_pos + r_vel * t_hit[:, None]
     # Stay between the runner and the goal line.
-    target[:, 0] = np.maximum(target[:, 0], sim.r_pos[:, 0] + 0.5)
+    target[:, 0] = np.maximum(target[:, 0], r_pos[:, 0] + 0.5)
     d = target - sim.t_pos
     a = d / np.maximum(np.linalg.norm(d, axis=1, keepdims=True), 1e-6)
     # Break down: if close and too fast, push against own velocity.

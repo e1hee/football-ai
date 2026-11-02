@@ -45,6 +45,11 @@ class FieldConfig:
     # Share of plays that ignore the early end and run to the goal line, so a
     # policy still sees (and can be rendered in) the open-field part.
     full_play_share: float = 0.1
+    # Reaction delay in steps (0 = see the opponent instantly, EXP-000..004).
+    # Humans react to what they see ~0.2-0.3 s late; with a delay each player
+    # observes the OTHER player's position/velocity from that many steps ago,
+    # which is what lets a fake (juke) actually fool someone.
+    reaction_delay: int = 0
 
 
 @dataclass
@@ -58,6 +63,13 @@ class TackleConfig:
     miss_stun: float = 0.6      # s the tackler has no control after a miss
     miss_cooldown: float = 0.9  # s before the same tackler can try again
     miss_slowdown: float = 0.85 # runner keeps this share of velocity after breaking a tackle
+    # Control terms (0 = off, EXP-000..004). A tackler arriving faster than
+    # `control_speed` is out of control and misses more (why real defenders
+    # break down), and a runner sliding sideways across the tackler's line of
+    # approach at contact is harder to wrap up (why cuts beat tackles).
+    control_speed: float = 4.5  # yd/s
+    overspeed_weight: float = 0.0   # logit per yd/s above control_speed
+    sidestep_weight: float = 0.0    # logit per yd/s of runner speed across the approach line
 
 
 @dataclass
@@ -118,6 +130,29 @@ class OneVOneSim:
         self.cooldown = np.zeros(n, np.float32)      # >0: tackler can't attempt
         self.full_run = np.ones(n, bool)             # False: breakaway early end applies
         self._half_w = self.cfg.field.width / 2.0
+        # Past states for the reaction delay: index 0 = `reaction_delay` steps ago.
+        d = self.cfg.field.reaction_delay
+        self._hist_pos = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
+        self._hist_vel = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
+
+    def seen(self, player: int) -> tuple[np.ndarray, np.ndarray]:
+        """(pos, vel) of `player` as the OTHER player perceives it: delayed by
+        `reaction_delay` steps. Your own body you always know right now."""
+        if self._hist_pos is None:
+            return self.pos[:, player], self.vel[:, player]
+        return self._hist_pos[0, :, player], self._hist_vel[0, :, player]
+
+    def _push_history(self, mask: np.ndarray | None = None) -> None:
+        if self._hist_pos is None:
+            return
+        if mask is None:   # one step forward for every play
+            self._hist_pos[:-1] = self._hist_pos[1:]
+            self._hist_vel[:-1] = self._hist_vel[1:]
+            self._hist_pos[-1] = self.pos
+            self._hist_vel[-1] = self.vel
+        else:              # fresh plays: the past is the starting position
+            self._hist_pos[:, mask] = self.pos[mask]
+            self._hist_vel[:, mask] = self.vel[mask]
 
     # Views kept for renderers/tests written against the original API.
     @property
@@ -154,6 +189,7 @@ class OneVOneSim:
         self.cooldown[mask] = 0
         if f.breakaway_lead is not None:   # only draw when on, so spawns stay identical when off
             self.full_run[mask] = self.rng.random(k) < f.full_play_share
+        self._push_history(mask)
         return self.observe()
 
     # --------------------------------------------------------------- tackling
@@ -177,6 +213,12 @@ class OneVOneSim:
         p_t = b.mass_lb[:, TACKLER] * np.maximum(0.0, np.sum(vt * u, axis=1))
         ratio = p_r / (p_r + p_t + 1e-6)
         logit = tc.base_logit + tc.headon_weight * headon - tc.momentum_weight * (ratio - 0.5)
+        if tc.overspeed_weight:
+            t_speed = np.linalg.norm(vt, axis=1)
+            logit -= tc.overspeed_weight * np.maximum(0.0, t_speed - tc.control_speed)
+        if tc.sidestep_weight:
+            across = np.abs(vr[:, 0] * u[:, 1] - vr[:, 1] * u[:, 0])   # runner speed across the approach line
+            logit -= tc.sidestep_weight * across
         p = 1.0 / (1.0 + np.exp(-logit))
         made = attempt & (self.rng.random(self.n) < p)
         return attempt, made
@@ -221,6 +263,7 @@ class OneVOneSim:
         # Field edges: x is clamped, crossing a sideline in y ends the play.
         self.pos[:, :, 0] = np.clip(self.pos[:, :, 0], 0.0, f.length)
         self.pos[:, TACKLER, 1] = np.clip(self.pos[:, TACKLER, 1], 0.0, f.width)
+        self._push_history()
 
         gained = self.pos[:, RUNNER, 0] - prev_x
         self.yards += gained
@@ -277,13 +320,15 @@ class OneVOneSim:
     # ------------------------------------------------------------ observation
     def _obs(self, me: int, other: int) -> np.ndarray:
         f, b = self.cfg.field, self.bodies
+        o_pos, o_vel = self.seen(other)          # the opponent as perceived (maybe delayed)
+        runner_x = self.pos[:, RUNNER, 0] if me == RUNNER else o_pos[:, 0]
         obs = np.empty((self.n, OBS_DIM), np.float32)
         obs[:, 0] = self.pos[:, me, 0] / f.length
         obs[:, 1] = self.pos[:, me, 1] / f.width
         obs[:, 2:4] = self.vel[:, me] / b.max_speed[:, me, None]
-        obs[:, 4:6] = (self.pos[:, other] - self.pos[:, me]) / 20.0
-        obs[:, 6:8] = self.vel[:, other] / b.max_speed[:, other, None]
-        obs[:, 8] = (f.length - self.pos[:, RUNNER, 0]) / f.length
+        obs[:, 4:6] = (o_pos - self.pos[:, me]) / 20.0
+        obs[:, 6:8] = o_vel / b.max_speed[:, other, None]
+        obs[:, 8] = (f.length - runner_x) / f.length
         obs[:, 9] = np.minimum(self.pos[:, me, 1], f.width - self.pos[:, me, 1]) / self._half_w
         # The tackler's stumble matters to both sides (runner: window to escape;
         # tackler: own recovery), so both observe it.

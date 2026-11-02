@@ -1,9 +1,11 @@
 """Do sim players move like NFL players? Cuts, braking and speed changes.
 
+Only movement BEFORE contact counts (a collision is not braking):
 Real samples (BDB 2027, REG 2024 tracking, 10 Hz):
-  - tacklers: DB player-plays with a solo tackle, last 3 s of the play
-  - ball carriers: targeted WRs with 5+ yards after catch, from the catch to play end
-Sim samples (same 10 Hz): tackler = last 3 s of each play, runner = whole play.
+  - tacklers: DB player-plays with a solo tackle, the 3 s before `first_contact`
+  - ball carriers: targeted WRs with 5+ yards after catch, from the catch to `first_contact`
+Sim samples (same 10 Hz): tackler = 3 s before the first tackle attempt (or play end),
+runner = start to first tackle attempt (or play end).
 
 Per segment:
   cut_deg      largest heading change within any 0.5 s window, while moving >= 3 yd/s
@@ -81,14 +83,16 @@ def real_segments(season: int = 2024, max_segments: int = 3000) -> tuple[list[di
     for keys, target in ((tk[key], tk_rows), (bc[key], bc_rows)):
         sub = tr.merge(keys.drop_duplicates(), on=key)
         for _, g in sub.groupby(key, sort=False):
+            ev = g.event.fillna("").to_numpy()
+            contact = np.nonzero(ev == "first_contact")[0]
+            stop = contact[0] if contact.size else len(g)
             if target is bc_rows:
-                ev = g.event.fillna("").to_numpy()
                 idx = np.nonzero(ev == "pass_outcome_caught")[0]
-                if not idx.size:
+                if not idx.size or idx[0] >= stop:
                     continue
-                g = g.iloc[idx[0]:]
+                g = g.iloc[idx[0]:stop]
             else:
-                g = g.iloc[-30:]   # last 3 s
+                g = g.iloc[max(0, stop - 30):stop]   # 3 s before contact
             if len(g) < 10:
                 continue
             target.append(seg_metrics(g.s.to_numpy(), g.dir.to_numpy()))
@@ -97,8 +101,8 @@ def real_segments(season: int = 2024, max_segments: int = 3000) -> tuple[list[di
     return tk_rows, bc_rows
 
 
-def sim_segments(runner, tackler, n: int = 2000, seed: int = 31) -> tuple[list[dict], list[dict]]:
-    cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=8.0))
+def sim_segments(runner, tackler, n: int = 2000, seed: int = 31, cfg: SimConfig | None = None):
+    cfg = cfg or SimConfig(field=FieldConfig(tackler_lateral_spread=8.0))
     sim = OneVOneSim(n, cfg, seed=seed)
     obs = sim.reset()
     rv, tv = [sim.r_vel.copy()], [sim.t_vel.copy()]
@@ -106,11 +110,12 @@ def sim_segments(runner, tackler, n: int = 2000, seed: int = 31) -> tuple[list[d
     end = np.full(n, -1)
     t = 0
     while live.any():
-        obs, _, done, _ = sim.step(runner(sim, obs), tackler(sim))
+        obs, _, done, info = sim.step(runner(sim, obs), tackler(sim))
         t += 1
         rv.append(sim.r_vel.copy()); tv.append(sim.t_vel.copy())  # post-reset values ignored via `end`
-        end[done & live] = t
-        live &= ~done
+        stop = (done | info["tackle_attempt"]) & live          # contact (or play end) closes the segment
+        end[stop] = t                                          # rv[:t] = up to the step before
+        live &= ~stop
     rv, tv = np.stack(rv), np.stack(tv)
     def hd(v):  # heading in NFL-like degrees (only differences matter)
         return np.degrees(np.arctan2(v[..., 0], v[..., 1]))
@@ -126,16 +131,39 @@ def sim_segments(runner, tackler, n: int = 2000, seed: int = 31) -> tuple[list[d
 
 
 def main() -> None:
+    import argparse
+    from sim.core import TackleConfig
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pair", action="append", default=[],
+                    help="label=runner_ckpt::tackler_ckpt (sim config from --delay/--base/--over/--sidestep)")
+    ap.add_argument("--delay", type=int, default=0)
+    ap.add_argument("--base", type=float, default=1.2)
+    ap.add_argument("--over", type=float, default=0.0)
+    ap.add_argument("--sidestep", type=float, default=0.0)
+    args = ap.parse_args()
+
     real_tk, real_bc = real_segments()
-    E3 = "experiments/EXP-003-selfplay-v1/checkpoints"
-    champ = ppo_runner("experiments/EXP-002-ppo-runner-v1/checkpoints/gen_025.zip")
     S = lambda f: (lambda sim, obs: f(sim))
-    T12, R12 = ppo_tackler(f"{E3}/tackler_g12.zip"), ppo_runner(f"{E3}/runner_g12.zip")
-    sims = {
-        "AI 셀프플레이 (R12 vs T12)": sim_segments(R12, lambda s: T12(s)),
-        "AI 챔피언 러너 vs 각도 태클러": sim_segments(champ, angle_tackler),
-        "회피(스크립트) vs 각도 태클러": sim_segments(S(evasive_runner), angle_tackler),
-    }
+    if args.pair:
+        cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=8.0, reaction_delay=args.delay),
+                        tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over,
+                                            sidestep_weight=args.sidestep))
+        sims = {}
+        for spec in args.pair:
+            label, pair = spec.split("=", 1)
+            r_path, t_path = pair.split("::")
+            T = ppo_tackler(t_path)
+            sims[label] = sim_segments(ppo_runner(r_path), lambda s, T=T: T(s), cfg=cfg)
+        sims["회피(스크립트) vs 각도 태클러"] = sim_segments(S(evasive_runner), angle_tackler, cfg=cfg)
+    else:
+        E3 = "experiments/EXP-003-selfplay-v1/checkpoints"
+        champ = ppo_runner("experiments/EXP-002-ppo-runner-v1/checkpoints/gen_025.zip")
+        T12, R12 = ppo_tackler(f"{E3}/tackler_g12.zip"), ppo_runner(f"{E3}/runner_g12.zip")
+        sims = {
+            "AI 셀프플레이 (R12 vs T12)": sim_segments(R12, lambda s: T12(s)),
+            "AI 챔피언 러너 vs 각도 태클러": sim_segments(champ, angle_tackler),
+            "회피(스크립트) vs 각도 태클러": sim_segments(S(evasive_runner), angle_tackler),
+        }
     cols = ["segments", "cut_deg_median", "share_cut_over_60deg", "brake_median", "share_brake_over_4",
             "speed_dip_median", "n_changes_median"]
     head = "구간 수 | 0.5초 최대 방향전환(중앙값) | 60도+ 비율 | 최대 감속(중앙값) | 감속 4+ 비율 | 속도 낙폭 | 속도 변화 횟수"

@@ -18,7 +18,21 @@ from pathlib import Path
 
 import numpy as np
 
-from sim.core import FieldConfig, SimConfig
+from sim.core import FieldConfig, SimConfig, TackleConfig
+
+
+def add_sim_args(p: argparse.ArgumentParser) -> None:
+    """Sim settings a checkpoint was trained with (EXP-005+: delay and tackle control)."""
+    p.add_argument("--delay", type=int, default=0, help="reaction delay in steps")
+    p.add_argument("--tackle-base", type=float, default=1.2)
+    p.add_argument("--overspeed", type=float, default=0.0)
+    p.add_argument("--sidestep", type=float, default=0.0)
+
+
+def sim_config(args, spread: float | None) -> SimConfig:
+    return SimConfig(field=FieldConfig(tackler_lateral_spread=spread, reaction_delay=args.delay),
+                     tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
+                                         sidestep_weight=args.sidestep))
 from sim.policies import (angle_tackler, evasive_runner, pursuit_tackler, random_policy,
                           straight_runner)
 from .frames import Layout, PlayRenderer, fit_canvas, stack
@@ -123,9 +137,10 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--png", action="store_true", help="also save a preview PNG")
+    add_sim_args(p)
     args = p.parse_args()
 
-    cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread))
+    cfg = sim_config(args, args.spread)
     layout = Layout.shorts() if args.format == "shorts" else Layout.episode()
     renderer = PlayRenderer(cfg.field, layout)
     size = OUT_SIZE[args.format]

@@ -18,6 +18,7 @@ The whole process is logged experiment by experiment for a narrated video series
 | [EXP-002](experiments/EXP-002-ppo-runner-v1/notes.md) | PPO runner vs the scripted tackler | 0% → 99% touchdowns in 2 generations (4 minutes). It found a hole in the tackler's prediction rule, not football |
 | [EXP-003](experiments/EXP-003-selfplay-v1/notes.md) | Self-play: the tackler learns too | The champion runner drops 100% → 61% in one phase, then both sides stall near 60% (the 1v1 equilibrium). The tackler learned to wait in the runner's lane instead of chasing |
 | [EXP-004](experiments/EXP-004-fine-gens-runner/notes.md) | Retrain with a checkpoint every 100k steps; draw all 61 generations at once on a colour gradient (`render/ghosts.py`) | The runner switched strategies mid-evolution (right side in gens 38-51, left from gen 52). Tackler that can't make the play just gives up and drifts to a corner |
+| [EXP-005](experiments/EXP-005-delay-control/notes.md) | 0.2 s reaction delay + tackle control (overspeed / sidestep), compared to NFL pre-contact movement | Runner cuts reach NFL level (17-21° vs 19°) but nobody brakes. The tackler's learning collapsed: in ~1/3 of plays it runs away from the runner from the first step |
 
 Each experiment folder has `notes.md` (hypothesis → attempt → result → surprises → next), `config.yaml`, metrics, and charts.
 Daily log: [`devlog/`](devlog/). Plan and milestones: [`PLAN.md`](PLAN.md).

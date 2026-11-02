@@ -25,7 +25,7 @@ from matplotlib import colormaps
 from PIL import Image, ImageDraw
 
 from sim.core import FieldConfig, SimConfig
-from .clip import make_policy, write_mp4
+from .clip import add_sim_args, make_policy, sim_config, write_mp4
 from .frames import _font
 from .record import Play, record_plays
 
@@ -180,6 +180,7 @@ def main() -> None:
     ap.add_argument("--view-width", type=float, default=None, help="zoom: show N yards across, centred on the start")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--poster", action="store_true", help="also save the final frame as PNG")
+    add_sim_args(ap)
     args = ap.parse_args()
 
     ckpts = sorted(args.ckpts.glob(args.pattern), key=gen_number)
@@ -187,7 +188,7 @@ def main() -> None:
         ckpts = [c for c in ckpts if gen_number(c) <= args.max_gen]
     ckpts = ckpts[:: args.every] if ckpts[-1] in ckpts[:: args.every] else ckpts[:: args.every] + [ckpts[-1]]
     gens = [gen_number(c) for c in ckpts]
-    cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread))
+    cfg = sim_config(args, args.spread)
     colors = gen_colors(len(ckpts), args.cmap)
     who = "러너" if args.side == "runner" else "수비"
     print(f"{len(ckpts)} generations: {gens[0]}..{gens[-1]} ({who})")

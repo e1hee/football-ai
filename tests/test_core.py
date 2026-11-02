@@ -150,3 +150,40 @@ def test_full_play_share_plays_run_to_the_goal():
     sim.t_pos[:] = [[17.0, 26.0]] * 4
     _, _, done, info = sim.step(straight_runner(sim), np.zeros((4, 2), np.float32))
     assert not done.any() and not info["breakaway"].any()
+
+
+def test_reaction_delay_shows_the_opponent_late():
+    cfg = SimConfig(field=FieldConfig(reaction_delay=3))
+    sim = OneVOneSim(2, cfg, seed=12)
+    sim.reset()
+    start_t = sim.t_pos.copy()
+    for _ in range(5):
+        sim.step(straight_runner(sim), np.array([[0.0, 1.0]] * 2, np.float32))   # tackler slides sideways
+    seen_pos, _ = sim.seen(1)
+    # The runner perceives where the tackler was 3 steps ago, not where it is.
+    assert not np.allclose(seen_pos, sim.t_pos)
+    assert np.all(seen_pos[:, 1] < sim.t_pos[:, 1])
+    assert np.all(seen_pos[:, 1] > start_t[:, 1] - 1e-6)
+
+
+def test_no_delay_is_identical_to_before():
+    a = OneVOneSim(32, SimConfig(field=FieldConfig(tackler_lateral_spread=8.0)), seed=13)
+    b = OneVOneSim(32, SimConfig(field=FieldConfig(tackler_lateral_spread=8.0, reaction_delay=0)), seed=13)
+    oa, ob = a.reset(), b.reset()
+    for _ in range(40):
+        oa, *_ = a.step(straight_runner(a), pursuit_tackler(a))
+        ob, *_ = b.step(straight_runner(b), pursuit_tackler(b))
+    assert np.array_equal(oa, ob)
+
+
+def test_overspeed_tackler_misses_more():
+    from sim.core import TackleConfig
+    def made_rate(t_speed):
+        tc = TackleConfig(overspeed_weight=0.5, sidestep_weight=0.35)
+        sim = OneVOneSim(4000, SimConfig(tackle=tc), seed=14)
+        sim.reset()
+        sim.r_pos[:] = [10.0, 26.0]; sim.t_pos[:] = [11.0, 26.0]
+        sim.r_vel[:] = [6.0, 0.0]; sim.t_vel[:] = [-t_speed, 0.0]
+        attempt, made = sim._tackle_attempts(sim.vel.copy())
+        return made.sum() / attempt.sum()
+    assert made_rate(9.0) < made_rate(4.0) - 0.15

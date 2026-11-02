@@ -1,0 +1,145 @@
+{
+ "T00": {
+  "inside_leverage": 0.4369301626092678,
+  "goal_side": 0.3670289026949529,
+  "end_dist_to_sideline": 5.552774429321289,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.92041015625,
+  "tackler_speed_at_attempt": 0.012751623056828976,
+  "runner_across_at_attempt": 2.4582417011260986,
+  "miss_rate": 0.3073593073593074,
+  "attempts_per_play": 0.11279296875
+ },
+ "T01": {
+  "inside_leverage": 0.6672922140206013,
+  "goal_side": 0.34309382730253696,
+  "end_dist_to_sideline": 18.385491371154785,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.9443359375,
+  "tackler_speed_at_attempt": 8.465436458587646,
+  "runner_across_at_attempt": 8.09128189086914,
+  "miss_rate": 0.6705202312138728,
+  "attempts_per_play": 0.1689453125
+ },
+ "T02": {
+  "inside_leverage": 0.6188293707629141,
+  "goal_side": 0.35600487958099886,
+  "end_dist_to_sideline": 23.619068145751953,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.916015625,
+  "tackler_speed_at_attempt": 9.448610305786133,
+  "runner_across_at_attempt": 8.559810638427734,
+  "miss_rate": 0.7436661698956781,
+  "attempts_per_play": 0.32763671875
+ },
+ "T03": {
+  "inside_leverage": 0.5900197331014415,
+  "goal_side": 0.3884431709646609,
+  "end_dist_to_sideline": 23.966742515563965,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.91552734375,
+  "tackler_speed_at_attempt": 9.1881422996521,
+  "runner_across_at_attempt": 8.506903648376465,
+  "miss_rate": 0.6943462897526502,
+  "attempts_per_play": 0.2763671875
+ },
+ "T04": {
+  "inside_leverage": 0.6115413038588825,
+  "goal_side": 0.3712739525041841,
+  "end_dist_to_sideline": 23.440058708190918,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.90185546875,
+  "tackler_speed_at_attempt": 9.35632610321045,
+  "runner_across_at_attempt": 8.325721740722656,
+  "miss_rate": 0.7008928571428572,
+  "attempts_per_play": 0.328125
+ },
+ "T05": {
+  "inside_leverage": 0.6153476141611083,
+  "goal_side": 0.37138353322576567,
+  "end_dist_to_sideline": 23.373197555541992,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.87890625,
+  "tackler_speed_at_attempt": 9.478195190429688,
+  "runner_across_at_attempt": 8.007118225097656,
+  "miss_rate": 0.6993939393939395,
+  "attempts_per_play": 0.40283203125
+ },
+ "T06": {
+  "inside_leverage": 0.6144041818592495,
+  "goal_side": 0.37306417371224254,
+  "end_dist_to_sideline": 23.17837142944336,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.87939453125,
+  "tackler_speed_at_attempt": 9.459106922149658,
+  "runner_across_at_attempt": 7.733417272567749,
+  "miss_rate": 0.6825192802056556,
+  "attempts_per_play": 0.3798828125
+ },
+ "T07": {
+  "inside_leverage": 0.611000424600712,
+  "goal_side": 0.37722041811950974,
+  "end_dist_to_sideline": 23.163365364074707,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.8759765625,
+  "tackler_speed_at_attempt": 9.40687084197998,
+  "runner_across_at_attempt": 7.782320499420166,
+  "miss_rate": 0.6572199730094467,
+  "attempts_per_play": 0.36181640625
+ },
+ "T08": {
+  "inside_leverage": 0.62547160838274,
+  "goal_side": 0.3585993436754177,
+  "end_dist_to_sideline": 23.16183376312256,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.8759765625,
+  "tackler_speed_at_attempt": 9.525381088256836,
+  "runner_across_at_attempt": 7.907257556915283,
+  "miss_rate": 0.6544217687074829,
+  "attempts_per_play": 0.35888671875
+ },
+ "T09": {
+  "inside_leverage": 0.6180191199665239,
+  "goal_side": 0.37241930739000234,
+  "end_dist_to_sideline": 23.241512298583984,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.8603515625,
+  "tackler_speed_at_attempt": 9.468796253204346,
+  "runner_across_at_attempt": 8.037954330444336,
+  "miss_rate": 0.6808035714285714,
+  "attempts_per_play": 0.4375
+ },
+ "T10": {
+  "inside_leverage": 0.6147669974628256,
+  "goal_side": 0.37021448988318967,
+  "end_dist_to_sideline": 23.17848491668701,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.86962890625,
+  "tackler_speed_at_attempt": 9.47623872756958,
+  "runner_across_at_attempt": 7.963272571563721,
+  "miss_rate": 0.6895348837209303,
+  "attempts_per_play": 0.419921875
+ },
+ "T11": {
+  "inside_leverage": 0.6109208337410705,
+  "goal_side": 0.3771501635891843,
+  "end_dist_to_sideline": 23.27145290374756,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.86669921875,
+  "tackler_speed_at_attempt": 9.435738563537598,
+  "runner_across_at_attempt": 8.316864967346191,
+  "miss_rate": 0.701312910284464,
+  "attempts_per_play": 0.4462890625
+ },
+ "T12": {
+  "inside_leverage": 0.6222356572374074,
+  "goal_side": 0.37050925821341707,
+  "end_dist_to_sideline": 23.181527137756348,
+  "out_of_bounds": 0.0,
+  "touchdown": 0.86376953125,
+  "tackler_speed_at_attempt": 9.46340036392212,
+  "runner_across_at_attempt": 8.225785255432129,
+  "miss_rate": 0.6893095768374164,
+  "attempts_per_play": 0.4384765625
+ }
+}

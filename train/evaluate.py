@@ -12,6 +12,7 @@ from typing import Callable
 import numpy as np
 
 from sim.core import OUTCOME_NAMES, OneVOneSim, SimConfig
+from sim.team import make_sim
 
 RunnerPolicy = Callable[[OneVOneSim, np.ndarray], np.ndarray]
 
@@ -40,7 +41,7 @@ def ppo_tackler(path: str | Path, deterministic: bool = True):
 def evaluate(runner: RunnerPolicy, tackler: Callable[[OneVOneSim], np.ndarray], cfg: SimConfig,
              n_plays: int = 4096, seed: int = 12345) -> dict:
     """Play exactly one play in each of `n_plays` slots (fixed seed = same starts every time)."""
-    sim = OneVOneSim(n_plays, cfg, seed=seed)
+    sim = make_sim(n_plays, cfg, seed=seed)
     obs = sim.reset()
     finished = np.zeros(n_plays, bool)
     outcome = np.zeros(n_plays, np.int8)

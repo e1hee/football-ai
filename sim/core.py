@@ -152,6 +152,9 @@ class OneVOneSim:
         self._hist_vel = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
         self._hist_face = np.zeros((d + 1, n, 2, 2), np.float32) if d else None
 
+    def act_dim_for(self, side: str) -> int:
+        return self.act_dim
+
     def seen(self, player: int) -> tuple[np.ndarray, np.ndarray]:
         """(pos, vel) of `player` as the OTHER player perceives it: delayed by
         `reaction_delay` steps. Your own body you always know right now."""

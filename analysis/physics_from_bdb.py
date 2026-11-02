@@ -25,6 +25,7 @@ BDB = Path.home() / "projects/big-data-bowl-2027/data"
 OUT = Path(__file__).resolve().parents[1] / "sim/physics_params.json"
 GROUPS = {"WR": "WR", "CB": "DB", "S": "DB", "FS": "DB", "SS": "DB", "DB": "DB",
           "TE": "TE", "DE": "DL", "DT": "DL", "NT": "DL", "DL": "DL",
+          "OLB": "LB", "ILB": "LB", "MLB": "LB", "LB": "LB",
           "T": "OL", "G": "OL", "C": "OL", "OT": "OL", "OG": "OL", "OL": "OL"}
 SPEED_BINS = np.arange(0, 11, 1.0)   # yd/s
 

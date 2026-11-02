@@ -102,21 +102,25 @@ def real_segments(season: int = 2024, max_segments: int = 3000) -> tuple[list[di
 
 
 def sim_segments(runner, tackler, n: int = 2000, seed: int = 31, cfg: SimConfig | None = None):
+    """Pre-contact velocity segments. In a team sim the "tackler" is whichever
+    defender is nearest the carrier when the segment ends (the one arriving)."""
+    from sim.team import make_sim
     cfg = cfg or SimConfig(field=FieldConfig(tackler_lateral_spread=8.0))
-    sim = OneVOneSim(n, cfg, seed=seed)
+    sim = make_sim(n, cfg, seed=seed)
     obs = sim.reset()
-    rv, tv = [sim.r_vel.copy()], [sim.t_vel.copy()]
+    dfn = getattr(sim, "dfn", np.array([1]))
+    vel, pos = [sim.vel.copy()], [sim.pos.copy()]
     live = np.ones(n, bool)
     end = np.full(n, -1)
     t = 0
     while live.any():
         obs, _, done, info = sim.step(runner(sim, obs), tackler(sim))
         t += 1
-        rv.append(sim.r_vel.copy()); tv.append(sim.t_vel.copy())  # post-reset values ignored via `end`
+        vel.append(sim.vel.copy()); pos.append(sim.pos.copy())   # post-reset values ignored via `end`
         stop = (done | info["tackle_attempt"]) & live          # contact (or play end) closes the segment
         end[stop] = t                                          # rv[:t] = up to the step before
         live &= ~stop
-    rv, tv = np.stack(rv), np.stack(tv)
+    vel, pos = np.stack(vel), np.stack(pos)                  # (T, N, P, 2)
     def hd(v):  # heading in NFL-like degrees (only differences matter)
         return np.degrees(np.arctan2(v[..., 0], v[..., 1]))
     t_rows, r_rows = [], []
@@ -124,7 +128,8 @@ def sim_segments(runner, tackler, n: int = 2000, seed: int = 31, cfg: SimConfig 
         e = end[i]   # velocities at index e are already from the next play: stop at e-1
         if e < 10:
             continue
-        r = rv[:e, i]; tt = tv[max(0, e - 30):e, i]
+        k = dfn[np.argmin(np.linalg.norm(pos[e - 1, i, dfn] - pos[e - 1, i, 0], axis=-1))]
+        r = vel[:e, i, 0]; tt = vel[max(0, e - 30):e, i, k]
         r_rows.append(seg_metrics(np.linalg.norm(r, axis=1), hd(r)))
         t_rows.append(seg_metrics(np.linalg.norm(tt, axis=1), hd(tt)))
     return t_rows, r_rows
@@ -141,6 +146,7 @@ def main() -> None:
     ap.add_argument("--over", type=float, default=0.0)
     ap.add_argument("--sidestep", type=float, default=0.0)
     ap.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
+    ap.add_argument("--sim", choices=["1v1", "3v3"], default="1v1")
     args = ap.parse_args()
 
     real_tk, real_bc = real_segments()
@@ -149,13 +155,20 @@ def main() -> None:
         cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=8.0, reaction_delay=args.delay),
                         tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over,
                                             sidestep_weight=args.sidestep), facing=args.facing)
+        if args.sim == "3v3":
+            from sim.team import TeamConfig
+            cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, facing=args.facing)
         sims = {}
         for spec in args.pair:
             label, pair = spec.split("=", 1)
             r_path, t_path = pair.split("::")
             T = ppo_tackler(t_path)
             sims[label] = sim_segments(ppo_runner(r_path), lambda s, T=T: T(s), cfg=cfg)
-        sims["회피(스크립트) vs 각도 태클러"] = sim_segments(S(evasive_runner), angle_tackler, cfg=cfg)
+        if args.sim == "3v3":
+            from sim.team_policies import read_defense, screen_offense
+            sims["스크린(스크립트) vs 읽고 반응"] = sim_segments(S(screen_offense), read_defense, cfg=cfg)
+        else:
+            sims["회피(스크립트) vs 각도 태클러"] = sim_segments(S(evasive_runner), angle_tackler, cfg=cfg)
     else:
         E3 = "experiments/EXP-003-selfplay-v1/checkpoints"
         champ = ppo_runner("experiments/EXP-002-ppo-runner-v1/checkpoints/gen_025.zip")

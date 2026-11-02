@@ -29,6 +29,8 @@ from stable_baselines3 import PPO
 
 from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
+from sim.team import TeamConfig
+from sim.team_policies import pursuit_defense, read_defense, screen_offense
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
 
@@ -58,12 +60,11 @@ class Pool:
         self.opponents = opponents
 
     def __call__(self, sim: OneVOneSim) -> np.ndarray:
-        out = np.zeros((sim.n, sim.act_dim), np.float32)   # scripted 2-column actions: square-up 0
-        for k, opp in enumerate(self.opponents):
+        acts = {k: opp(sim) for k, opp in enumerate(self.opponents) if (self.assign == k).any()}
+        out = np.zeros((sim.n, max(a.shape[1] for a in acts.values())), np.float32)
+        for k, a in acts.items():   # 1v1 scripted 2-column actions get square-up 0
             m = self.assign == k
-            if m.any():
-                a = opp(sim)[m]
-                out[m, :a.shape[1]] = a
+            out[m, :a.shape[1]] = a[m]
         return out
 
 
@@ -117,6 +118,8 @@ def main() -> None:
                    help="end plays once the runner leads every defender by this many yd (see scripts/breakaway_check.py)")
     p.add_argument("--full-play-share", type=float, default=0.1)
     p.add_argument("--yards-scale", type=float, default=0.1)
+    p.add_argument("--sim", choices=["1v1", "3v3"], default="1v1", help="3v3 = RB screen (sim/team.py)")
+    p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--threads", type=int, default=4)
     args = p.parse_args()
@@ -130,12 +133,20 @@ def main() -> None:
                     tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
                                         sidestep_weight=args.sidestep),
                     reward=RewardConfig(yards_scale=args.yards_scale), facing=args.facing)
+    if args.sim == "3v3":
+        # Same field/tackle/reward settings; formation and rosters from TeamConfig defaults.
+        cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, reward=cfg.reward, facing=args.facing)
+        script_runner = screen_offense
+        script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
+    else:
+        script_runner = evasive_runner
+        script_tackler = {"angle": angle_tackler, "read": read_react_tackler}[args.scripted_tackler]
     (out / "config.yaml").write_text(yaml.safe_dump(json.loads(json.dumps(
         {"experiment": args.exp, "args": {k: str(v) for k, v in vars(args).items()}, "sim": dataclasses.asdict(cfg)})),
         allow_unicode=True, sort_keys=False))
 
     ppo_kw = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=3e-4, gamma=0.995, gae_lambda=0.95,
-                  clip_range=0.2, policy_kwargs={"net_arch": [128, 128]}, device="cpu", verbose=0)
+                  clip_range=0.2, policy_kwargs={"net_arch": [args.net, args.net]}, device="cpu", verbose=0)
 
     # Generation 0 of each side: a given runner (e.g. the EXP-002 champion) or a fresh one,
     # and a fresh tackler.
@@ -144,10 +155,10 @@ def main() -> None:
         runner_path.write_bytes(args.runner_init.read_bytes())
         runner_model = None
     else:
-        venv_r = SideVecEnv(args.n_envs, cfg, angle_tackler, side="runner", seed=args.seed)
+        venv_r = SideVecEnv(args.n_envs, cfg, script_tackler, side="runner", seed=args.seed)
         runner_model = PPO("MlpPolicy", venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
         runner_model.save(runner_path)
-    venv_t = SideVecEnv(args.n_envs, cfg, angle_tackler, side="tackler", seed=args.seed)
+    venv_t = SideVecEnv(args.n_envs, cfg, script_tackler, side="tackler", seed=args.seed)
     tackler_model = PPO("MlpPolicy", venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
     tackler_path = ck / "tackler_g00.zip"
     tackler_model.save(tackler_path)
@@ -161,7 +172,7 @@ def main() -> None:
         first_is_tackler = args.first == "tackler"
         side = "tackler" if (phase % 2 == 0) == first_is_tackler else "runner"
         if side == "tackler":
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, evasive_runner, args.seed + phase,
+            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, script_runner, args.seed + phase,
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=args.runner_init is None),
                               side="tackler", seed=args.seed + phase)
@@ -172,7 +183,7 @@ def main() -> None:
             tackler_model.save(path)
             tacklers.append(Frozen(path, "tackler"))
         else:
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, {"angle": angle_tackler, "read": read_react_tackler}[args.scripted_tackler],
+            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, script_tackler,
                                                               args.seed + phase,
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=True),
@@ -195,9 +206,9 @@ def main() -> None:
         det = lambda f: (lambda sim, *a: f.model.predict(sim.observe() if f.side == "runner" else sim.observe_tackler(),
                                                          deterministic=True)[0])
         head = evaluate(det(r_new), det(t_new), cfg, n_plays=2048)
-        r_vs_script = evaluate(det(r_new), angle_tackler, cfg, n_plays=2048)
+        r_vs_script = evaluate(det(r_new), script_tackler, cfg, n_plays=2048)
         t_vs_champ = evaluate(det(runners[0]), det(t_new), cfg, n_plays=2048)
-        t_vs_script = evaluate(as_runner(evasive_runner), det(t_new), cfg, n_plays=2048)
+        t_vs_script = evaluate(as_runner(script_runner), det(t_new), cfg, n_plays=2048)
         row = {
             "phase": phase, "learner": side, "runner_gen": len(runners) - 1, "tackler_gen": len(tacklers) - 1,
             "wall_s": round(time.time() - t0, 1),

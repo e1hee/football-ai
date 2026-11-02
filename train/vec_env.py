@@ -13,6 +13,7 @@ import numpy as np
 from stable_baselines3.common.vec_env import VecEnv
 
 from sim.core import OUTCOME_NAMES, OUTCOME_TIMEOUT, OneVOneSim, SimConfig
+from sim.team import make_sim
 
 Opponent = Callable[[OneVOneSim], np.ndarray]
 
@@ -31,10 +32,10 @@ class SideVecEnv(VecEnv):
     def __init__(self, n_envs: int, cfg: SimConfig, opponent: Opponent, side: str = "runner", seed: int = 0):
         assert side in ("runner", "tackler")
         self.side = side
-        self.sim = OneVOneSim(n_envs, cfg, seed=seed)
+        self.sim = make_sim(n_envs, cfg, seed=seed)   # 1v1 or team sim, same interface
         self.opponent = opponent
         obs_space = gym.spaces.Box(-np.inf, np.inf, (self.sim.obs_dim,), np.float32)
-        act_space = gym.spaces.Box(-ACTION_BOUND, ACTION_BOUND, (self.sim.act_dim,), np.float32)
+        act_space = gym.spaces.Box(-ACTION_BOUND, ACTION_BOUND, (self.sim.act_dim_for(side),), np.float32)
         super().__init__(n_envs, obs_space, act_space)
         self._actions: np.ndarray | None = None
         self.ep_returns = np.zeros(n_envs, np.float32)

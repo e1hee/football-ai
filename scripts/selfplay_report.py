@@ -25,6 +25,7 @@ import numpy as np
 from matplotlib import font_manager
 
 from sim.core import OUTCOME_OUT_OF_BOUNDS, OUTCOME_TOUCHDOWN, FieldConfig, OneVOneSim, SimConfig, TackleConfig
+from sim.team import CARRIER, TeamConfig, TeamSim
 from train.evaluate import evaluate, ppo_runner, ppo_tackler
 
 for path in ("/System/Library/Fonts/AppleSDGothicNeo.ttc",):
@@ -96,6 +97,48 @@ def _top8(angles_deg: np.ndarray) -> float:
     return float(np.sort(h)[::-1][:8].sum() / max(h.sum(), 1))
 
 
+def team_style(offense, defense, cfg: TeamConfig, n: int = 1024, seed: int = 99) -> dict:
+    """3v3 health and style: is the offense using its blocks, is the defense
+    still chasing (EXP-006 lesson), how do tackles go."""
+    sim = TeamSim(n, cfg, seed=seed)
+    obs = sim.reset()
+    live = np.ones(n, bool)
+    outcome = np.zeros(n, np.int8)
+    blocks = np.zeros(n)
+    attempts = np.zeros(n)
+    misses = np.zeros(n)
+    eng_steps = behind_block = steps = 0
+    away = []
+    while live.any():
+        o_act, d_act = offense(sim, obs), defense(sim, obs)
+        if (sim.t == 10).any():   # 1 s in: defenders running away from the carrier?
+            m = live & (sim.t == 10)
+            rel = sim.pos[m][:, None, CARRIER] - sim.pos[m][:, sim.dfn]
+            v = sim.vel[m][:, sim.dfn]
+            away.extend((np.sum(rel * v, axis=-1) < 0).ravel().tolist())
+        obs, _, done, info = sim.step(o_act, d_act)
+        blocks += info["blocks_started"] * live
+        attempts += info["attempts"] * live
+        misses += info["misses"] * live
+        eng = info["partner"][:, sim.blk] >= 0                                 # (N, B)
+        c = info["pos"][:, CARRIER]
+        bpos = info["pos"][:, sim.blk]
+        shield = eng & (bpos[..., 0] > c[:, None, 0]) & (np.abs(bpos[..., 1] - c[:, None, 1]) < 3.0)
+        eng_steps += (eng.any(1) & live).sum()
+        behind_block += (shield.any(1) & live).sum()
+        steps += live.sum()
+        newly = done & live
+        outcome[newly] = info["outcome"][newly]
+        live &= ~done
+    return {"touchdown": float((outcome == OUTCOME_TOUCHDOWN).mean()),
+            "blocks_per_play": float(blocks.mean()),
+            "engaged_time_share": float(eng_steps / steps),
+            "carrier_behind_block_share": float(behind_block / steps),
+            "attempts_per_play": float(attempts.mean()),
+            "miss_rate": float(misses.sum() / max(attempts.sum(), 1)),
+            "defenders_moving_away_at_1s": float(np.mean(away)) if away else float("nan")}
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("exp", type=Path)
@@ -106,6 +149,7 @@ def main() -> None:
     p.add_argument("--over", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
     p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
+    p.add_argument("--sim", choices=["1v1", "3v3"], default="1v1")
     p.add_argument("--style-vs", choices=["first", "last"], default="first",
                    help="tackler style measured against the first (R00) or the last runner")
     args = p.parse_args()
@@ -113,6 +157,8 @@ def main() -> None:
     cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread, reaction_delay=args.delay),
                     tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over, sidestep_weight=args.sidestep),
                     facing=args.facing)
+    if args.sim == "3v3":
+        cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, facing=args.facing)
     rs = sorted(ck.glob("runner_g*.zip"))
     ts = sorted(ck.glob("tackler_g*.zip"))
     R = [ppo_runner(p) for p in rs]
@@ -132,7 +178,7 @@ def main() -> None:
         for j in range(len(T)):
             ax.text(j, i, f"{table[i, j] * 100:.0f}", ha="center", va="center", fontsize=8, color="black")
     ax.set_xlabel("AI 수비 세대", color="white", fontsize=13)
-    ax.set_ylabel("AI 러너 세대", color="white", fontsize=13)
+    ax.set_ylabel("AI 공격 세대" if args.sim == "3v3" else "AI 러너 세대", color="white", fontsize=13)
     ax.set_xticks(range(len(T)))
     ax.set_yticks(range(len(R)))
     ax.tick_params(colors="white")
@@ -141,6 +187,22 @@ def main() -> None:
     cb.ax.tick_params(colors="white")
     fig.tight_layout()
     fig.savefig(args.exp / "crosstable.png", facecolor=fig.get_facecolor())
+
+    if args.sim == "3v3":
+        styles = {}
+        print("defense | TD vs ref | blocks/play | engaged time | carrier behind block | attempts/play | miss | away@1s")
+        for ref_name, ref in (("R01", R[1]), (f"R{len(R) - 1:02d}", R[-1])):
+            for j, t in enumerate(T):
+                s = team_style(ref, t, cfg)
+                styles[f"{ref_name}_T{j:02d}"] = s
+                print(f"{ref_name} T{j:02d} | {s['touchdown']:8.1%} | {s['blocks_per_play']:11.2f} | "
+                      f"{s['engaged_time_share']:12.0%} | {s['carrier_behind_block_share']:20.0%} | "
+                      f"{s['attempts_per_play']:13.2f} | {s['miss_rate']:4.0%} | {s['defenders_moving_away_at_1s']:7.0%}")
+        (args.exp / "team_style.json").write_text(json.dumps(styles, indent=1))
+        print("\ncross table (rows offense gen, cols defense gen):")
+        for i in range(len(R)):
+            print(f"R{i:02d}  " + " ".join(f"{table[i, j] * 100:3.0f}" for j in range(len(T))))
+        return
 
     ref = R[0] if args.style_vs == "first" else R[-1]
     ref_name = "R00" if args.style_vs == "first" else f"R{len(R) - 1:02d}"

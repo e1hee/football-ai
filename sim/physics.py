@@ -93,6 +93,16 @@ try:
     PROFILES = {**DEFAULT_PROFILES, **load_profiles()}
 except (FileNotFoundError, KeyError):
     PROFILES = DEFAULT_PROFILES
+# No running back is tracked in the BDB 2027 data (pass plays; 1 RB in 2024), so
+# the RB moves like a WR but carries a RB's weight (combine median, 210 lb).
+PROFILES["RB"] = PROFILES["WR"].scaled(mass_lb=210 / PROFILES["WR"].mass_lb)
+# Pass-play tracking undercounts how fast linemen can run (they pass-protect,
+# rarely sprint): the fitted OL needs 7.05 s for 40 yd, 1.37x its combine 40
+# (5.15 s), while WR/DB/TE fits run 1.14x theirs. Scale OL top speed and
+# acceleration so its sim 10/40-yd times sit at the same ratio to the combine
+# (2.23 s / 5.86 s; grid search in the EXP-009 notes). Needed for screens.
+if "OL" in PROFILES:
+    PROFILES["OL"] = PROFILES["OL"].scaled(max_speed=1.28, accel=1.10)
 
 
 class Bodies:

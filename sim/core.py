@@ -88,6 +88,11 @@ class RewardConfig:
     tackle_penalty: float = 0.0
     out_of_bounds_penalty: float = 0.0
     time_penalty: float = 0.0       # per step
+    # Team sim only (EXP-010): potential-based shaping for blockers, per yard a
+    # free blocker is away from the line between a free defender and the carrier.
+    # Offense only; the defense keeps the plain negated yards.
+    blocker_shaping: float = 0.0
+    shaping_gamma: float = 0.995    # = PPO gamma, so the shaping can't change the best policy
 
 
 @dataclass

@@ -1,0 +1,236 @@
+{
+ "R01_T00": {
+  "touchdown": 0.69921875,
+  "blocks_per_play": 0.90234375,
+  "engaged_time_share": 0.28025117948036415,
+  "carrier_behind_block_share": 0.021496444946508073,
+  "attempts_per_play": 0.4423828125,
+  "miss_rate": 0.4304635761589404,
+  "defenders_moving_away_at_1s": 0.6360677083333334
+ },
+ "R01_T01": {
+  "touchdown": 0.9990234375,
+  "blocks_per_play": 1.4287109375,
+  "engaged_time_share": 0.4355856942217935,
+  "carrier_behind_block_share": 0.013604959639092624,
+  "attempts_per_play": 0.0029296875,
+  "miss_rate": 0.6666666666666666,
+  "defenders_moving_away_at_1s": 0.087890625
+ },
+ "R01_T02": {
+  "touchdown": 0.2900390625,
+  "blocks_per_play": 0.6767578125,
+  "engaged_time_share": 0.2704970603955104,
+  "carrier_behind_block_share": 0.04441475146980225,
+  "attempts_per_play": 1.1220703125,
+  "miss_rate": 0.3681462140992167,
+  "defenders_moving_away_at_1s": 0.19108072916666666
+ },
+ "R01_T03": {
+  "touchdown": 0.2275390625,
+  "blocks_per_play": 0.7412109375,
+  "engaged_time_share": 0.3016365773531451,
+  "carrier_behind_block_share": 0.08381807769974985,
+  "attempts_per_play": 1.078125,
+  "miss_rate": 0.2817028985507246,
+  "defenders_moving_away_at_1s": 0.2041015625
+ },
+ "R01_T04": {
+  "touchdown": 0.26171875,
+  "blocks_per_play": 0.8935546875,
+  "engaged_time_share": 0.32804867837106094,
+  "carrier_behind_block_share": 0.07873949814385799,
+  "attempts_per_play": 1.146484375,
+  "miss_rate": 0.35604770017035775,
+  "defenders_moving_away_at_1s": 0.22591145833333334
+ },
+ "R01_T05": {
+  "touchdown": 0.1650390625,
+  "blocks_per_play": 0.568359375,
+  "engaged_time_share": 0.20729716151720673,
+  "carrier_behind_block_share": 0.06389726199447375,
+  "attempts_per_play": 1.15625,
+  "miss_rate": 0.28125,
+  "defenders_moving_away_at_1s": 0.2884114583333333
+ },
+ "R01_T06": {
+  "touchdown": 0.1455078125,
+  "blocks_per_play": 0.6171875,
+  "engaged_time_share": 0.2041705371728755,
+  "carrier_behind_block_share": 0.05487043146801627,
+  "attempts_per_play": 1.134765625,
+  "miss_rate": 0.2452667814113597,
+  "defenders_moving_away_at_1s": 0.3515625
+ },
+ "R01_T07": {
+  "touchdown": 0.1982421875,
+  "blocks_per_play": 0.818359375,
+  "engaged_time_share": 0.2471374584014891,
+  "carrier_behind_block_share": 0.05262564160415139,
+  "attempts_per_play": 1.2666015625,
+  "miss_rate": 0.36931380107941403,
+  "defenders_moving_away_at_1s": 0.3942057291666667
+ },
+ "R01_T08": {
+  "touchdown": 0.244140625,
+  "blocks_per_play": 0.8876953125,
+  "engaged_time_share": 0.2708929378105707,
+  "carrier_behind_block_share": 0.04527430607840185,
+  "attempts_per_play": 1.330078125,
+  "miss_rate": 0.44052863436123346,
+  "defenders_moving_away_at_1s": 0.4915364583333333
+ },
+ "R01_T09": {
+  "touchdown": 0.2802734375,
+  "blocks_per_play": 0.96484375,
+  "engaged_time_share": 0.30123877874890453,
+  "carrier_behind_block_share": 0.05341197091356972,
+  "attempts_per_play": 1.298828125,
+  "miss_rate": 0.46090225563909776,
+  "defenders_moving_away_at_1s": 0.5003255208333334
+ },
+ "R01_T10": {
+  "touchdown": 0.3447265625,
+  "blocks_per_play": 1.068359375,
+  "engaged_time_share": 0.3551892578167029,
+  "carrier_behind_block_share": 0.07116266058402014,
+  "attempts_per_play": 1.060546875,
+  "miss_rate": 0.45027624309392267,
+  "defenders_moving_away_at_1s": 0.4401041666666667
+ },
+ "R01_T11": {
+  "touchdown": 0.3720703125,
+  "blocks_per_play": 1.078125,
+  "engaged_time_share": 0.3725008768853034,
+  "carrier_behind_block_share": 0.07982751150267192,
+  "attempts_per_play": 1.005859375,
+  "miss_rate": 0.4669902912621359,
+  "defenders_moving_away_at_1s": 0.3873697916666667
+ },
+ "R01_T12": {
+  "touchdown": 0.462890625,
+  "blocks_per_play": 1.060546875,
+  "engaged_time_share": 0.35644806422974484,
+  "carrier_behind_block_share": 0.07675531709576562,
+  "attempts_per_play": 0.9765625,
+  "miss_rate": 0.528,
+  "defenders_moving_away_at_1s": 0.3841145833333333
+ },
+ "R12_T00": {
+  "touchdown": 0.8896484375,
+  "blocks_per_play": 0.9697265625,
+  "engaged_time_share": 0.3016556636812065,
+  "carrier_behind_block_share": 0.03643652295724483,
+  "attempts_per_play": 0.1767578125,
+  "miss_rate": 0.3756906077348066,
+  "defenders_moving_away_at_1s": 0.6647135416666666
+ },
+ "R12_T01": {
+  "touchdown": 0.9853515625,
+  "blocks_per_play": 1.28125,
+  "engaged_time_share": 0.3807156792004062,
+  "carrier_behind_block_share": 0.012373393195969962,
+  "attempts_per_play": 0.052734375,
+  "miss_rate": 0.7222222222222222,
+  "defenders_moving_away_at_1s": 0.0556640625
+ },
+ "R12_T02": {
+  "touchdown": 0.8828125,
+  "blocks_per_play": 1.34375,
+  "engaged_time_share": 0.43701442439850113,
+  "carrier_behind_block_share": 0.0672897466687886,
+  "attempts_per_play": 0.2197265625,
+  "miss_rate": 0.4622222222222222,
+  "defenders_moving_away_at_1s": 0.037760416666666664
+ },
+ "R12_T03": {
+  "touchdown": 0.7939453125,
+  "blocks_per_play": 1.3935546875,
+  "engaged_time_share": 0.4805002689618074,
+  "carrier_behind_block_share": 0.09806646345107883,
+  "attempts_per_play": 0.494140625,
+  "miss_rate": 0.5830039525691699,
+  "defenders_moving_away_at_1s": 0.052083333333333336
+ },
+ "R12_T04": {
+  "touchdown": 0.833984375,
+  "blocks_per_play": 1.501953125,
+  "engaged_time_share": 0.48404949848655704,
+  "carrier_behind_block_share": 0.09080657605792629,
+  "attempts_per_play": 0.4384765625,
+  "miss_rate": 0.621380846325167,
+  "defenders_moving_away_at_1s": 0.054361979166666664
+ },
+ "R12_T05": {
+  "touchdown": 0.728515625,
+  "blocks_per_play": 1.4306640625,
+  "engaged_time_share": 0.4817139216310927,
+  "carrier_behind_block_share": 0.10347244345332908,
+  "attempts_per_play": 0.626953125,
+  "miss_rate": 0.5669781931464174,
+  "defenders_moving_away_at_1s": 0.15201822916666666
+ },
+ "R12_T06": {
+  "touchdown": 0.6376953125,
+  "blocks_per_play": 1.3642578125,
+  "engaged_time_share": 0.4474165059384834,
+  "carrier_behind_block_share": 0.09645382871451291,
+  "attempts_per_play": 0.7119140625,
+  "miss_rate": 0.49108367626886146,
+  "defenders_moving_away_at_1s": 0.21256510416666666
+ },
+ "R12_T07": {
+  "touchdown": 0.4658203125,
+  "blocks_per_play": 1.2109375,
+  "engaged_time_share": 0.39712861888941625,
+  "carrier_behind_block_share": 0.0934780889099826,
+  "attempts_per_play": 0.9267578125,
+  "miss_rate": 0.42360379346680715,
+  "defenders_moving_away_at_1s": 0.28125
+ },
+ "R12_T08": {
+  "touchdown": 0.466796875,
+  "blocks_per_play": 1.3154296875,
+  "engaged_time_share": 0.41585365853658535,
+  "carrier_behind_block_share": 0.1022029897718332,
+  "attempts_per_play": 1.005859375,
+  "miss_rate": 0.470873786407767,
+  "defenders_moving_away_at_1s": 0.3284505208333333
+ },
+ "R12_T09": {
+  "touchdown": 0.544921875,
+  "blocks_per_play": 1.28125,
+  "engaged_time_share": 0.42156469773712785,
+  "carrier_behind_block_share": 0.10370586306161862,
+  "attempts_per_play": 0.9052734375,
+  "miss_rate": 0.5026968716289104,
+  "defenders_moving_away_at_1s": 0.3479817708333333
+ },
+ "R12_T10": {
+  "touchdown": 0.6328125,
+  "blocks_per_play": 1.2578125,
+  "engaged_time_share": 0.4022913964548206,
+  "carrier_behind_block_share": 0.08733246865542585,
+  "attempts_per_play": 0.8310546875,
+  "miss_rate": 0.581668625146886,
+  "defenders_moving_away_at_1s": 0.3401692708333333
+ },
+ "R12_T11": {
+  "touchdown": 0.630859375,
+  "blocks_per_play": 1.2294921875,
+  "engaged_time_share": 0.39619351302874795,
+  "carrier_behind_block_share": 0.08544666434158736,
+  "attempts_per_play": 0.8447265625,
+  "miss_rate": 0.5780346820809249,
+  "defenders_moving_away_at_1s": 0.3304036458333333
+ },
+ "R12_T12": {
+  "touchdown": 0.5478515625,
+  "blocks_per_play": 1.234375,
+  "engaged_time_share": 0.4238338061550616,
+  "carrier_behind_block_share": 0.10493051316120229,
+  "attempts_per_play": 0.97265625,
+  "miss_rate": 0.5441767068273092,
+  "defenders_moving_away_at_1s": 0.3307291666666667
+ }
+}

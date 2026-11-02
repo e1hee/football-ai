@@ -91,3 +91,36 @@ def test_blocking_is_worth_something():
     with_b = evaluate(lambda s, _: OFFENSE["screen"](s), DEFENSE["pursuit"], cfg, n_plays=2048)
     without = evaluate(lambda s, _: OFFENSE["carrier_only"](s), DEFENSE["pursuit"], cfg, n_plays=2048)
     assert with_b["rate/touchdown"] > without["rate/touchdown"] + 0.10
+
+
+def test_blocker_potential_is_zero_on_the_line_and_negative_off_it():
+    sim = _sim(n=2)
+    sim.pos[:] = np.array([[10, 26], [15, 26], [15, 40], [20, 26], [50, 5], [50, 50]], np.float32)
+    # Blocker 1 sits right between the LB (20, 26) and the carrier; blocker 2 is 14 yd off any line.
+    phi = sim.blocker_potential()
+    assert np.all(phi < 0) and np.all(phi > -20)
+    sim.partner[:, 2] = 4                    # once engaged, a blocker adds nothing
+    sim.partner[:, 4] = 2
+    assert np.allclose(sim.blocker_potential(), 0.0, atol=1e-5)
+
+
+def test_shaping_goes_to_the_offense_only():
+    from sim.core import RewardConfig
+    sim = _sim(n=64, reward=RewardConfig(yards_scale=0.1, blocker_shaping=0.05))
+    a = OFFENSE["screen"](sim)
+    _, rew, _, info = sim.step(a, DEFENSE["pursuit"](sim))
+    plain = 0.1 * (info["r_pos"][:, 0] - 5.0)    # carriers start at x=5
+    assert np.allclose(-info["tackler_reward"], plain, atol=1e-4)
+    assert not np.allclose(rew, plain, atol=1e-4)
+
+
+def test_shaping_pays_no_end_bonus_on_timeout():
+    from sim.core import OUTCOME_TIMEOUT, RewardConfig
+    sim = _sim(n=4, field=FieldConfig(max_steps=1), reward=RewardConfig(yards_scale=0.0, blocker_shaping=1.0),
+               facing=False)
+    sim.pos[:] = np.array([[10, 26], [5, 5], [5, 45], [30, 26], [40, 10], [40, 40]], np.float32)  # blockers far off
+    phi0 = sim.blocker_potential()
+    _, rew, done, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert np.all(info["outcome"] == OUTCOME_TIMEOUT)
+    # gamma * Phi(s') - Phi(s) with s' kept, ~0 for players who barely moved; not -Phi(s) (a big bonus).
+    assert np.all(np.abs(rew) < 0.2 * np.abs(phi0))

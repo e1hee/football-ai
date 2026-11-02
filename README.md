@@ -23,6 +23,8 @@ The whole process is logged experiment by experiment for a narrated video series
 | [EXP-007](experiments/EXP-007-fixed-selfplay/notes.md) | Stricter breakaway rule, no untrained opponents in pools, plus a hand-written read-and-react tackler | First real arms race: the cross table forms a triangle (new generations beat old ones on both sides). Tacklers learned to pin runners to the sideline |
 | [EXP-008](experiments/EXP-008-facing/notes.md) | Body facing (hips) measured from NFL tracking `o`: limited turn rate, slower moving away from where you face | First pre-contact braking: tacklers now brake before contact (median 2.5 yd/s², NFL 4.0). Runners still don't juke in open-field 1v1 |
 | [EXP-009](experiments/EXP-009-3v3-screen/notes.md) | First 3v3: RB screen (RB + 2 OL vs LB + 2 DB) with blocking, OL speed calibrated to the combine | Defense wins the arms race (latest-vs-latest TD 84% → 42%), tacklers brake like NFL defenders (median 3.9 vs 4.0), one DB learns to play deep safety on its own |
+| [EXP-010](experiments/EXP-010-blocker-shaping/notes.md) | Role reward for the blockers (potential-based shaping) | Failed: a bug in my shaping paid a bonus at timeouts, and the offense learned to send its blockers to the corners and run out the clock (71% timeouts) |
+| [EXP-011](experiments/EXP-011-blocker-shaping-fixed/notes.md) | Same role reward, timeout bug fixed | Lost blockers 6% → 1%, but the offense is no stronger and the runner still rarely follows his blocks |
 
 Each experiment folder has `notes.md` (hypothesis → attempt → result → surprises → next), `config.yaml`, metrics, and charts.
 Daily log: [`devlog/`](devlog/). Plan and milestones: [`PLAN.md`](PLAN.md).

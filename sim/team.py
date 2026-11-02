@@ -295,11 +295,32 @@ class TeamSim:
         wrapper = self.n_off + np.argmax(made, axis=1)
         return attempt, made_any, missed, wrapper
 
+    def blocker_potential(self) -> np.ndarray:
+        """Phi(s) <= 0 per play: minus the yards each free blocker would have to
+        move to stand on the line between some free defender and the carrier
+        (the defender he could best cut off). Engaged blockers score 0, and so
+        does a play with no free defender left. Uses true positions."""
+        c = self.pos[:, CARRIER, None]                         # (N, 1, 2)
+        d = self.pos[:, self.dfn]                              # (N, D, 2)
+        seg = c - d
+        free_d = (self.partner[:, self.dfn] < 0) & (self.stun[:, self.dfn] <= 0)
+        phi = np.zeros(self.n, np.float32)
+        for b in self.blk:
+            p = self.pos[:, b, None]                           # (N, 1, 2)
+            t = np.clip(np.sum((p - d) * seg, -1) / np.maximum(np.sum(seg * seg, -1), 1e-6), 0.0, 1.0)
+            dist = np.linalg.norm(p - (d + seg * t[..., None]), axis=-1)
+            best = np.where(free_d, dist, np.inf).min(axis=1)
+            miss = np.where(np.isfinite(best) & (self.partner[:, b] < 0), best, 0.0)
+            phi -= miss
+        return phi
+
     # ------------------------------------------------------------------- step
     def step(self, offense_action: np.ndarray, defense_action: np.ndarray):
         f, rw, tc = self.cfg.field, self.cfg.reward, self.cfg.tackle
         dt = f.dt
         prev_x = self.pos[:, CARRIER, 0].copy()
+        shaping = rw.blocker_shaping
+        phi_before = self.blocker_potential() if shaping else None
         wrapped = self.wrap > 0
 
         action = np.concatenate([self._actions(offense_action, self.n_off),
@@ -376,12 +397,21 @@ class TeamSim:
         outcome[tackled] = OUTCOME_TACKLED
         outcome[out_of_bounds] = OUTCOME_OUT_OF_BOUNDS
         outcome[timeout] = OUTCOME_TIMEOUT
-        reward = (rw.yards_scale * gained + rw.touchdown_bonus * touchdown - rw.tackle_penalty * tackled
+        base = (rw.yards_scale * gained + rw.touchdown_bonus * touchdown - rw.tackle_penalty * tackled
                   - rw.out_of_bounds_penalty * out_of_bounds - rw.time_penalty).astype(np.float32)
+        reward = base
+        if shaping:
+            # F = gamma * Phi(s') - Phi(s), with Phi = 0 once the play is really over.
+            # A timeout is a cut-off, not an end: the learner bootstraps the value of
+            # s' there, so Phi(s') must stay. Zeroing it paid an "end bonus" on top of
+            # the bootstrapped value, and EXP-010's offense learned to send its blockers
+            # far away and run out the clock (71% timeouts) to collect it.
+            phi_after = np.where(done & ~timeout, 0.0, self.blocker_potential())
+            reward = (base + shaping * (rw.shaping_gamma * phi_after - phi_before)).astype(np.float32)
 
         info = {
             "outcome": outcome, "yards": self.yards.copy(), "steps": self.t.copy(),
-            "tackler_reward": -reward,
+            "tackler_reward": -base,
             "tackle_attempt": attempt.any(axis=1), "tackle_made": made, "tackle_missed": missed.any(axis=1),
             "attempts": attempt.sum(1), "misses": missed.sum(1),
             "wrapped": self.wrap > 0, "breakaway": breakaway,

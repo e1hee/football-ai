@@ -71,7 +71,7 @@ class SimConfig:
     tackler: Profile = dc_field(default_factory=lambda: PROFILES["DB"])
 
 
-OBS_DIM = 10
+OBS_DIM = 12
 RUNNER_OBS_NAMES = [
     "x_norm", "y_norm",                     # own position / field size
     "vx_norm", "vy_norm",                   # own velocity / max speed
@@ -79,6 +79,8 @@ RUNNER_OBS_NAMES = [
     "tackler_vx_norm", "tackler_vy_norm",   # tackler velocity / max speed
     "dist_goal_norm",                       # yards to goal line / length
     "dist_sideline_norm",                   # yards to nearest sideline / half width
+    "tackler_stunned",                      # remaining stumble / miss_stun (0 = recovered)
+    "wrapped",                              # 1 while the runner is wrapped up
 ]
 
 OUTCOME_RUNNING, OUTCOME_TOUCHDOWN, OUTCOME_TACKLED, OUTCOME_OUT_OF_BOUNDS, OUTCOME_TIMEOUT = 0, 1, 2, 3, 4
@@ -242,6 +244,8 @@ class OneVOneSim:
             "wrapped": self.wrap > 0,
             # Final positions before auto-reset, for rendering/analysis.
             "r_pos": self.pos[:, RUNNER].copy(), "t_pos": self.pos[:, TACKLER].copy(),
+            # Last observation of finished plays (RL bootstrapping on time-outs).
+            "terminal_obs": self.observe() if done.any() else None,
         }
         if done.any():
             self.reset(done)
@@ -258,6 +262,8 @@ class OneVOneSim:
         obs[:, 6:8] = self.vel[:, other] / b.max_speed[:, other, None]
         obs[:, 8] = (f.length - self.pos[:, RUNNER, 0]) / f.length
         obs[:, 9] = np.minimum(self.pos[:, me, 1], f.width - self.pos[:, me, 1]) / self._half_w
+        obs[:, 10] = self.stun[:, other] / max(self.cfg.tackle.miss_stun, 1e-6)
+        obs[:, 11] = (self.wrap > 0).astype(np.float32)
         return obs
 
     def observe(self) -> np.ndarray:

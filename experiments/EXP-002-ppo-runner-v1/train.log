@@ -1,0 +1,27 @@
+[gen   0]           0 steps        1s  TD 0.0%  tackled 100.0%  oob 0.0%  timeout 0.0%  yards -1.4  broken 0.12
+[gen   1]   2,000,384 steps       20s  TD 83.3%  tackled 16.6%  oob 0.1%  timeout 0.0%  yards 46.8  broken 0.05
+[gen   2]   4,000,256 steps       39s  TD 99.0%  tackled 1.0%  oob 0.0%  timeout 0.0%  yards 54.5  broken 0.01
+[gen   3]   6,000,128 steps       58s  TD 99.8%  tackled 0.2%  oob 0.0%  timeout 0.0%  yards 54.9  broken 0.00
+[gen   4]   8,000,000 steps       77s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen   5]  10,000,384 steps       96s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen   6]  12,000,256 steps      115s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen   7]  14,000,128 steps      134s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen   8]  16,000,000 steps      154s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen   9]  18,000,384 steps      172s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  10]  20,000,256 steps      191s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  11]  22,000,128 steps      209s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  12]  24,000,000 steps      228s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  13]  26,000,384 steps      246s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  14]  28,000,256 steps      264s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  15]  30,000,128 steps      283s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  16]  32,000,000 steps      301s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  17]  34,000,384 steps      320s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  18]  36,000,256 steps      338s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  19]  38,000,128 steps      356s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  20]  40,000,000 steps      374s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  21]  42,000,384 steps      393s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  22]  44,000,256 steps      411s  TD 99.9%  tackled 0.1%  oob 0.0%  timeout 0.0%  yards 54.9  broken 0.00
+[gen  23]  46,000,128 steps      430s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  24]  48,000,000 steps      448s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+[gen  25]  50,000,384 steps      466s  TD 100.0%  tackled 0.0%  oob 0.0%  timeout 0.0%  yards 55.0  broken 0.00
+done: 50,003,968 steps in 7.8 min (107,197 steps/s)

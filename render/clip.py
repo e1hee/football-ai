@@ -33,6 +33,10 @@ LABEL = {"random": "무작위", "straight": "직진", "evasive": "회피",
 
 
 def make_policy(name: str, seed: int = 0) -> Policy:
+    """Scripted policy by name, or a saved PPO runner via 'ckpt:path/to/gen_010.zip'."""
+    if name.startswith("ckpt:"):
+        from train.evaluate import ppo_runner
+        return ppo_runner(name[5:])
     rng = np.random.default_rng(seed)
     table = {
         "random": lambda sim, obs: random_policy(sim, rng),
@@ -81,6 +85,13 @@ def write_mp4(frames, out: Path, size: tuple[int, int]) -> int:
     return n
 
 
+def label(name: str) -> str:
+    if name.startswith("ckpt:"):
+        stem = Path(name[5:]).stem            # gen_010
+        return f"AI {int(stem.split('_')[-1])}세대" if stem.startswith("gen_") else f"AI {stem}"
+    return LABEL.get(name, name)
+
+
 def outcome_tag(pl: Play) -> str:
     word = {"touchdown": "터치다운", "tackled": "태클", "out_of_bounds": "아웃", "timeout": "시간 초과"}
     return f"{word.get(pl.outcome, pl.outcome)} · {pl.yards:.0f}야드"
@@ -92,6 +103,10 @@ def main() -> None:
     p.add_argument("--tackler", default="angle", help="pursuit|angle|still")
     p.add_argument("--compare", default=None,
                    help="comma list of runner/tackler pairs shown together, e.g. straight/pursuit,straight/angle")
+    p.add_argument("--sequence", default=None,
+                   help="comma list of runners played one after another on the SAME start "
+                        "(generation evolution), e.g. ckpt:.../gen_000.zip,ckpt:.../gen_025.zip")
+    p.add_argument("--play-index", type=int, default=None, help="force which recorded start (0-31) to use")
     p.add_argument("--spread", type=float, default=None, help="tackler lateral spread in yd (default: whole field)")
     p.add_argument("--format", choices=["shorts", "episode"], default="shorts")
     p.add_argument("--title", default="")
@@ -109,7 +124,12 @@ def main() -> None:
     renderer = PlayRenderer(cfg.field, layout)
     size = OUT_SIZE[args.format]
 
-    pairs = [tuple(x.split("/")) for x in args.compare.split(",")] if args.compare else [(args.runner, args.tackler)]
+    if args.sequence:
+        pairs = [(r, args.tackler) for r in args.sequence.split(",")]
+    elif args.compare:
+        pairs = [tuple(x.rsplit("/", 1)) for x in args.compare.split(",")]  # rsplit: ckpt paths contain '/'
+    else:
+        pairs = [(args.runner, args.tackler)]
     # Same seed for every pair so compared plays start from identical setups.
     recorded = {
         pr: record_plays(make_policy(pr[0], args.seed), make_policy(pr[1], args.seed),
@@ -124,16 +144,25 @@ def main() -> None:
         return pick(pool or plays, args.outcome)
 
     def frames():
+        if args.sequence:
+            idx = args.play_index if args.play_index is not None else 0
+            for pr in pairs:
+                pl = recorded[pr][idx]
+                for f in play_frames(renderer, pl, args.title or label(pr[0]), label(pr[0]), outcome_tag(pl)):
+                    yield fit_canvas(f, size)
+            return
         for i in range(args.plays):
             if len(pairs) == 1:
                 pl = choose(recorded[pairs[0]], i)
-                title = args.title or f"러너: {LABEL[pairs[0][0]]} vs 태클러: {LABEL[pairs[0][1]]}"
+                title = args.title or f"러너: {label(pairs[0][0])} vs 태클러: {label(pairs[0][1])}"
                 for f in play_frames(renderer, pl, title, args.tag, outcome_tag(pl)):
                     yield fit_canvas(f, size)
                 continue
             # Compare: use the same play index (= same start) for every pair.
             idx = 0
-            if args.plays == 1 and (args.outcome or args.event):
+            if args.play_index is not None:
+                idx = args.play_index + i
+            elif args.plays == 1 and (args.outcome or args.event):
                 first = recorded[pairs[0]]
                 idx = first.index(choose(first, 0))
             else:
@@ -146,7 +175,7 @@ def main() -> None:
                 for pr, pl in chosen:
                     s = min(k / sub, pl.steps)
                     tag = outcome_tag(pl) if s >= pl.steps else None
-                    parts.append(renderer.frame(pl, s, f"{LABEL[pr[0]]} vs {LABEL[pr[1]]}", tag))
+                    parts.append(renderer.frame(pl, s, f"{label(pr[0])} vs {label(pr[1])}", tag))
                 yield fit_canvas(stack(parts, vertical=layout.vertical), size)
 
     if args.png:
@@ -161,7 +190,7 @@ def main() -> None:
     for pr, plays in recorded.items():
         outcomes = {o: sum(pl.outcome == o for pl in plays) for o in sorted(set(pl.outcome for pl in plays))}
         ev = sum(len(pl.events) for pl in plays)
-        print(f"  {pr[0]:>8}/{pr[1]:<8} {outcomes}  tackle events: {ev}")
+        print(f"  {label(pr[0]):>10}/{label(pr[1]):<8} {outcomes}  tackle events: {ev}")
 
 
 if __name__ == "__main__":

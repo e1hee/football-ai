@@ -1,0 +1,99 @@
+experiment: EXP-015-balance/s2
+args:
+  exp: EXP-015-balance/s2
+  phases: '24'
+  phase_steps: '2000000'
+  runner_init: None
+  first: tackler
+  scripted_share: '0.3'
+  delay: '2'
+  scripted_tackler: angle
+  tackle_base: '2.3'
+  overspeed: '0.25'
+  sidestep: '0.2'
+  facing: 'True'
+  n_envs: '512'
+  spread: '8.0'
+  breakaway_lead: None
+  full_play_share: '0.1'
+  yards_scale: '0.1'
+  blocker_shaping: '0.0'
+  sim: lane-lb
+  lane_width: '5.0'
+  stumble: '0.2'
+  square_ahead: 'True'
+  net: '256'
+  seed: '2'
+  threads: '3'
+sim:
+  field:
+    length: 20.0
+    width: 5.0
+    runner_start_x: 5.0
+    tackler_gap: 10.0
+    tackler_lateral_spread: 8.0
+    dt: 0.1
+    max_steps: 40
+    breakaway_lead: null
+    breakaway_min_speed: 5.0
+    full_play_share: 0.1
+    reaction_delay: 2
+  reward:
+    yards_scale: 0.1
+    touchdown_bonus: 0.0
+    tackle_penalty: 0.0
+    out_of_bounds_penalty: 0.0
+    time_penalty: 0.0
+    blocker_shaping: 0.0
+    shaping_gamma: 0.995
+  tackle:
+    reach: 0.5
+    base_logit: 2.3
+    headon_weight: 1.0
+    momentum_weight: 3.0
+    wrap_time: 0.4
+    wrap_decel: 6.0
+    miss_stun: 0.6
+    miss_cooldown: 0.9
+    miss_slowdown: 0.85
+    control_speed: 4.5
+    overspeed_weight: 0.25
+    sidestep_weight: 0.2
+  block:
+    reach: 0.3
+    engaged_control: 0.7
+    leash: 0.3
+    shed_rate: 0.6
+    shed_mass_power: 1.5
+    reengage_cooldown: 1.0
+    engaged_tackle_logit: -1.5
+    shield_angle: 60.0
+  formation:
+    kind: lane
+    carrier_y_jitter: 0.3
+    los_ahead: 5.0
+    shade: 0.5
+    lb_depth:
+    - 4.0
+    - 5.0
+    blocker_ahead:
+    - 3.0
+    - 5.0
+    blocker_side:
+    - 1.5
+    - 4.0
+    defender_ahead:
+    - 7.0
+    - 13.0
+    defender_spread: 10.0
+  offense:
+  - RB
+  - OL
+  defense:
+  - DL
+  - LB
+  facing: true
+  stumble: 0.2
+  stumble_free: 2.0
+  stumble_max: 0.5
+  carrier_square_ahead: true

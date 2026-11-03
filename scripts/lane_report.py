@@ -137,9 +137,12 @@ def main() -> None:
     p.add_argument("--n", type=int, default=2048)
     p.add_argument("--width", type=float, default=5.0)
     p.add_argument("--lb", action="store_true")
+    p.add_argument("--stumble", type=float, default=0.0)
+    p.add_argument("--square-ahead", action="store_true")
     p.add_argument("--json", type=Path, default=None)
     args = p.parse_args()
     cfg = lane_drill_config(width=args.width, linebacker=args.lb, field=FieldConfig(reaction_delay=2),
+                            stumble=args.stumble, carrier_square_ahead=args.square_ahead,
                             tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
     runs = sorted(d for d in args.exp.iterdir() if (d / "checkpoints").is_dir()) or [args.exp]
 

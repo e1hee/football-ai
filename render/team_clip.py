@@ -164,6 +164,8 @@ def main() -> None:
     p.add_argument("--sidestep", type=float, default=0.2)
     p.add_argument("--sim", choices=[s for s in SIMS if s != "1v1"], default="3v3")
     p.add_argument("--lane-width", type=float, default=5.0)
+    p.add_argument("--stumble", type=float, default=0.0)
+    p.add_argument("--square-ahead", action="store_true")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--png", action="store_true")
     args = p.parse_args()
@@ -172,7 +174,7 @@ def main() -> None:
                                          tackle=TackleConfig(base_logit=args.tackle_base,
                                                              overspeed_weight=args.overspeed,
                                                              sidestep_weight=args.sidestep)),
-                     lane_width=args.lane_width)
+                     lane_width=args.lane_width, stumble=args.stumble, carrier_square_ahead=args.square_ahead)
     layout = Layout.shorts() if args.format == "shorts" else Layout.episode()
     view, lane, shift = cfg.field, None, 0.0
     if cfg.formation.kind == "lane":

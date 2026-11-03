@@ -88,6 +88,18 @@ class TeamConfig:
     offense: tuple[str, ...] = ("RB", "OL", "OL")
     defense: tuple[str, ...] = ("LB", "DB", "DB")
     facing: bool = True
+    # Balance (EXP-015; 0 = off). A collision that changes a free player's
+    # velocity by more than `stumble_free` x what his own brakes could in one
+    # step knocks him off balance: `stumble` s of no control per yd/s beyond
+    # that, up to `stumble_max`. Without it, running into a teammate's back was
+    # a free ~40 yd/s^2 brake (EXP-014). Engaged and wrapped players are exempt.
+    stumble: float = 0.0
+    stumble_free: float = 2.0
+    stumble_max: float = 0.5
+    # The carrier squares up only to defenders ahead of him; with none ahead his
+    # square-up faces downfield (EXP-015). Off: nearest defender anywhere, so a
+    # runner who broke free kept his hips on the chaser behind him (EXP-013).
+    carrier_square_ahead: bool = False
 
 
 def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: float = 10.0,
@@ -112,14 +124,15 @@ def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: fl
 SIMS = ("1v1", "3v3", "lane", "lane-lb")
 
 
-def config_for(sim: str, base: SimConfig, lane_width: float = 5.0):
-    """The config a CLI `--sim` name means, built on the shared 1v1-style settings."""
+def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
+    """The config a CLI `--sim` name means, built on the shared 1v1-style settings.
+    `team` sets TeamConfig-only fields (stumble, carrier_square_ahead)."""
     if sim == "1v1":
         return base
     if sim == "3v3":
-        return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing)
+        return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", field=base.field,
-                             tackle=base.tackle, reward=base.reward, facing=base.facing)
+                             tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
 
 
 def make_sim(n: int, cfg, seed: int = 0):
@@ -287,6 +300,13 @@ class TeamSim:
         rel = o_pos[:, None, self.dfn] - self.pos[:, self.off, None]        # (N, off, def, 2)
         near = np.argmin(np.linalg.norm(rel, axis=-1), axis=2)              # (N, off)
         focus[:, self.off] = np.take_along_axis(o_pos[:, self.dfn], near[..., None], axis=1)
+        if self.cfg.carrier_square_ahead:
+            me = self.pos[:, CARRIER]
+            dist = np.linalg.norm(o_pos[:, self.dfn] - me[:, None], axis=-1)
+            ahead = o_pos[:, self.dfn, 0] > me[:, None, 0] - 0.5
+            k = np.argmin(np.where(ahead, dist, np.inf), axis=1)
+            focus[:, CARRIER] = np.where(ahead.any(1)[:, None], o_pos[np.arange(self.n), self.dfn[k]],
+                                         me + np.array([5.0, 0.0], np.float32))
         to_f = focus - self.pos
         to_f /= np.maximum(np.linalg.norm(to_f, axis=-1, keepdims=True), 1e-6)
         target = (1.0 - square[..., None]) * push_dir + square[..., None] * to_f
@@ -314,6 +334,20 @@ class TeamSim:
         j = np.where((over > 0) & (v_sep > 0), v_sep / w, 0.0)
         self.vel[rows, blks] += nrm * (j * wb)[:, None]
         self.vel[rows, dfs] -= nrm * (j * wd)[:, None]
+
+    def _stumble(self, pre_vel: np.ndarray) -> None:
+        """Knock players off balance whose velocity a collision changed by more
+        than they could have braked themselves (see TeamConfig.stumble)."""
+        c = self.cfg
+        dv = np.linalg.norm(self.vel - pre_vel, axis=-1)
+        own = self.bodies.brake * self.cfg.field.dt * c.stumble_free
+        exempt = self.partner >= 0
+        if self.wrap.any():
+            rows = np.nonzero(self.wrap > 0)[0]
+            exempt[rows, CARRIER] = True
+            exempt[rows, self.wrapper[rows]] = True
+        hit = np.clip((dv - own) * c.stumble, 0.0, c.stumble_max) * ~exempt
+        self.stun = np.maximum(self.stun, hit.astype(np.float32))
 
     def _blocking(self) -> tuple[np.ndarray, np.ndarray]:
         """Shed existing blocks, then start new ones. Returns (new_engaged, shed) counts per play."""
@@ -448,6 +482,8 @@ class TeamSim:
         self._leash()
         pre_vel = self.vel.copy()
         resolve_collisions(self.pos, self.vel, self.bodies)
+        if self.cfg.stumble:
+            self._stumble(pre_vel)
         new_blocks, sheds = self._blocking()
         attempt, made, missed, wrapper = self._tackles(pre_vel)
         self.wrap[made] = tc.wrap_time

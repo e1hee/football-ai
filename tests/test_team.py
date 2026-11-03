@@ -187,3 +187,41 @@ def test_lane_scripted_runner_beats_scripted_dl_sometimes():
         m = evaluate(lambda s, o=None: lane_offense(s), lambda s, o=None: gap_defense(s),
                      lane_drill_config(linebacker=lb), n_plays=512)
         assert 0.05 < m["rate/touchdown"] < 0.9
+
+
+# ------------------------------------------------------------ balance / hips
+def _bump(speed, **kw):
+    """RB running at `speed` into the back of a standing OL, far from the DL."""
+    sim = _lane(4, **kw)
+    sim.partner[:] = -1
+    sim.pos[:, 2] = (17.0, 2.5)
+    sim.pos[:, 1] = (8.0, 2.5)
+    sim.pos[:, CARRIER] = (8.0 - 0.9 - speed * 0.1 + 0.05, 2.5)
+    sim.vel[:] = 0
+    sim.vel[:, CARRIER] = (speed, 0.0)
+    a = np.zeros((sim.n, 2, 3), np.float32)
+    a[:, CARRIER, 0] = 1.0
+    sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))
+    return sim
+
+
+def test_hard_collision_knocks_the_runner_off_balance():
+    assert (_bump(6.0, stumble=0.1).stun[:, CARRIER] > 0.1).all()
+    assert (_bump(1.0, stumble=0.1).stun[:, CARRIER] == 0).all()     # a soft bump is fine
+    assert (_bump(6.0).stun[:, CARRIER] == 0).all()                  # off by default
+
+
+def test_broken_free_carrier_squares_up_downfield():
+    def hips(**kw):
+        sim = _lane(4, block=dataclasses.replace(lane_drill_config().block, shed_rate=0.0), **kw)
+        sim.pos[:, CARRIER] = (11.5, 2.5)                            # just past the DL at ~10.5
+        sim.vel[:, CARRIER] = (3.0, 0.0)
+        sim.facing[:, CARRIER] = (1.0, 0.0)
+        a = np.zeros((sim.n, 2, 3), np.float32)
+        a[:, CARRIER] = (1.0, 0.0, 1.0)                              # full square-up
+        for _ in range(8):
+            _, _, done, _ = sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))
+            assert not done.any()
+        return sim.facing[:, CARRIER, 0]
+    assert (hips() < 0).all()                                        # turns toward the DL behind him
+    assert (hips(carrier_square_ahead=True) > 0.9).all()

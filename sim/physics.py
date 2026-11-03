@@ -103,6 +103,11 @@ PROFILES["RB"] = PROFILES["WR"].scaled(mass_lb=210 / PROFILES["WR"].mass_lb)
 # (2.23 s / 5.86 s; grid search in the EXP-009 notes). Needed for screens.
 if "OL" in PROFILES:
     PROFILES["OL"] = PROFILES["OL"].scaled(max_speed=1.28, accel=1.10)
+# DL rush the passer, so they are tracked sprinting more than OL, but the fit
+# still runs 40 yd in 5.87 s, 1.19x a DL combine 40 (~4.95 s, DE ~4.8 / DT ~5.05).
+# Same 1.14x target as the others: 1.96 s / 5.62 s for 10 / 40 yd.
+if "DL" in PROFILES:
+    PROFILES["DL"] = PROFILES["DL"].scaled(max_speed=1.03, accel=1.16)
 
 
 class Bodies:

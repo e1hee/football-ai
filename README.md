@@ -26,6 +26,7 @@ The whole process is logged experiment by experiment for a narrated video series
 | [EXP-010](experiments/EXP-010-blocker-shaping/notes.md) | Role reward for the blockers (potential-based shaping) | Failed: a bug in my shaping paid a bonus at timeouts, and the offense learned to send its blockers to the corners and run out the clock (71% timeouts) |
 | [EXP-011](experiments/EXP-011-blocker-shaping-fixed/notes.md) | Same role reward, timeout bug fixed | Looked like fewer lost blockers (6% → 1%), but EXP-012 showed that was one lucky seed; the offense is no stronger |
 | [EXP-012](experiments/EXP-012-seed-repeats/notes.md) | Three seeds each for EXP-009 and EXP-011, every offense vs every defense | The role reward does nothing (offense TD 56.1% vs 55.7%); seed luck is far bigger (defenses allow 38% to 76% under the same settings) |
+| [EXP-013](experiments/EXP-013-lane-drill/notes.md) | Oklahoma lane drill (RB + OL vs DL in a 5-yd lane, engaged at the snap; an engaged DL can tackle on his free side), 3 seeds | The runner learns to read the block in 2 generations (hits the open side ~90% vs 30% for a runner who picks at the snap), but still never slows down to wait; offense too strong (72% AI vs AI) |
 
 Each experiment folder has `notes.md` (hypothesis → attempt → result → surprises → next), `config.yaml`, metrics, and charts.
 Daily log: [`devlog/`](devlog/). Plan and milestones: [`PLAN.md`](PLAN.md).

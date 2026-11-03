@@ -25,7 +25,7 @@ import numpy as np
 from matplotlib import font_manager
 
 from sim.core import OUTCOME_OUT_OF_BOUNDS, OUTCOME_TOUCHDOWN, FieldConfig, OneVOneSim, SimConfig, TackleConfig
-from sim.team import CARRIER, TeamConfig, TeamSim
+from sim.team import CARRIER, SIMS, TeamConfig, TeamSim, config_for
 from train.evaluate import evaluate, ppo_runner, ppo_tackler
 
 for path in ("/System/Library/Fonts/AppleSDGothicNeo.ttc",):
@@ -149,7 +149,8 @@ def main() -> None:
     p.add_argument("--over", type=float, default=0.0)
     p.add_argument("--sidestep", type=float, default=0.0)
     p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
-    p.add_argument("--sim", choices=["1v1", "3v3"], default="1v1")
+    p.add_argument("--sim", choices=SIMS, default="1v1")
+    p.add_argument("--lane-width", type=float, default=5.0)
     p.add_argument("--style-vs", choices=["first", "last"], default="first",
                    help="tackler style measured against the first (R00) or the last runner")
     args = p.parse_args()
@@ -157,8 +158,7 @@ def main() -> None:
     cfg = SimConfig(field=FieldConfig(tackler_lateral_spread=args.spread, reaction_delay=args.delay),
                     tackle=TackleConfig(base_logit=args.base, overspeed_weight=args.over, sidestep_weight=args.sidestep),
                     facing=args.facing)
-    if args.sim == "3v3":
-        cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, facing=args.facing)
+    cfg = config_for(args.sim, cfg, lane_width=args.lane_width)
     rs = sorted(ck.glob("runner_g*.zip"))
     ts = sorted(ck.glob("tackler_g*.zip"))
     R = [ppo_runner(p) for p in rs]
@@ -178,7 +178,7 @@ def main() -> None:
         for j in range(len(T)):
             ax.text(j, i, f"{table[i, j] * 100:.0f}", ha="center", va="center", fontsize=8, color="black")
     ax.set_xlabel("AI 수비 세대", color="white", fontsize=13)
-    ax.set_ylabel("AI 공격 세대" if args.sim == "3v3" else "AI 러너 세대", color="white", fontsize=13)
+    ax.set_ylabel("AI 러너 세대" if args.sim == "1v1" else "AI 공격 세대", color="white", fontsize=13)
     ax.set_xticks(range(len(T)))
     ax.set_yticks(range(len(R)))
     ax.tick_params(colors="white")
@@ -188,7 +188,7 @@ def main() -> None:
     fig.tight_layout()
     fig.savefig(args.exp / "crosstable.png", facecolor=fig.get_facecolor())
 
-    if args.sim == "3v3":
+    if args.sim != "1v1":
         styles = {}
         print("defense | TD vs ref | blocks/play | engaged time | carrier behind block | attempts/play | miss | away@1s")
         for ref_name, ref in (("R01", R[1]), (f"R{len(R) - 1:02d}", R[-1])):

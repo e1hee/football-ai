@@ -9,7 +9,14 @@ Same physics, tackling and reward as the 1v1 sim (`core.py`), plus:
   together on a short leash, so a 315 lb lineman anchors a 194 lb DB while a
   linebacker drags him further. Defenders shed blocks at random, faster when
   they are heavier relative to the blocker; a shed defender can't be
-  re-blocked right away. Engaged defenders can't tackle.
+  re-blocked right away. Engaged defenders can't tackle, unless
+  `BlockConfig.engaged_tackle_logit` is set: then one can reach out for a
+  carrier passing on a side his blocker isn't covering (lane drill).
+- Bodies. Every pair of players collides (`resolve_collisions`), so a line of
+  blockers is a wall the carrier has to find a way around.
+- Formations. "screen" (above) or "lane": the Oklahoma drill, OL and DL
+  engaged nose to nose at the snap, the RB 5 yd behind them, in a lane a few
+  yards wide (`lane_drill_config`).
 - Tackles. Any free defender in reach of the carrier attempts; one made
   tackle wraps him up, each miss stuns that defender.
 - Breakaway. The carrier must lead *every* defender and be outrunning all.
@@ -44,12 +51,24 @@ class BlockConfig:
     shed_rate: float = 0.6          # per second between equal weights (~1.7 s average block)
     shed_mass_power: float = 1.5    # rate x (defender / blocker weight)^power
     reengage_cooldown: float = 1.0  # s before a shed defender can be blocked again
+    # None: an engaged defender can't tackle (screen, EXP-009..012). A number:
+    # he can, at this logit offset, when the carrier is in reach and not
+    # behind his blocker (more than `shield_angle` degrees off the line to him).
+    engaged_tackle_logit: float | None = None
+    shield_angle: float = 60.0
 
 
 @dataclass
 class Formation:
     """Random starting spots, yards relative to the carrier (x downfield)."""
+    kind: str = "screen"            # "screen" or "lane" (Oklahoma drill)
     carrier_y_jitter: float = 5.0
+    # Lane: line of scrimmage this far ahead of the carrier; each DL lines up
+    # on a blocker's nose, up to `shade` yd to either side; any defender past
+    # the blockers' count is an unblocked LB this deep off the line.
+    los_ahead: float = 5.0
+    shade: float = 0.5
+    lb_depth: tuple[float, float] = (4.0, 5.0)
     # Screen timing: the linemen have already released when the RB has the
     # ball. Starting them 1-3 yd ahead, blocking was worth ~nothing (42 vs 42%
     # TD, scripted); 3-5 yd ahead it is worth ~20 points (see EXP-009 notes).
@@ -69,6 +88,38 @@ class TeamConfig:
     offense: tuple[str, ...] = ("RB", "OL", "OL")
     defense: tuple[str, ...] = ("LB", "DB", "DB")
     facing: bool = True
+
+
+def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: float = 10.0,
+                      **kw) -> TeamConfig:
+    """Oklahoma drill: RB + OL vs DL (+ an unblocked LB) between two bags
+    `width` yd apart. Leaving the lane ends the play; reaching `past_los`
+    yd beyond the line wins it (scored as a touchdown).
+
+    `kw` passes field/tackle/reward/block settings; field length, width, start
+    and play clock are set here."""
+    fm = Formation(kind="lane", carrier_y_jitter=0.3)
+    field = kw.pop("field", FieldConfig())
+    field = FieldConfig(**{**field.__dict__, "width": width, "runner_start_x": 5.0, "breakaway_lead": None,
+                           "length": 5.0 + fm.los_ahead + past_los, "max_steps": 40})
+    # A DL is near an OL's weight (285 vs 315 lb), so he keeps more of his push than
+    # a DB (0.35, screen): at 0.35 waiting for the block never paid (EXP-013 notes).
+    block = kw.pop("block", BlockConfig(engaged_control=0.7, engaged_tackle_logit=-1.5))
+    return TeamConfig(field=field, block=block, formation=fm, offense=("RB", "OL"),
+                      defense=("DL", "LB") if linebacker else ("DL",), **kw)
+
+
+SIMS = ("1v1", "3v3", "lane", "lane-lb")
+
+
+def config_for(sim: str, base: SimConfig, lane_width: float = 5.0):
+    """The config a CLI `--sim` name means, built on the shared 1v1-style settings."""
+    if sim == "1v1":
+        return base
+    if sim == "3v3":
+        return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing)
+    return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", field=base.field,
+                             tackle=base.tackle, reward=base.reward, facing=base.facing)
 
 
 def make_sim(n: int, cfg, seed: int = 0):
@@ -103,6 +154,7 @@ class TeamSim:
         self.wrapper = np.full(n, len(self.cfg.offense), np.int64)  # defender index doing the wrap
         self.t = np.zeros(n, np.int32)
         self.yards = np.zeros(n, np.float32)
+        self.los = np.full(n, self.cfg.field.runner_start_x, np.float32)   # lane drill line of scrimmage
         self.full_run = np.ones(n, bool)
         self._half_w = self.cfg.field.width / 2.0
         self.obs_dim = GLOBAL_OBS + PER_PLAYER_OBS * p
@@ -153,6 +205,8 @@ class TeamSim:
         cy = self._half_w + rng.uniform(-fm.carrier_y_jitter, fm.carrier_y_jitter, k)
         pos = np.zeros((k, self.p, 2), np.float32)
         pos[:, CARRIER] = np.stack([cx, cy], 1)
+        if fm.kind == "lane":
+            return self._reset_lane(mask, pos, cx)
         for j, b in enumerate(self.blk):
             side = 1.0 if j % 2 == 0 else -1.0           # alternate sides of the carrier
             pos[:, b, 0] = cx + rng.uniform(*fm.blocker_ahead, k)
@@ -164,6 +218,38 @@ class TeamSim:
             pos[:, d, 0] = cx + rng.uniform(*fm.defender_ahead, k)
             pos[:, d, 1] = cy + lanes[:, j]
         pos[..., 1] = np.clip(pos[..., 1], 1.0, f.width - 1.0)
+        return self._place(mask, pos)
+
+    def _reset_lane(self, mask: np.ndarray, pos: np.ndarray, cx: np.ndarray) -> np.ndarray:
+        """Oklahoma drill: blockers side by side on the line (1 yd apart), a DL
+        engaged nose to nose with each, the rest unblocked LBs off the line."""
+        fm, rng, b = self.cfg.formation, self.rng, self.bodies
+        k = len(cx)
+        los = cx + fm.los_ahead
+        n_dl = min(len(self.blk), self.n_def)
+        for j, blk in enumerate(self.blk):
+            pos[:, blk, 0] = los - b.radius[0, blk]
+            pos[:, blk, 1] = self._half_w + (j - (len(self.blk) - 1) / 2)
+        for j, d in enumerate(self.dfn):
+            if j < n_dl:
+                pos[:, d, 0] = los + b.radius[0, d]
+                pos[:, d, 1] = pos[:, self.blk[j], 1] + rng.uniform(-fm.shade, fm.shade, k)
+            else:
+                pos[:, d, 0] = los + rng.uniform(*fm.lb_depth, k)
+                pos[:, d, 1] = self._half_w + rng.uniform(-1.0, 1.0, k)
+        self._place(mask, pos)
+        rows = np.nonzero(mask)[0]
+        for j in range(n_dl):
+            self.partner[rows, self.blk[j]] = self.dfn[j]
+            self.partner[rows, self.dfn[j]] = self.blk[j]
+        self.los[mask] = los
+        self.yards[mask] = cx - los       # yards count from the line of scrimmage
+        return self.observe()
+
+    def _place(self, mask: np.ndarray, pos: np.ndarray) -> np.ndarray:
+        """Write starting spots for the masked plays and clear their state."""
+        f, rng = self.cfg.field, self.rng
+        k = len(pos)
         self.pos[mask] = pos
         self.vel[mask] = 0
         face = np.zeros((k, self.p, 2), np.float32)
@@ -269,12 +355,21 @@ class TeamSim:
 
     def _tackles(self, pre_vel: np.ndarray):
         """Every free defender in reach tries. Returns (attempts, made_any, missed_count, wrapper)."""
-        tc, b = self.cfg.tackle, self.bodies
+        tc, b, bc = self.cfg.tackle, self.bodies, self.cfg.block
         d = self.pos[:, CARRIER, None] - self.pos[:, self.dfn]            # defender -> carrier
         dist = np.linalg.norm(d, axis=-1)
         reach = b.radius[:, CARRIER, None] + b.radius[:, self.dfn] + tc.reach
+        engaged = self.partner[:, self.dfn] >= 0
         attempt = ((dist < reach) & (self.wrap[:, None] <= 0) & (self.cooldown <= 0)
-                   & (self.stun[:, self.dfn] <= 0) & (self.partner[:, self.dfn] < 0))
+                   & (self.stun[:, self.dfn] <= 0))
+        if bc.engaged_tackle_logit is None:
+            attempt &= ~engaged
+        else:
+            # Shielded: the carrier is within shield_angle of the line to his blocker.
+            idx = np.maximum(self.partner[:, self.dfn], 0)
+            blk = self.pos[np.arange(self.n)[:, None], idx] - self.pos[:, self.dfn]
+            cos = np.sum(d * blk, -1) / np.maximum(dist * np.linalg.norm(blk, axis=-1), 1e-6)
+            attempt &= ~engaged | (cos < np.cos(np.radians(bc.shield_angle)))
         made = np.zeros_like(attempt)
         if attempt.any():
             u = d / np.maximum(dist, 1e-6)[..., None]
@@ -289,6 +384,8 @@ class TeamSim:
                 logit -= tc.overspeed_weight * np.maximum(0.0, np.linalg.norm(vt, axis=-1) - tc.control_speed)
             if tc.sidestep_weight:
                 logit -= tc.sidestep_weight * np.abs(vr[..., 0] * u[..., 1] - vr[..., 1] * u[..., 0])
+            if bc.engaged_tackle_logit is not None:
+                logit += bc.engaged_tackle_logit * engaged
             made = attempt & (self.rng.random(attempt.shape) < 1.0 / (1.0 + np.exp(-logit)))
         missed = attempt & ~made
         made_any = made.any(axis=1)
@@ -355,6 +452,12 @@ class TeamSim:
         attempt, made, missed, wrapper = self._tackles(pre_vel)
         self.wrap[made] = tc.wrap_time
         self.wrapper[made] = wrapper[made]
+        if made.any():      # a defender tackling out of a block leaves the block
+            rows = np.nonzero(made)[0]
+            blk = self.partner[rows, wrapper[rows]]
+            rows, blk = rows[blk >= 0], blk[blk >= 0]
+            self.partner[rows, blk] = -1
+            self.partner[rows, wrapper[rows]] = -1
         self.stun[:, self.dfn] = np.where(missed, tc.miss_stun, self.stun[:, self.dfn])
         self.cooldown = np.where(missed, tc.miss_cooldown, self.cooldown)
         self.vel[:, CARRIER] *= (tc.miss_slowdown ** missed.sum(1))[:, None]

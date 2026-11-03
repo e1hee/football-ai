@@ -11,21 +11,23 @@ the defender he is engaged with.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
 
-from sim.core import OUTCOME_NAMES, FieldConfig, TackleConfig
-from sim.team import CARRIER, TeamConfig, TeamSim
+from sim.core import OUTCOME_NAMES, FieldConfig, SimConfig, TackleConfig
+from sim.team import CARRIER, SIMS, TeamConfig, TeamSim, config_for
 from sim.team_policies import DEFENSE, OFFENSE
 from .clip import HOLD_END_S, OUT_FPS, OUT_SIZE, SIM_HZ, outcome_tag, play_frames, write_mp4
 from .frames import (RUNNER, RUNNER_DARK, TACKLER, TACKLER_DARK, Layout, PlayRenderer, fit_canvas, stack)
 
 ENGAGE_LINE = (250, 245, 200)
 BLOCKER = (215, 120, 45)          # a shade off the carrier so the ball carrier stands out
-LABELS = {"screen": "스크린", "carrier_only": "블로킹 없음", "pursuit": "추격 수비", "read": "읽고 반응 수비"}
+LABELS = {"screen": "스크린", "carrier_only": "블로킹 없음", "pursuit": "추격 수비", "read": "읽고 반응 수비",
+          "lane": "읽고 꺾는 RB", "gap": "갭 지키는 DL"}
 
 
 @dataclass
@@ -98,11 +100,32 @@ def record_team_plays(offense, defense, cfg: TeamConfig, n_plays: int = 32, seed
                      OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i]) for i in range(n_plays)]
 
 
+BAG = (235, 200, 60)
+LOS_LINE = (110, 160, 230)
+
+
 class TeamRenderer(PlayRenderer):
+    """`lane` = (left edge y, right edge y, line of scrimmage x) draws the drill's bags."""
+
+    def __init__(self, field: FieldConfig, layout: Layout, lane: tuple[float, float, float] | None = None):
+        super().__init__(field, layout)
+        self.lane = lane
+
+    def _lane(self, d: ImageDraw.ImageDraw) -> None:
+        y0, y1, los = self.lane
+        d.line([self._xy(los, y0), self._xy(los, y1)], fill=LOS_LINE, width=1)
+        for y in (y0, y1):
+            a, b = self._xy(los - 2.0, y), self._xy(los + 2.0, y)
+            d.rectangle([min(a[0], b[0]) - 1, min(a[1], b[1]), max(a[0], b[0]) + 1, max(a[1], b[1])], fill=BAG)
+            for x in range(0, int(self.f.length) + 1, 2):
+                d.point(self._xy(x, y), fill=BAG)
+
     def frame(self, play: TeamPlay, step: float, title: str, tag: str | None = None) -> Image.Image:
         img = Image.new("RGB", (self.W, self.H), (24, 24, 32))
         d = ImageDraw.Draw(img)
         self._field(d)
+        if self.lane:
+            self._lane(d)
         i0 = int(np.floor(step))
         i1 = min(i0 + 1, play.steps)
         a = step - i0
@@ -139,19 +162,33 @@ def main() -> None:
     p.add_argument("--tackle-base", type=float, default=2.3)
     p.add_argument("--overspeed", type=float, default=0.25)
     p.add_argument("--sidestep", type=float, default=0.2)
+    p.add_argument("--sim", choices=[s for s in SIMS if s != "1v1"], default="3v3")
+    p.add_argument("--lane-width", type=float, default=5.0)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--png", action="store_true")
     args = p.parse_args()
 
-    cfg = TeamConfig(field=FieldConfig(reaction_delay=args.delay),
-                     tackle=TackleConfig(base_logit=args.tackle_base, overspeed_weight=args.overspeed,
-                                         sidestep_weight=args.sidestep))
+    cfg = config_for(args.sim, SimConfig(field=FieldConfig(reaction_delay=args.delay), facing=True,
+                                         tackle=TackleConfig(base_logit=args.tackle_base,
+                                                             overspeed_weight=args.overspeed,
+                                                             sidestep_weight=args.sidestep)),
+                     lane_width=args.lane_width)
     layout = Layout.shorts() if args.format == "shorts" else Layout.episode()
-    renderer = TeamRenderer(cfg.field, layout)
+    view, lane, shift = cfg.field, None, 0.0
+    if cfg.formation.kind == "lane":
+        # Zoom in, and show the lane inside a wider strip of practice field.
+        layout = Layout(vertical=layout.vertical, px_per_yd=10, scale=4)
+        view = dataclasses.replace(cfg.field, width=max(15.0, cfg.field.width + 6.0))
+        shift = (view.width - cfg.field.width) / 2
+        lane = (shift, shift + cfg.field.width, cfg.field.runner_start_x + cfg.formation.los_ahead)
+    renderer = TeamRenderer(view, layout, lane)
     size = OUT_SIZE[args.format]
     pairs = [tuple(x.split("::", 1)) for x in args.pair]
     recorded = {pr: record_team_plays(make_team_policy(pr[0]), make_team_policy(pr[1]), cfg, seed=args.seed)
                 for pr in pairs}
+    for plays in recorded.values():
+        for pl in plays:
+            pl.pos[..., 1] += shift
 
     first = recorded[pairs[0]]
     if args.play_index is not None:

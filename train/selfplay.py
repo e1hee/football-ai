@@ -29,8 +29,8 @@ from stable_baselines3 import PPO
 
 from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
-from sim.team import TeamConfig
-from sim.team_policies import pursuit_defense, read_defense, screen_offense
+from sim.team import SIMS, config_for
+from sim.team_policies import gap_defense, lane_offense, pursuit_defense, read_defense, screen_offense
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
 
@@ -139,7 +139,9 @@ def main() -> None:
     p.add_argument("--full-play-share", type=float, default=0.1)
     p.add_argument("--yards-scale", type=float, default=0.1)
     p.add_argument("--blocker-shaping", type=float, default=0.0, help="team sim: OL shaping per yard (EXP-010)")
-    p.add_argument("--sim", choices=["1v1", "3v3"], default="1v1", help="3v3 = RB screen (sim/team.py)")
+    p.add_argument("--sim", choices=SIMS, default="1v1",
+                   help="3v3 = RB screen, lane(-lb) = Oklahoma drill (sim/team.py)")
+    p.add_argument("--lane-width", type=float, default=5.0, help="lane drill: yd between the bags")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--threads", type=int, default=4)
@@ -155,11 +157,13 @@ def main() -> None:
                                         sidestep_weight=args.sidestep),
                     reward=RewardConfig(yards_scale=args.yards_scale, blocker_shaping=args.blocker_shaping),
                     facing=args.facing)
+    cfg = config_for(args.sim, cfg, lane_width=args.lane_width)
     if args.sim == "3v3":
-        # Same field/tackle/reward settings; formation and rosters from TeamConfig defaults.
-        cfg = TeamConfig(field=cfg.field, tackle=cfg.tackle, reward=cfg.reward, facing=args.facing)
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
+    elif args.sim.startswith("lane"):
+        script_runner = lane_offense
+        script_tackler = gap_defense
     else:
         script_runner = evasive_runner
         script_tackler = {"angle": angle_tackler, "read": read_react_tackler}[args.scripted_tackler]

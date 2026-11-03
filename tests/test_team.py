@@ -3,7 +3,7 @@ import dataclasses
 import numpy as np
 
 from sim.core import FieldConfig, OUTCOME_TOUCHDOWN, TackleConfig
-from sim.team import CARRIER, TeamConfig, TeamSim
+from sim.team import CARRIER, TeamConfig, TeamSim, lane_drill_config
 from sim.team_policies import OFFENSE, DEFENSE
 from train.evaluate import evaluate
 
@@ -124,3 +124,65 @@ def test_shaping_pays_no_end_bonus_on_timeout():
     assert np.all(info["outcome"] == OUTCOME_TIMEOUT)
     # gamma * Phi(s') - Phi(s) with s' kept, ~0 for players who barely moved; not -Phi(s) (a big bonus).
     assert np.all(np.abs(rew) < 0.2 * np.abs(phi0))
+
+
+# ------------------------------------------------------------ lane drill
+def _lane(n=8, **kw):
+    sim = TeamSim(n, lane_drill_config(**kw), seed=0)
+    sim.reset()
+    return sim
+
+
+def test_lane_starts_engaged_on_the_line():
+    sim = _lane()
+    assert sim.roles == ("RB", "OL", "DL")
+    assert (sim.partner[:, 1] == 2).all() and (sim.partner[:, 2] == 1).all()
+    np.testing.assert_allclose(sim.los, 10.0)
+    np.testing.assert_allclose(sim.yards, -5.0)                 # RB 5 yd behind the line
+    assert (sim.pos[:, 1, 0] < sim.los).all() and (sim.pos[:, 2, 0] > sim.los).all()
+    assert (sim.observe().reshape(sim.n, -1)[:, 4 + 8 + 6] == 1).all()   # OL shows as engaged
+
+
+def test_lane_linebacker_is_unblocked_off_the_line():
+    sim = _lane(linebacker=True)
+    assert sim.roles == ("RB", "OL", "DL", "LB")
+    assert (sim.partner[:, 3] == -1).all() and (sim.pos[:, 3, 0] >= sim.los + 4.0).all()
+
+
+def _carrier_next_to_engaged_dl(sim, carrier_xy):
+    sim.pos[:, 1] = (10.0, 2.5)
+    sim.pos[:, 2] = (10.9, 2.5)
+    sim.pos[:, CARRIER] = carrier_xy
+    sim.vel[:] = 0
+
+
+def test_engaged_dl_reaches_a_carrier_beside_him_not_behind_his_blocker():
+    block = dataclasses.replace(lane_drill_config().block, shed_rate=0.0, engaged_tackle_logit=0.0)
+    beside = _lane(64, block=block)
+    _carrier_next_to_engaged_dl(beside, (10.9, 3.7))           # 1.2 yd to his side
+    _, _, _, info = beside.step(_still(beside, "runner"), _still(beside, "tackler"))
+    assert info["tackle_attempt"].all()
+    behind = _lane(64, block=block)
+    _carrier_next_to_engaged_dl(behind, (10.06, 3.5))          # in reach, 50 deg off the line to the OL
+    _, _, _, info = behind.step(_still(behind, "runner"), _still(behind, "tackler"))
+    assert not info["tackle_attempt"].any()
+    screen = _lane(64, block=dataclasses.replace(block, engaged_tackle_logit=None))
+    _carrier_next_to_engaged_dl(screen, (10.9, 3.7))
+    _, _, _, info = screen.step(_still(screen, "runner"), _still(screen, "tackler"))
+    assert not info["tackle_attempt"].any()
+
+
+def test_tackle_out_of_a_block_ends_the_block():
+    block = dataclasses.replace(lane_drill_config().block, shed_rate=0.0, engaged_tackle_logit=20.0)
+    sim = _lane(16, block=block)
+    _carrier_next_to_engaged_dl(sim, (10.9, 3.7))
+    _, _, _, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert info["tackle_made"].all()
+    assert (sim.partner == -1).all()
+
+
+def test_lane_scripted_runner_beats_scripted_dl_sometimes():
+    from sim.team_policies import gap_defense, lane_offense
+    m = evaluate(lambda s, o=None: lane_offense(s), lambda s, o=None: gap_defense(s),
+                 lane_drill_config(), n_plays=512)
+    assert 0.1 < m["rate/touchdown"] < 0.9

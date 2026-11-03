@@ -83,6 +83,54 @@ def carrier_only_offense(sim: TeamSim) -> np.ndarray:
     return a.reshape(sim.n, -1)
 
 
+def lane_runner(sim: TeamSim, read_until: float = 3.5, press_speed: float | None = None,
+                hole: float = 1.6) -> np.ndarray:
+    """Oklahoma-drill RB, the press-and-cut read from the coaching notes: head
+    at the block, pick the side the blocker is covering (away from the side the
+    DL is leaning to, or away from a DL who got free), cut there, then run.
+
+    The side is re-read every step until he is `read_until` yd from the line
+    (his own blocker's back is ~1.35 yd from it), then locked: a large value
+    picks at the snap (no patience). With `press_speed` he holds that speed
+    while reading, so he can still make the cut. (N, 2)"""
+    pos, _, _ = sim.perceived("offense")
+    n, w = sim.n, sim.cfg.field.width
+    if getattr(sim, "_lane_side", None) is None or sim._lane_side.shape != (n,):
+        sim._lane_side = np.zeros(n, np.float32)
+    side_lock = sim._lane_side
+    side_lock[sim.t == 0] = 0.0
+    me, my_v = sim.pos[:, CARRIER], sim.vel[:, CARRIER]
+    ol, dl = pos[:, sim.blk[0]], pos[:, sim.dfn[0]]
+    engaged = sim.partner[:, sim.dfn[0]] >= 0
+    lean = np.where(engaged, dl[:, 1] - ol[:, 1], dl[:, 1] - me[:, 1])
+    side_now = -np.sign(lean + 1e-3)
+    reading = (side_lock == 0) & (sim.los - me[:, 0] > read_until)
+    lock = (side_lock == 0) & ~reading
+    side_lock[lock] = side_now[lock]
+    mid = (ol[:, 1] + dl[:, 1]) / 2
+    hole_y = np.clip(mid + side_lock * hole, 1.0, w - 1.0)
+    press = _unit(np.stack([sim.los - read_until + 0.5 - me[:, 0], mid - me[:, 1]], 1))
+    if press_speed is not None:
+        steer = press * press_speed - my_v
+        press = steer / np.maximum(np.linalg.norm(steer, axis=-1, keepdims=True), 1.0)
+    cut = _unit(np.stack([sim.los + 1.5, hole_y], 1) - me)
+    # Through the line: straight downfield, damping sideways drift toward the middle.
+    run = np.stack([np.full(n, 10.0), (w / 2 - me[:, 1]) * 1.0], 1) - my_v
+    run /= np.maximum(np.linalg.norm(run, axis=-1, keepdims=True), 1.0)
+    through = me[:, 0] > dl[:, 0] + 0.5
+    push = np.where(reading[:, None], press, cut)
+    return np.where(through[:, None], run, push).astype(np.float32)
+
+
+def lane_offense(sim: TeamSim, **kw) -> np.ndarray:
+    pos, _, _ = sim.perceived("offense")
+    a = np.zeros((sim.n, sim.n_off, 3), np.float32)
+    a[:, CARRIER, :2] = lane_runner(sim, **kw)
+    a[:, sim.blk, :2] = lead_blockers(sim, pos)
+    a[:, sim.blk, 2] = 1.0
+    return a.reshape(sim.n, -1)
+
+
 def pursuit_defense(sim: TeamSim, breakdown: float = 3.0, breakdown_speed: float = 4.5,
                     read_dist: float | None = None) -> np.ndarray:
     """Every defender takes an intercept angle to the carrier (goal-side) and
@@ -131,5 +179,19 @@ def read_defense(sim: TeamSim) -> np.ndarray:
     return pursuit_defense(sim, read_dist=8.0)
 
 
-OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense}
-DEFENSE = {"pursuit": pursuit_defense, "read": read_defense}
+def gap_defense(sim: TeamSim, lead: float = 0.3) -> np.ndarray:
+    """Pursuit, but an engaged defender plays his gap: he fights sideways to
+    where the carrier is heading (`lead` s ahead) instead of straight at him
+    through the blocker (how a DL two-gaps in the Oklahoma drill)."""
+    a = pursuit_defense(sim).reshape(sim.n, sim.n_def, 3)
+    pos, vel, _ = sim.perceived("defense")
+    me = sim.pos[:, sim.dfn]
+    aim_y = pos[:, CARRIER, None, 1] + vel[:, CARRIER, None, 1] * lead
+    fight = np.stack([np.full_like(aim_y, -0.3), np.clip((aim_y - me[..., 1]) * 2.0, -1.0, 1.0)], -1)
+    engaged = sim.partner[:, sim.dfn] >= 0
+    a[..., :2] = np.where(engaged[..., None], _unit(fight), a[..., :2])
+    return a.reshape(sim.n, -1)
+
+
+OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense}
+DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense}

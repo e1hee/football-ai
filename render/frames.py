@@ -120,7 +120,7 @@ class PlayRenderer:
 
     def _player(self, d: ImageDraw.ImageDraw, pos, color, dark, has_ball: bool, face=None) -> None:
         x, y = self._xy(*pos)
-        r = max(2, self.L.px_per_yd * 0.7)
+        r = max(2, self.L.px_per_yd * (0.7 if self.L.px_per_yd < 8 else 0.5))
         d.ellipse([x - r, y - r, x + r, y + r], fill=color, outline=dark)
         if face is not None:
             # Hips: a short stick from the centre the way the body faces.

@@ -45,10 +45,12 @@ if __name__ == "__main__":
     p.add_argument("exp", type=Path)
     p.add_argument("--gen", type=int, default=12)
     p.add_argument("--lb", action="store_true")
+    p.add_argument("--combo", action="store_true")
+    p.add_argument("--width", type=float, default=5.0)
     p.add_argument("--stumble", type=float, default=0.0)
     p.add_argument("--square-ahead", action="store_true")
     a = p.parse_args()
-    cfg = lane_drill_config(linebacker=a.lb, field=FieldConfig(reaction_delay=2),
+    cfg = lane_drill_config(width=a.width, linebacker=a.lb, combo=a.combo, field=FieldConfig(reaction_delay=2),
                             stumble=a.stumble, carrier_square_ahead=a.square_ahead,
                             tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
     for s in sorted(d for d in a.exp.iterdir() if (d / "checkpoints").is_dir()):

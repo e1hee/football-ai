@@ -225,3 +225,63 @@ def test_broken_free_carrier_squares_up_downfield():
         return sim.facing[:, CARRIER, 0]
     assert (hips() < 0).all()                                        # turns toward the DL behind him
     assert (hips(carrier_square_ahead=True) > 0.9).all()
+
+
+# ------------------------------------------------------------ combo block
+def _combo(n=64, **block):
+    base = lane_drill_config(combo=True).block
+    return _lane(n, combo=True, width=7.0, block=dataclasses.replace(base, **block))
+
+
+def test_combo_starts_with_dl_over_the_gap_and_both_ol_on_him():
+    sim = _combo(shed_rate=0.0)
+    assert sim.roles == ("RB", "OL", "OL", "DL", "LB")
+    assert ((sim.partner[:, 1] == 3) ^ (sim.partner[:, 2] == 3)).all()       # one OL on him at the snap
+    from sim.team_policies import combo_offense
+    for _ in range(8):                                                       # the free OL steps to the DL ...
+        sim.step(combo_offense(sim, climb_depth=-99.0), _still(sim, "tackler"))
+    assert (sim.blockers_on()[:, 3] == 2).mean() > 0.8                       # ... double team
+    assert (sim.partner[:, 4] == -1).all()                                   # LB free
+
+
+def test_release_lets_one_ol_climb_and_keeps_the_dl_blocked():
+    sim = _combo(shed_rate=0.0)
+    a = np.zeros((sim.n, 3, 3), np.float32)
+    a[:, 1:, 2] = 1.0
+    sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))
+    dbl = sim.blockers_on()[:, 3] == 2
+    a[:, 1, 2] = 0.0                                                         # OL 1 turns his hips off the DL
+    sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))
+    assert (sim.partner[dbl, 1] == -1).all()
+    assert (sim.partner[dbl, 2] == 3).all() and (sim.partner[dbl, 3] == 2).all()
+    sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))                   # still in reach: no re-latch yet
+    assert (sim.partner[dbl, 1] == -1).all()
+
+
+def test_double_team_is_harder_to_shed():
+    def held(double):
+        sim = _combo(512, double_team=double)
+        a = np.zeros((sim.n, 3, 3), np.float32)
+        a[:, 1:, 2] = 1.0
+        steps = np.zeros(sim.n)
+        for _ in range(15):
+            sim.step(a.reshape(sim.n, -1), _still(sim, "tackler"))
+            steps += sim.partner[:, 3] >= 0
+        return steps.mean()
+    assert held(True) > held(False) + 1.0
+
+
+def test_timeout_is_a_real_end_only_when_configured():
+    from train.vec_env import SideVecEnv
+    for ends in (False, True):
+        cfg = lane_drill_config(combo=True, width=7.0, timeout_ends=ends)
+        cfg = dataclasses.replace(cfg, field=dataclasses.replace(cfg.field, max_steps=2))
+        env = SideVecEnv(8, cfg, lambda s, o=None: np.zeros((s.n, s.act_dim_for("tackler")), np.float32))
+        env.reset()
+        env.step_async(np.zeros((8, env.action_space.shape[0]), np.float32))
+        env.step_wait()
+        env.step_async(np.zeros((8, env.action_space.shape[0]), np.float32))
+        _, _, done, infos = env.step_wait()
+        assert done.all()
+        assert all(i["TimeLimit.truncated"] == (not ends) for i in infos if i.get("outcome") == "timeout")
+        assert any(i.get("outcome") == "timeout" for i in infos)

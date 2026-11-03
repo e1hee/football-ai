@@ -30,7 +30,8 @@ from stable_baselines3 import PPO
 from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
 from sim.team import SIMS, config_for
-from sim.team_policies import gap_defense, lane_offense, pursuit_defense, read_defense, screen_offense
+from sim.team_policies import (combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
+                                screen_offense)
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
 
@@ -144,6 +145,7 @@ def main() -> None:
     p.add_argument("--lane-width", type=float, default=5.0, help="lane drill: yd between the bags")
     p.add_argument("--stumble", type=float, default=0.0, help="team sim: s off balance per yd/s of hard collision")
     p.add_argument("--square-ahead", action="store_true", help="team sim: carrier squares up only to defenders ahead")
+    p.add_argument("--timeout-ends", action="store_true", help="team sim: the play clock is a real end (no bootstrap)")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--threads", type=int, default=4)
@@ -159,13 +161,14 @@ def main() -> None:
                                         sidestep_weight=args.sidestep),
                     reward=RewardConfig(yards_scale=args.yards_scale, blocker_shaping=args.blocker_shaping),
                     facing=args.facing)
-    team = dict(stumble=args.stumble, carrier_square_ahead=args.square_ahead) if args.sim != "1v1" else {}
+    team = (dict(stumble=args.stumble, carrier_square_ahead=args.square_ahead, timeout_ends=args.timeout_ends)
+            if args.sim != "1v1" else {})
     cfg = config_for(args.sim, cfg, lane_width=args.lane_width, **team)
     if args.sim == "3v3":
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
-    elif args.sim.startswith("lane"):
-        script_runner = lane_offense
+    elif args.sim.startswith("lane") or args.sim == "combo":
+        script_runner = combo_offense if args.sim == "combo" else lane_offense
         script_tackler = gap_defense
     else:
         script_runner = evasive_runner

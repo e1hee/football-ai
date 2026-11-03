@@ -16,7 +16,8 @@ Same physics, tackling and reward as the 1v1 sim (`core.py`), plus:
   blockers is a wall the carrier has to find a way around.
 - Formations. "screen" (above) or "lane": the Oklahoma drill, OL and DL
   engaged nose to nose at the snap, the RB 5 yd behind them, in a lane a few
-  yards wide (`lane_drill_config`).
+  yards wide (`lane_drill_config`). Its `combo` variant has two OL, a DL over
+  the gap between them and an LB: double team, then one OL climbs.
 - Tackles. Any free defender in reach of the carrier attempts; one made
   tackle wraps him up, each miss stuns that defender.
 - Breakaway. The carrier must lead *every* defender and be outrunning all.
@@ -39,7 +40,7 @@ from .core import (OUTCOME_OUT_OF_BOUNDS, OUTCOME_TACKLED, OUTCOME_TIMEOUT, OUTC
 from .physics import PROFILES, Bodies, apply_controls, resolve_collisions, turn_facing
 
 CARRIER = 0
-PER_PLAYER_OBS = 8       # rel x, rel y, vx, vy, facing x, facing y, engaged, stunned
+PER_PLAYER_OBS = 8       # rel x, rel y, vx, vy, facing x, facing y, blockers on him (0-2), stunned
 GLOBAL_OBS = 4           # carrier x, carrier y, carrier to sideline, wrapped
 
 
@@ -56,6 +57,15 @@ class BlockConfig:
     # behind his blocker (more than `shield_angle` degrees off the line to him).
     engaged_tackle_logit: float | None = None
     shield_angle: float = 60.0
+    # Combo blocks (EXP-016; both off before). `double_team`: a second blocker
+    # can latch onto a defender who is already blocked; each blocker on him
+    # takes another `engaged_control` share off his push, and he sheds by
+    # their combined weight. `release_below`: a blocker whose square-up action
+    # drops under this lets go of his man (turns his hips upfield to climb to
+    # the next level), and can't latch on again for `release_cooldown` s.
+    double_team: bool = False
+    release_below: float | None = None
+    release_cooldown: float = 0.5
 
 
 @dataclass
@@ -69,6 +79,10 @@ class Formation:
     los_ahead: float = 5.0
     shade: float = 0.5
     lb_depth: tuple[float, float] = (4.0, 5.0)
+    # Lane: how many defenders are DL (None = one per blocker). With fewer DL
+    # than blockers, DL j lines up over the gap between blockers j and j+1,
+    # engaged with the nearer one.
+    dl_count: int | None = None
     # Screen timing: the linemen have already released when the RB has the
     # ball. Starting them 1-3 yd ahead, blocking was worth ~nothing (42 vs 42%
     # TD, scripted); 3-5 yd ahead it is worth ~20 points (see EXP-009 notes).
@@ -100,28 +114,37 @@ class TeamConfig:
     # square-up faces downfield (EXP-015). Off: nearest defender anywhere, so a
     # runner who broke free kept his hips on the chaser behind him (EXP-013).
     carrier_square_ahead: bool = False
+    # The play clock is the drill's real end (EXP-016+), not a cut-off: no
+    # bootstrapping past it. As a cut-off, a combo-drill runner learned to
+    # hover 2 yd short of the end line until time ran out (critic credit for
+    # the score he "would" get) while the DL camped on that line.
+    timeout_ends: bool = False
 
 
 def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: float = 10.0,
-                      **kw) -> TeamConfig:
+                      combo: bool = False, **kw) -> TeamConfig:
     """Oklahoma drill: RB + OL vs DL (+ an unblocked LB) between two bags
     `width` yd apart. Leaving the lane ends the play; reaching `past_los`
     yd beyond the line wins it (scored as a touchdown).
 
+    `combo`: the inside-zone combo block instead, RB + 2 OL vs a DL over the
+    gap between them + an LB (double team, then one OL climbs to the LB).
+
     `kw` passes field/tackle/reward/block settings; field length, width, start
     and play clock are set here."""
-    fm = Formation(kind="lane", carrier_y_jitter=0.3)
+    fm = Formation(kind="lane", carrier_y_jitter=0.3, dl_count=1 if combo else None, shade=0.7 if combo else 0.5)
     field = kw.pop("field", FieldConfig())
     field = FieldConfig(**{**field.__dict__, "width": width, "runner_start_x": 5.0, "breakaway_lead": None,
                            "length": 5.0 + fm.los_ahead + past_los, "max_steps": 40})
     # A DL is near an OL's weight (285 vs 315 lb), so he keeps more of his push than
     # a DB (0.35, screen): at 0.35 waiting for the block never paid (EXP-013 notes).
-    block = kw.pop("block", BlockConfig(engaged_control=0.7, engaged_tackle_logit=-1.5))
-    return TeamConfig(field=field, block=block, formation=fm, offense=("RB", "OL"),
-                      defense=("DL", "LB") if linebacker else ("DL",), **kw)
+    block = kw.pop("block", BlockConfig(engaged_control=0.7, engaged_tackle_logit=-1.5,
+                                        double_team=combo, release_below=0.2 if combo else None))
+    return TeamConfig(field=field, block=block, formation=fm, offense=("RB", "OL", "OL") if combo else ("RB", "OL"),
+                      defense=("DL", "LB") if (linebacker or combo) else ("DL",), **kw)
 
 
-SIMS = ("1v1", "3v3", "lane", "lane-lb")
+SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo")
 
 
 def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
@@ -131,7 +154,7 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
         return base
     if sim == "3v3":
         return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
-    return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", field=base.field,
+    return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", combo=sim == "combo", field=base.field,
                              tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
 
 
@@ -162,7 +185,10 @@ class TeamSim:
         self.stun = np.zeros((n, p), np.float32)
         self.cooldown = np.zeros((n, self.n_def), np.float32)      # tackle re-try
         self.shed_cd = np.zeros((n, self.n_def), np.float32)       # can't be re-blocked yet
-        self.partner = np.full((n, p), -1, np.int64)               # engaged with (player index) or -1
+        # Engaged with (player index) or -1. A blocker points at his man; a
+        # double-teamed defender points at one of his blockers.
+        self.partner = np.full((n, p), -1, np.int64)
+        self.release_cd = np.zeros((n, len(self.blk)), np.float32)  # released blocker can't re-latch yet
         self.wrap = np.zeros(n, np.float32)
         self.wrapper = np.full(n, len(self.cfg.offense), np.int64)  # defender index doing the wrap
         self.t = np.zeros(n, np.int32)
@@ -239,22 +265,32 @@ class TeamSim:
         fm, rng, b = self.cfg.formation, self.rng, self.bodies
         k = len(cx)
         los = cx + fm.los_ahead
-        n_dl = min(len(self.blk), self.n_def)
+        nb = len(self.blk)
+        n_dl = min(nb, self.n_def) if fm.dl_count is None else fm.dl_count
+        over_gap = n_dl < nb
         for j, blk in enumerate(self.blk):
             pos[:, blk, 0] = los - b.radius[0, blk]
-            pos[:, blk, 1] = self._half_w + (j - (len(self.blk) - 1) / 2)
+            pos[:, blk, 1] = self._half_w + (j - (nb - 1) / 2)
+        engaged_with = []
         for j, d in enumerate(self.dfn):
             if j < n_dl:
                 pos[:, d, 0] = los + b.radius[0, d]
-                pos[:, d, 1] = pos[:, self.blk[j], 1] + rng.uniform(-fm.shade, fm.shade, k)
+                if over_gap:
+                    gap = (pos[:, self.blk[j], 1] + pos[:, self.blk[j + 1], 1]) / 2
+                    pos[:, d, 1] = gap + rng.uniform(-fm.shade, fm.shade, k)
+                    near = np.where(pos[:, d, 1] < gap, self.blk[j], self.blk[j + 1])
+                else:
+                    pos[:, d, 1] = pos[:, self.blk[j], 1] + rng.uniform(-fm.shade, fm.shade, k)
+                    near = np.full(k, self.blk[j])
+                engaged_with.append(near)
             else:
                 pos[:, d, 0] = los + rng.uniform(*fm.lb_depth, k)
                 pos[:, d, 1] = self._half_w + rng.uniform(-1.0, 1.0, k)
         self._place(mask, pos)
         rows = np.nonzero(mask)[0]
         for j in range(n_dl):
-            self.partner[rows, self.blk[j]] = self.dfn[j]
-            self.partner[rows, self.dfn[j]] = self.blk[j]
+            self.partner[rows, engaged_with[j]] = self.dfn[j]
+            self.partner[rows, self.dfn[j]] = engaged_with[j]
         self.los[mask] = los
         self.yards[mask] = cx - los       # yards count from the line of scrimmage
         return self.observe()
@@ -273,6 +309,7 @@ class TeamSim:
         self.cooldown[mask] = 0
         self.shed_cd[mask] = 0
         self.partner[mask] = -1
+        self.release_cd[mask] = 0
         self.wrap[mask] = 0
         self.t[mask] = 0
         self.yards[mask] = 0
@@ -349,29 +386,63 @@ class TeamSim:
         hit = np.clip((dv - own) * c.stumble, 0.0, c.stumble_max) * ~exempt
         self.stun = np.maximum(self.stun, hit.astype(np.float32))
 
+    def blockers_on(self) -> np.ndarray:
+        """(N, P) how many blockers each player is tied up with (blockers: 0/1)."""
+        on = self.partner[:, self.blk]                                         # (N, B)
+        count = np.zeros((self.n, self.p), np.int64)
+        count[:, self.blk] = on >= 0
+        count[:, self.dfn] = (on[:, :, None] == self.dfn[None, None, :]).sum(1)
+        return count
+
+    def _unlink(self, rows: np.ndarray, blk: int) -> None:
+        """Blocker `blk` lets go of his man in `rows`; a defender still held by
+        another blocker stays engaged with him."""
+        d = self.partner[rows, blk]
+        rows, d = rows[d >= 0], d[d >= 0]
+        self.partner[rows, blk] = -1
+        mine = self.partner[rows, d] == blk
+        rows, d = rows[mine], d[mine]
+        other = np.full(rows.size, -1, np.int64)
+        for b2 in self.blk:
+            if b2 != blk:
+                other = np.where((other < 0) & (self.partner[rows, b2] == d), b2, other)
+        self.partner[rows, d] = other
+
+    def _release(self, square: np.ndarray) -> None:
+        """Blockers turning their hips off their man (square-up under the bar) let go."""
+        bc = self.cfg.block
+        for j, blk in enumerate(self.blk):
+            go = (self.partner[:, blk] >= 0) & (square[:, blk] < bc.release_below)
+            if go.any():
+                rows = np.nonzero(go)[0]
+                self._unlink(rows, blk)
+                self.release_cd[rows, j] = bc.release_cooldown
+
     def _blocking(self) -> tuple[np.ndarray, np.ndarray]:
         """Shed existing blocks, then start new ones. Returns (new_engaged, shed) counts per play."""
         bc, b, dt = self.cfg.block, self.bodies, self.cfg.field.dt
         shed = np.zeros(self.n, np.int32)
         new = np.zeros(self.n, np.int32)
-        for blk in self.blk:
-            dfs = self.partner[:, blk]
-            on = dfs >= 0
-            if on.any():
-                rows = np.nonzero(on)[0]
-                ratio = b.mass_lb[rows, dfs[rows]] / b.mass_lb[rows, blk]
-                rate = bc.shed_rate * ratio ** bc.shed_mass_power
-                go = self.rng.random(rows.size) < 1.0 - np.exp(-rate * dt)
-                r, d = rows[go], dfs[rows[go]]
-                self.partner[r, blk] = -1
-                self.partner[r, d] = -1
-                self.shed_cd[r, d - self.n_off] = bc.reengage_cooldown
-                shed[r] += 1
-        free_def = (self.partner[:, self.dfn] < 0) & (self.shed_cd <= 0)
+        for di, d in enumerate(self.dfn):
+            on = self.partner[:, self.blk] == d                                  # (N, B)
+            rows = np.nonzero(on.any(1))[0]
+            if rows.size == 0:
+                continue
+            m_blk = (b.mass_lb[rows][:, self.blk] * on[rows]).sum(1)
+            rate = bc.shed_rate * (b.mass_lb[rows, d] / m_blk) ** bc.shed_mass_power
+            go = self.rng.random(rows.size) < 1.0 - np.exp(-rate * dt)
+            r = rows[go]
+            for j, blk in enumerate(self.blk):
+                self.partner[r[on[r, j]], blk] = -1
+            self.partner[r, d] = -1
+            self.shed_cd[r, di] = bc.reengage_cooldown
+            shed[r] += 1
+        engaged = self.partner[:, self.dfn] >= 0
+        free_def = (~engaged | bc.double_team) & (self.shed_cd <= 0)
         if self.wrap.any():   # the defender wrapping the carrier can't be blocked
             free_def[np.arange(self.n), self.wrapper - self.n_off] &= self.wrap <= 0
-        for blk in self.blk:
-            can = (self.partner[:, blk] < 0) & (self.stun[:, blk] <= 0)
+        for j, blk in enumerate(self.blk):
+            can = (self.partner[:, blk] < 0) & (self.stun[:, blk] <= 0) & (self.release_cd[:, j] <= 0)
             d = self.pos[:, self.dfn] - self.pos[:, blk, None]
             dist = np.linalg.norm(d, axis=-1)
             reach = b.radius[:, blk, None] + b.radius[:, self.dfn] + bc.reach
@@ -381,8 +452,9 @@ class TeamSim:
             pick = np.argmin(np.where(ok, dist, np.inf), axis=1)
             rows = np.nonzero(ok.any(axis=1))[0]
             di = pick[rows]
+            first = self.partner[rows, self.n_off + di] < 0
             self.partner[rows, blk] = self.n_off + di
-            self.partner[rows, self.n_off + di] = blk
+            self.partner[rows[first], self.n_off + di[first]] = blk
             free_def[rows, di] = False
             new[rows] += 1
         return new, shed
@@ -459,11 +531,13 @@ class TeamSim:
         push = action[..., :2].copy()
         if self.cfg.facing:
             self._turn_hips(push, np.clip(action[..., 2], 0.0, 1.0))
+        if self.cfg.block.release_below is not None:
+            self._release(np.clip(action[..., 2], 0.0, 1.0))
         # An engaged defender is fighting the block: only part of his push counts.
-        eng_def = self.partner[:, self.dfn] >= 0
+        n_on = self.blockers_on()[:, self.dfn]
         n_ = np.linalg.norm(push, axis=-1, keepdims=True)
         push = np.where(n_ > 1.0, push / np.maximum(n_, 1e-6), push)
-        push[:, self.dfn] *= np.where(eng_def, self.cfg.block.engaged_control, 1.0)[..., None]
+        push[:, self.dfn] *= (self.cfg.block.engaged_control ** n_on)[..., None]
         apply_controls(self.pos, self.vel, push, self.bodies, dt, stunned=self.stun > 0,
                        facing=self.facing if self.cfg.facing else None)
 
@@ -490,9 +564,8 @@ class TeamSim:
         self.wrapper[made] = wrapper[made]
         if made.any():      # a defender tackling out of a block leaves the block
             rows = np.nonzero(made)[0]
-            blk = self.partner[rows, wrapper[rows]]
-            rows, blk = rows[blk >= 0], blk[blk >= 0]
-            self.partner[rows, blk] = -1
+            for blk in self.blk:
+                self.partner[rows[self.partner[rows, blk] == wrapper[rows]], blk] = -1
             self.partner[rows, wrapper[rows]] = -1
         self.stun[:, self.dfn] = np.where(missed, tc.miss_stun, self.stun[:, self.dfn])
         self.cooldown = np.where(missed, tc.miss_cooldown, self.cooldown)
@@ -502,6 +575,7 @@ class TeamSim:
         self.stun = np.maximum(0.0, self.stun - dt)
         self.cooldown = np.maximum(0.0, self.cooldown - dt)
         self.shed_cd = np.maximum(0.0, self.shed_cd - dt)
+        self.release_cd = np.maximum(0.0, self.release_cd - dt)
         self.wrap[wrapped] -= dt
         tackled_now = wrapped & (self.wrap <= 1e-6)
 
@@ -581,7 +655,7 @@ class TeamSim:
         per[..., 0:2] = (pos[:, order] - ref[:, None]) / 20.0
         per[..., 2:4] = vel[:, order] / b.max_speed[:, order, None]
         per[..., 4:6] = face[:, order]
-        per[..., 6] = (self.partner[:, order] >= 0).astype(np.float32)
+        per[..., 6] = self.blockers_on()[:, order]       # 0/1, or 2 for a double-teamed defender
         per[..., 7] = self.stun[:, order] / max(self.cfg.tackle.miss_stun, 1e-6)
         return obs
 

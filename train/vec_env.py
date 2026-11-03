@@ -41,6 +41,7 @@ class SideVecEnv(VecEnv):
         self.ep_returns = np.zeros(n_envs, np.float32)
         self._outcomes = np.zeros(len(OUTCOME_NAMES), np.int64)
         self._yards: list[float] = []
+        self._clock_ends = bool(getattr(cfg, "timeout_ends", False))
 
     def _my_obs(self) -> np.ndarray:
         return self.sim.observe() if self.side == "runner" else self.sim.observe_tackler()
@@ -73,8 +74,9 @@ class SideVecEnv(VecEnv):
             for i in idx:
                 infos[i] = {
                     "terminal_observation": term[i],
-                    # Running out the play clock is a cut-off, not a real end.
-                    "TimeLimit.truncated": bool(info["outcome"][i] == OUTCOME_TIMEOUT),
+                    # Running out the play clock is a cut-off, not a real end
+                    # (unless the config says the clock ends the drill).
+                    "TimeLimit.truncated": bool(info["outcome"][i] == OUTCOME_TIMEOUT) and not self._clock_ends,
                     "episode": {"r": float(self.ep_returns[i]), "l": int(info["steps"][i])},
                     "outcome": OUTCOME_NAMES[info["outcome"][i]],
                 }

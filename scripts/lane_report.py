@@ -11,6 +11,8 @@ Per offense-vs-defense pair, over the same starts:
 - who tackles: DL out of the block, DL after shedding it, LB
 - with an LB: speed when crossing the line, share that slowed 1+ yd/s from
   their top speed before it, and crossing on the side away from the LB
+- combo (`--combo`): DL double-teamed at some point, LB blocked before the
+  runner reached the line
 
     uv run python -m scripts.lane_report experiments/EXP-013-lane-drill --gen 12
     uv run python -m scripts.lane_report experiments/EXP-013-lane-drill --gen 12 --json out.json
@@ -26,7 +28,7 @@ import numpy as np
 
 from sim.core import OUTCOME_OUT_OF_BOUNDS, OUTCOME_TACKLED, OUTCOME_TOUCHDOWN, FieldConfig, TackleConfig
 from sim.team import CARRIER, TeamSim, lane_drill_config
-from sim.team_policies import gap_defense, lane_offense, pursuit_defense
+from sim.team_policies import combo_offense, gap_defense, lane_offense, pursuit_defense
 from train.evaluate import ppo_runner, ppo_tackler
 
 DT = 0.1
@@ -50,6 +52,8 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
     line_speed = np.full(n, np.nan)
     away_lb = np.zeros(n, bool)
     lb = sim.dfn[1] if sim.n_def > 1 else None
+    doubled = np.zeros(n, bool)
+    lb_blocked = np.zeros(n, bool)
     rad = sim.bodies.radius
     dl, ol = sim.dfn[0], sim.blk[0]
     while live.any():
@@ -59,6 +63,9 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         lean = sim.pos[:, dl, 1] - sim.pos[:, ol, 1]
         before = sim.pos[:, CARRIER, 0] < sim.los
         obs, _, done, info = sim.step(o_act, d_act)
+        doubled |= live & ((info["partner"][:, sim.blk] == dl).sum(1) >= 2)
+        if lb is not None:
+            lb_blocked |= live & before & (info["partner"][:, lb] >= 0)
         pos = info["pos"]
         v1 = sim.vel[:, CARRIER].copy()            # finished plays are already reset; masked by ~done below
         sp0, sp1 = np.linalg.norm(v0, axis=1), np.linalg.norm(v1, axis=1)
@@ -112,6 +119,8 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         "speed_at_line": float(np.nanmedian(line_speed)) if got.any() else float("nan"),
         "slowed_before_line": float((peak[got] - line_speed[got] >= 1.0).mean()) if got.any() else float("nan"),
         "away_from_lb": float(away_lb[got].mean()) if (got.any() and lb is not None) else float("nan"),
+        "double_team": float(doubled.mean()),
+        "lb_blocked_before_line": float(lb_blocked.mean()) if lb is not None else float("nan"),
     }
 
 
@@ -119,7 +128,8 @@ COLS = [("win", "승", "%"), ("tackled", "태클", "%"), ("out", "이탈", "%"),
         ("time_to_line", "라인까지s", "f"), ("min_speed_approach", "최저속도", "f"), ("brake_share", "감속", "%"),
         ("sideways_at_line", "옆으로통과", "%"), ("cutback_share", "컷백", "%"), ("open_side_share", "빈쪽", "%"),
         ("tackle_by_dl_engaged", "블록중태클", "%"), ("tackle_by_lb", "LB태클", "%"),
-        ("speed_at_line", "라인속도", "f"), ("slowed_before_line", "늦춤", "%"), ("away_from_lb", "LB반대", "%")]
+        ("speed_at_line", "라인속도", "f"), ("slowed_before_line", "늦춤", "%"), ("away_from_lb", "LB반대", "%"),
+        ("double_team", "더블팀", "%"), ("lb_blocked_before_line", "LB블록", "%")]
 
 
 def fmt_row(name: str, s: dict) -> str:
@@ -137,11 +147,12 @@ def main() -> None:
     p.add_argument("--n", type=int, default=2048)
     p.add_argument("--width", type=float, default=5.0)
     p.add_argument("--lb", action="store_true")
+    p.add_argument("--combo", action="store_true")
     p.add_argument("--stumble", type=float, default=0.0)
     p.add_argument("--square-ahead", action="store_true")
     p.add_argument("--json", type=Path, default=None)
     args = p.parse_args()
-    cfg = lane_drill_config(width=args.width, linebacker=args.lb, field=FieldConfig(reaction_delay=2),
+    cfg = lane_drill_config(width=args.width, linebacker=args.lb, combo=args.combo, field=FieldConfig(reaction_delay=2),
                             stumble=args.stumble, carrier_square_ahead=args.square_ahead,
                             tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
     runs = sorted(d for d in args.exp.iterdir() if (d / "checkpoints").is_dir()) or [args.exp]
@@ -152,8 +163,12 @@ def main() -> None:
             files = [f for f in files if f.stem.endswith(f"g{args.gen:02d}")] or files
         return files[-1]
 
-    off = {"스크립트: 스냅 때 결정": lambda s, o=None: lane_offense(s, read_until=99.0),
-           "스크립트: 3.5야드까지 읽기": lambda s, o=None: lane_offense(s)}
+    if args.combo:
+        off = {"스크립트: 콤보 후 바로": lambda s, o=None: combo_offense(s),
+               "스크립트: 콤보, LB 블록까지 대기": lambda s, o=None: combo_offense(s, wait_lb=1.0)}
+    else:
+        off = {"스크립트: 스냅 때 결정": lambda s, o=None: lane_offense(s, read_until=99.0),
+               "스크립트: 3.5야드까지 읽기": lambda s, o=None: lane_offense(s)}
     dfn = {"스크립트 갭 DL": lambda s, o=None: gap_defense(s),
            "스크립트 추격 DL": lambda s, o=None: pursuit_defense(s)}
     for r in runs:

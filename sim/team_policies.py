@@ -84,7 +84,7 @@ def carrier_only_offense(sim: TeamSim) -> np.ndarray:
 
 
 def lane_runner(sim: TeamSim, read_until: float = 3.5, press_speed: float | None = None,
-                hole: float = 1.6) -> np.ndarray:
+                hole: float = 1.6, wait_lb: float = 0.0) -> np.ndarray:
     """Oklahoma-drill RB, the press-and-cut read from the coaching notes: head
     at the block, pick the side the blocker is covering (away from the side the
     DL is leaning to, or away from a DL who got free), cut there, then run.
@@ -92,7 +92,9 @@ def lane_runner(sim: TeamSim, read_until: float = 3.5, press_speed: float | None
     The side is re-read every step until he is `read_until` yd from the line
     (his own blocker's back is ~1.35 yd from it), then locked: a large value
     picks at the snap (no patience). With `press_speed` he holds that speed
-    while reading, so he can still make the cut. (N, 2)"""
+    while reading, so he can still make the cut. With `wait_lb` > 0 he also
+    holds at the press point, up to that many seconds, until the LB is
+    blocked (the combo block's climb). (N, 2)"""
     pos, _, _ = sim.perceived("offense")
     n, w = sim.n, sim.cfg.field.width
     if getattr(sim, "_lane_side", None) is None or sim._lane_side.shape != (n,):
@@ -100,26 +102,69 @@ def lane_runner(sim: TeamSim, read_until: float = 3.5, press_speed: float | None
     side_lock = sim._lane_side
     side_lock[sim.t == 0] = 0.0
     me, my_v = sim.pos[:, CARRIER], sim.vel[:, CARRIER]
-    ol, dl = pos[:, sim.blk[0]], pos[:, sim.dfn[0]]
-    engaged = sim.partner[:, sim.dfn[0]] >= 0
-    lean = np.where(engaged, dl[:, 1] - ol[:, 1], dl[:, 1] - me[:, 1])
+    d0 = sim.dfn[0]
+    dl = pos[:, d0]
+    on_dl = sim.partner[:, sim.blk] == d0                                  # (N, B)
+    blk_y = np.where(on_dl.any(1), (pos[:, sim.blk, 1] * on_dl).sum(1) / np.maximum(on_dl.sum(1), 1),
+                     pos[:, sim.blk[0], 1])
+    engaged = on_dl.any(1)
+    lean = np.where(engaged, dl[:, 1] - blk_y, dl[:, 1] - me[:, 1])
     side_now = -np.sign(lean + 1e-3)
     reading = (side_lock == 0) & (sim.los - me[:, 0] > read_until)
+    if wait_lb > 0 and sim.n_def > 1:
+        lb_free = sim.partner[:, sim.dfn[1]] < 0
+        reading |= (side_lock == 0) & lb_free & (sim.t * sim.cfg.field.dt < wait_lb)
     lock = (side_lock == 0) & ~reading
     side_lock[lock] = side_now[lock]
-    mid = (ol[:, 1] + dl[:, 1]) / 2
+    mid = (blk_y + dl[:, 1]) / 2
     hole_y = np.clip(mid + side_lock * hole, 1.0, w - 1.0)
-    press = _unit(np.stack([sim.los - read_until + 0.5 - me[:, 0], mid - me[:, 1]], 1))
-    if press_speed is not None:
-        steer = press * press_speed - my_v
+    spot = np.stack([sim.los - read_until + 0.5 - me[:, 0], mid - me[:, 1]], 1)
+    press = _unit(spot)
+    if press_speed is not None or wait_lb > 0:
+        # Arrive at the press point and hold there while reading.
+        top = press_speed if press_speed is not None else 10.0
+        want = press * np.minimum(top, 2.0 * np.linalg.norm(spot, axis=1))[:, None]
+        steer = want - my_v
         press = steer / np.maximum(np.linalg.norm(steer, axis=-1, keepdims=True), 1.0)
     cut = _unit(np.stack([sim.los + 1.5, hole_y], 1) - me)
     # Through the line: straight downfield, damping sideways drift toward the middle.
     run = np.stack([np.full(n, 10.0), (w / 2 - me[:, 1]) * 1.0], 1) - my_v
     run /= np.maximum(np.linalg.norm(run, axis=-1, keepdims=True), 1.0)
-    through = me[:, 0] > dl[:, 0] + 0.5
+    through = me[:, 0] > np.minimum(dl[:, 0] + 0.5, sim.los + 1.0)   # past the DL, or a DL driven off the line
     push = np.where(reading[:, None], press, cut)
     return np.where(through[:, None], run, push).astype(np.float32)
+
+
+def combo_blockers(sim: TeamSim, pos: np.ndarray, climb_depth: float | None = 2.5) -> np.ndarray:
+    """Inside-zone combo: both OL take the DL; once the LB comes within
+    `climb_depth` yd of the line (or he is not coming: None = climb at once),
+    the OL nearer the LB turns his hips off the DL (square-up 0 = release)
+    and climbs to him. (N, B, 3)"""
+    n = sim.n
+    a = np.zeros((n, len(sim.blk), 3), np.float32)
+    a[..., :2] = lead_blockers(sim, pos)
+    a[..., 2] = 1.0
+    dl, lb = sim.dfn[0], sim.dfn[1]
+    lb_free = sim.partner[:, lb] < 0
+    on_dl = sim.partner[:, sim.blk] == dl
+    climber = np.argmin(np.abs(pos[:, sim.blk, 1] - pos[:, lb, None, 1]), axis=1)
+    come = np.ones(n, bool) if climb_depth is None else (pos[:, lb, 0] - sim.los < climb_depth)
+    for j, b in enumerate(sim.blk):
+        me = sim.pos[:, b]
+        double_up = lb_free & ~come & ~on_dl[:, j] & (sim.partner[:, b] < 0)
+        a[:, j, :2] = np.where(double_up[:, None], _unit(pos[:, dl] - me), a[:, j, :2])
+        climb = lb_free & come & (climber == j) & on_dl.all(1)
+        a[:, j, :2] = np.where(climb[:, None], _unit(pos[:, lb] - me), a[:, j, :2])
+        a[:, j, 2] = np.where(climb, 0.0, a[:, j, 2])
+    return a
+
+
+def combo_offense(sim: TeamSim, climb_depth: float | None = 2.5, **runner) -> np.ndarray:
+    pos, _, _ = sim.perceived("offense")
+    a = np.zeros((sim.n, sim.n_off, 3), np.float32)
+    a[:, CARRIER, :2] = lane_runner(sim, **runner)
+    a[:, sim.blk] = combo_blockers(sim, pos, climb_depth)
+    return a.reshape(sim.n, -1)
 
 
 def lane_offense(sim: TeamSim, **kw) -> np.ndarray:
@@ -193,5 +238,6 @@ def gap_defense(sim: TeamSim, lead: float = 0.3) -> np.ndarray:
     return a.reshape(sim.n, -1)
 
 
-OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense}
+OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense,
+           "combo": combo_offense}
 DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense}

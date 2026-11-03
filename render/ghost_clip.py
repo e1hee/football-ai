@@ -34,6 +34,7 @@ class GhostRenderer(TeamRenderer):
     def __init__(self, field: FieldConfig, layout: Layout, lane, line: np.ndarray, n_off: int):
         super().__init__(field, layout, lane)
         self.line, self.n_off = line, n_off       # (P, 2) average starting spots
+        self.mixed = False
 
     def ghost_frame(self, gens: list[list], step: float, title: str) -> Image.Image:
         img = Image.new("RGB", (self.W, self.H), BG)
@@ -41,7 +42,7 @@ class GhostRenderer(TeamRenderer):
         self._field(d)
         self._lane(d)
         for j, spot in enumerate(self.line):      # the formation at the snap, for reference
-            if j != CARRIER:
+            if j != CARRIER and (j < self.n_off or not self.mixed):   # mixed fronts have no one spot
                 x, y = self._xy(*spot)
                 d.ellipse([x - 3, y - 3, x + 3, y + 3], outline=BLOCKER if j < self.n_off else TACKLER)
         total = len(gens)
@@ -95,6 +96,7 @@ def main() -> None:
     start.reset()
     line = start.pos.mean(0) + np.array([0.0, shift])
     renderer = GhostRenderer(view, layout, lane, line, start.n_off)
+    renderer.mixed = cfg.formation.fronts is not None
 
     panels = []
     for run in runs:

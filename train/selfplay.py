@@ -167,8 +167,8 @@ def main() -> None:
     if args.sim == "3v3":
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
-    elif args.sim.startswith("lane") or args.sim in ("combo", "box", "box-snap"):
-        script_runner = {"combo": combo_offense, "box": box_offense, "box-snap": box_offense}.get(args.sim, lane_offense)
+    elif args.sim.startswith("lane") or args.sim in ("combo", "box", "box-snap", "box-mix"):
+        script_runner = {"combo": combo_offense, "box": box_offense, "box-snap": box_offense, "box-mix": box_offense}.get(args.sim, lane_offense)
         script_tackler = gap_defense
     else:
         script_runner = evasive_runner

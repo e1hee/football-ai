@@ -103,6 +103,12 @@ class Formation:
     ol_spacing: float = 1.0
     dl_align: tuple[float, ...] | None = None
     lb_align: tuple[float, ...] | None = None
+    # Mixed fronts (EXP-019): each play draws one of `fronts` (dl_align tuples)
+    # and slides both LBs by up to `lb_shift` yd, so which side is open changes
+    # snap to snap. With one fixed front the runner took one path (EXP-018),
+    # even with both LBs standing on it.
+    fronts: tuple[tuple[float, ...], ...] | None = None
+    lb_shift: float = 0.0
     # Screen timing: the linemen have already released when the RB has the
     # ball. Starting them 1-3 yd ahead, blocking was worth ~nothing (42 vs 42%
     # TD, scripted); 3-5 yd ahead it is worth ~20 points (see EXP-009 notes).
@@ -167,7 +173,13 @@ def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: fl
                       defense=("DL", "LB") if (linebacker or combo) else ("DL",), **kw)
 
 
-def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, **kw) -> TeamConfig:
+FRONTS = ((-3.2, -0.6, 1.9, 3.2),        # 1-technique left, 3-technique right
+          (-3.2, -1.9, 0.6, 3.2),        # the same, mirrored
+          (-3.2, -1.0, 1.0, 3.2),        # even
+          (-2.4, -0.6, 0.6, 2.4))        # tight, ends head up on the tackles
+
+
+def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, mix: bool = False, **kw) -> TeamConfig:
     """Inside run, 6v6: RB + 5 OL vs a 4-3 front's 4 DL + 2 LB. Five blockers
     for six defenders, so one defender is always unblocked at the snap, as in
     a real run against a six-man box.
@@ -181,9 +193,13 @@ def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, 
 
     `snap` (EXP-018): the centre snaps the ball to an RB 7 yd deep, 0.6 s in the
     air, with blocks that hold (see BlockConfig). NFL backs take about 2.5-3.1 s
-    to the line (Next Gen Stats); without the snap ours took 1.5 s."""
+    to the line (Next Gen Stats); without the snap ours took 1.5 s.
+
+    `mix` (EXP-019): a different front and LB slide each play (see Formation)."""
+    snap = snap or mix
     fm = Formation(kind="lane", carrier_y_jitter=0.3, ol_spacing=1.3, shade=0.3, los_ahead=7.0 if snap else 5.0,
-                   dl_align=(-3.2, -0.6, 1.9, 3.2), lb_align=(-1.5, 1.5))
+                   dl_align=(-3.2, -0.6, 1.9, 3.2), lb_align=(-1.5, 1.5),
+                   fronts=FRONTS if mix else None, lb_shift=3.0 if mix else 0.0)
     field = kw.pop("field", FieldConfig())
     field = FieldConfig(**{**field.__dict__, "width": width, "runner_start_x": 5.0, "breakaway_lead": None,
                            "length": 5.0 + fm.los_ahead + past_los, "max_steps": 70 if snap else 50})
@@ -197,7 +213,7 @@ def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, 
                       defense=("DL",) * 4 + ("LB",) * 2, **kw)
 
 
-SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box", "box-snap")
+SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box", "box-snap", "box-mix")
 
 
 def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
@@ -207,8 +223,8 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
         return base
     if sim == "3v3":
         return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
-    if sim in ("box", "box-snap"):
-        return box_config(snap=sim == "box-snap", field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
+    if sim in ("box", "box-snap", "box-mix"):
+        return box_config(snap=sim == "box-snap", mix=sim == "box-mix", field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", combo=sim == "combo", field=base.field,
                              tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
 
@@ -322,10 +338,16 @@ class TeamSim:
         k = len(cx)
         los = cx + fm.los_ahead
         nb = len(self.blk)
-        if fm.dl_align is not None:
-            n_dl = len(fm.dl_align)
+        dl_y = None                                  # (k, n_dl) y offset of each DL this play
+        if fm.fronts is not None:
+            dl_y = np.array(fm.fronts)[rng.integers(len(fm.fronts), size=k)]
+        elif fm.dl_align is not None:
+            dl_y = np.tile(fm.dl_align, (k, 1))
+        if dl_y is not None:
+            n_dl = dl_y.shape[1]
         else:
             n_dl = min(nb, self.n_def) if fm.dl_count is None else fm.dl_count
+        lb_slide = rng.uniform(-fm.lb_shift, fm.lb_shift, k) if fm.lb_shift else 0.0
         over_gap = n_dl < nb
         for j, blk in enumerate(self.blk):
             pos[:, blk, 0] = los - b.radius[0, blk]
@@ -335,8 +357,8 @@ class TeamSim:
         for j, d in enumerate(self.dfn):
             if j < n_dl:
                 pos[:, d, 0] = los + b.radius[0, d]
-                if fm.dl_align is not None:
-                    pos[:, d, 1] = self._half_w + fm.dl_align[j] + rng.uniform(-fm.shade, fm.shade, k)
+                if dl_y is not None:
+                    pos[:, d, 1] = self._half_w + dl_y[:, j] + rng.uniform(-fm.shade, fm.shade, k)
                     near = None                      # assigned below, ends first
                 elif over_gap:
                     gap = (pos[:, self.blk[j], 1] + pos[:, self.blk[j + 1], 1]) / 2
@@ -349,15 +371,20 @@ class TeamSim:
             else:
                 off = fm.lb_align[j - n_dl] if fm.lb_align is not None else 0.0
                 pos[:, d, 0] = los + rng.uniform(*fm.lb_depth, k)
-                pos[:, d, 1] = self._half_w + off + rng.uniform(-1.0, 1.0, k)
-        if fm.dl_align is not None:
+                pos[:, d, 1] = self._half_w + off + lb_slide + rng.uniform(-1.0, 1.0, k)
+        if dl_y is not None:
             # Outside-most DL pick first, so an end never takes an inside OL
             # because the tackle went to a DT shading toward him.
-            for j in np.argsort([-abs(y) for y in fm.dl_align]):
-                gap_y = np.abs(pos[:, self.blk, 1] - pos[:, self.dfn[j], 1, None])
+            rows = np.arange(k)
+            order = np.argsort(-np.abs(dl_y), axis=1)
+            picks = np.zeros((k, n_dl), np.int64)
+            for rank in range(n_dl):
+                j = order[:, rank]
+                gap_y = np.abs(pos[:, self.blk, 1] - pos[rows, self.dfn[j], 1, None])
                 pick = np.argmin(np.where(taken, np.inf, gap_y), axis=1)
-                taken[np.arange(k), pick] = True
-                engaged_with[j] = self.blk[pick]
+                taken[rows, pick] = True
+                picks[rows, j] = self.blk[pick]
+            engaged_with = list(picks.T)
         self._place(mask, pos)
         rows = np.nonzero(mask)[0]
         for j in range(n_dl):

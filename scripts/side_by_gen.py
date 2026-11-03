@@ -42,9 +42,10 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("exp", type=Path)
     p.add_argument("--snap", action="store_true")
+    p.add_argument("--mix", action="store_true")
     p.add_argument("--n", type=int, default=512)
     args = p.parse_args()
-    cfg = box_config(snap=args.snap, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
+    cfg = box_config(snap=args.snap, mix=args.mix, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
                      field=FieldConfig(reaction_delay=2),
                      tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
     runs = sorted(d for d in args.exp.iterdir() if (d / "checkpoints").is_dir())

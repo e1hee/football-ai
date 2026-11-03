@@ -3,7 +3,7 @@ import dataclasses
 import numpy as np
 
 from sim.core import FieldConfig, OUTCOME_TOUCHDOWN, TackleConfig
-from sim.team import CARRIER, TeamConfig, TeamSim, box_config, lane_drill_config
+from sim.team import CARRIER, FRONTS, TeamConfig, TeamSim, box_config, lane_drill_config
 from sim.team_policies import OFFENSE, DEFENSE
 from train.evaluate import evaluate
 
@@ -390,3 +390,39 @@ def test_shed_is_likelier_once_the_defender_has_the_carriers_side():
         sim._blocking()
         return (sim.partner[keep, d] < 0).mean()
     assert sheds(-0.8) > 2.5 * sheds(0.8)
+
+
+def test_mixed_fronts_change_play_to_play_with_one_ol_free():
+    sim = TeamSim(1024, box_config(mix=True), seed=5)
+    sim.reset()
+    mid = sim.cfg.field.width / 2
+    dt = np.round(sim.pos[:, sim.dfn[1:3], 1].mean(1) - mid, 1)
+    assert (dt < -0.4).mean() > 0.15 and (dt > 0.4).mean() > 0.15       # both shades show up
+    assert ((sim.partner[:, sim.blk] < 0).sum(1) == 1).all()
+    for j in range(4):                                                   # nobody starts far from his man
+        blk = sim.partner[:, sim.dfn[j]]
+        assert (blk >= 0).all()
+        gap = np.abs(sim.pos[np.arange(1024), blk, 1] - sim.pos[:, sim.dfn[j], 1])
+        assert gap.max() < 1.3
+    assert len({f for f in FRONTS}) == 4
+    lb_y = sim.pos[:, sim.dfn[4:], 1].mean(1) - mid
+    assert (lb_y < -1.5).mean() > 0.2 and (lb_y > 1.5).mean() > 0.2      # LBs slide either way
+
+
+def test_fixed_snap_box_is_unchanged_by_mixed_fronts():
+    sim = TeamSim(64, box_config(snap=True), seed=5)
+    sim.reset()
+    mid = sim.cfg.field.width / 2
+    assert sim.cfg.formation.fronts is None and sim.cfg.formation.lb_shift == 0.0
+    assert np.abs(sim.pos[:, sim.dfn[1], 1] - mid + 0.6).max() <= 0.3 + 1e-5
+
+
+def test_scripted_runner_reads_mixed_fronts():
+    cfg = box_config(mix=True, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
+                     field=FieldConfig(reaction_delay=2),
+                     tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
+    read = evaluate(lambda s, o=None: OFFENSE["box"](s), lambda s, o=None: DEFENSE["gap"](s), cfg, n_plays=512, seed=2)
+    snap = evaluate(lambda s, o=None: OFFENSE["box"](s, read_until=99.0), lambda s, o=None: DEFENSE["gap"](s), cfg,
+                    n_plays=512, seed=2)
+    assert read["rate/touchdown"] > snap["rate/touchdown"] + 0.2
+

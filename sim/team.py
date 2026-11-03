@@ -83,6 +83,13 @@ class Formation:
     # than blockers, DL j lines up over the gap between blockers j and j+1,
     # engaged with the nearer one.
     dl_count: int | None = None
+    # Box (6v6): blockers `ol_spacing` yd apart (centre to centre); with
+    # `dl_align` each DL lines up at that y offset from the middle of the line
+    # (+/- `shade`), engaged at the snap with the nearest blocker nobody else
+    # has; `lb_align` gives each LB's y offset (+/- 1 yd).
+    ol_spacing: float = 1.0
+    dl_align: tuple[float, ...] | None = None
+    lb_align: tuple[float, ...] | None = None
     # Screen timing: the linemen have already released when the RB has the
     # ball. Starting them 1-3 yd ahead, blocking was worth ~nothing (42 vs 42%
     # TD, scripted); 3-5 yd ahead it is worth ~20 points (see EXP-009 notes).
@@ -144,7 +151,29 @@ def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: fl
                       defense=("DL", "LB") if (linebacker or combo) else ("DL",), **kw)
 
 
-SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo")
+def box_config(width: float = 20.0, past_los: float = 10.0, **kw) -> TeamConfig:
+    """Inside run, 6v6: RB + 5 OL vs a 4-3 front's 4 DL + 2 LB. Five blockers
+    for six defenders, so one defender is always unblocked at the snap, as in
+    a real run against a six-man box.
+
+    OL 1.3 yd apart (LT LG C RG RT at -2.6 ... +2.6). DL: left end outside the
+    LT (5-technique), a 1-technique shading the centre, a 3-technique outside
+    the RG, right end outside the RT; each starts engaged with the nearest OL,
+    leaving one OL free to double team or climb. LBs at +/-1.5 yd, 4-5 yd deep.
+    Reaching `past_los` yd beyond the line ends the play as a win (no
+    secondary is modelled). `kw` as in `lane_drill_config`."""
+    fm = Formation(kind="lane", carrier_y_jitter=0.3, ol_spacing=1.3, shade=0.3,
+                   dl_align=(-3.2, -0.6, 1.9, 3.2), lb_align=(-1.5, 1.5))
+    field = kw.pop("field", FieldConfig())
+    field = FieldConfig(**{**field.__dict__, "width": width, "runner_start_x": 5.0, "breakaway_lead": None,
+                           "length": 5.0 + fm.los_ahead + past_los, "max_steps": 50})
+    block = kw.pop("block", BlockConfig(engaged_control=0.7, engaged_tackle_logit=-1.5,
+                                        double_team=True, release_below=0.2))
+    return TeamConfig(field=field, block=block, formation=fm, offense=("RB",) + ("OL",) * 5,
+                      defense=("DL",) * 4 + ("LB",) * 2, **kw)
+
+
+SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box")
 
 
 def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
@@ -154,6 +183,8 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
         return base
     if sim == "3v3":
         return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
+    if sim == "box":
+        return box_config(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", combo=sim == "combo", field=base.field,
                              tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
 
@@ -266,16 +297,23 @@ class TeamSim:
         k = len(cx)
         los = cx + fm.los_ahead
         nb = len(self.blk)
-        n_dl = min(nb, self.n_def) if fm.dl_count is None else fm.dl_count
+        if fm.dl_align is not None:
+            n_dl = len(fm.dl_align)
+        else:
+            n_dl = min(nb, self.n_def) if fm.dl_count is None else fm.dl_count
         over_gap = n_dl < nb
         for j, blk in enumerate(self.blk):
             pos[:, blk, 0] = los - b.radius[0, blk]
-            pos[:, blk, 1] = self._half_w + (j - (nb - 1) / 2)
+            pos[:, blk, 1] = self._half_w + (j - (nb - 1) / 2) * fm.ol_spacing
         engaged_with = []
+        taken = np.zeros((k, nb), bool)
         for j, d in enumerate(self.dfn):
             if j < n_dl:
                 pos[:, d, 0] = los + b.radius[0, d]
-                if over_gap:
+                if fm.dl_align is not None:
+                    pos[:, d, 1] = self._half_w + fm.dl_align[j] + rng.uniform(-fm.shade, fm.shade, k)
+                    near = None                      # assigned below, ends first
+                elif over_gap:
                     gap = (pos[:, self.blk[j], 1] + pos[:, self.blk[j + 1], 1]) / 2
                     pos[:, d, 1] = gap + rng.uniform(-fm.shade, fm.shade, k)
                     near = np.where(pos[:, d, 1] < gap, self.blk[j], self.blk[j + 1])
@@ -284,8 +322,17 @@ class TeamSim:
                     near = np.full(k, self.blk[j])
                 engaged_with.append(near)
             else:
+                off = fm.lb_align[j - n_dl] if fm.lb_align is not None else 0.0
                 pos[:, d, 0] = los + rng.uniform(*fm.lb_depth, k)
-                pos[:, d, 1] = self._half_w + rng.uniform(-1.0, 1.0, k)
+                pos[:, d, 1] = self._half_w + off + rng.uniform(-1.0, 1.0, k)
+        if fm.dl_align is not None:
+            # Outside-most DL pick first, so an end never takes an inside OL
+            # because the tackle went to a DT shading toward him.
+            for j in np.argsort([-abs(y) for y in fm.dl_align]):
+                gap_y = np.abs(pos[:, self.blk, 1] - pos[:, self.dfn[j], 1, None])
+                pick = np.argmin(np.where(taken, np.inf, gap_y), axis=1)
+                taken[np.arange(k), pick] = True
+                engaged_with[j] = self.blk[pick]
         self._place(mask, pos)
         rows = np.nonzero(mask)[0]
         for j in range(n_dl):

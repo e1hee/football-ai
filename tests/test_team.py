@@ -285,3 +285,27 @@ def test_timeout_is_a_real_end_only_when_configured():
         assert done.all()
         assert all(i["TimeLimit.truncated"] == (not ends) for i in infos if i.get("outcome") == "timeout")
         assert any(i.get("outcome") == "timeout" for i in infos)
+
+
+# ------------------------------------------------------------ 6v6 box
+def test_box_lines_up_five_on_four_with_one_ol_free():
+    from sim.team import box_config
+    sim = TeamSim(256, box_config(), seed=0)
+    sim.reset()
+    assert sim.roles == ("RB",) + ("OL",) * 5 + ("DL",) * 4 + ("LB",) * 2
+    assert sim.obs_dim == 4 + 8 * 12 and sim.act_dim_for("runner") == 18
+    dl = np.arange(6, 10)
+    assert (sim.partner[:, dl] >= 0).all() and (sim.partner[:, 10:] == -1).all()
+    assert ((sim.partner[:, 1:6] < 0).sum(1) == 1).all()                    # exactly one OL free
+    for d in dl:                                                             # each DL faces a nearby OL
+        assert (np.abs(sim.pos[np.arange(sim.n), sim.partner[:, d], 1] - sim.pos[:, d, 1]) < 1.0).all()
+
+
+def test_box_scripted_reading_runner_beats_committing_at_the_snap():
+    from sim.team import box_config
+    from sim.team_policies import box_offense, gap_defense
+    cfg = box_config()
+    read = evaluate(lambda s, o=None: box_offense(s), lambda s, o=None: gap_defense(s), cfg, n_plays=512)
+    snap = evaluate(lambda s, o=None: box_offense(s, read_until=99.0), lambda s, o=None: gap_defense(s), cfg,
+                    n_plays=512)
+    assert read["yards/mean"] > snap["yards/mean"]

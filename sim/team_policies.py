@@ -167,6 +167,81 @@ def combo_offense(sim: TeamSim, climb_depth: float | None = 2.5, **runner) -> np
     return a.reshape(sim.n, -1)
 
 
+def box_runner(sim: TeamSim, read_until: float = 3.0) -> np.ndarray:
+    """6v6 inside-run RB: pick the gap (between OL, or outside a tackle) whose
+    spot just past the line is farthest from the defense (blocked defenders
+    count as 1.5x farther), re-reading until `read_until` yd from the line,
+    then hit it and run straight. (N, 2)"""
+    pos, _, _ = sim.perceived("offense")
+    n, w = sim.n, sim.cfg.field.width
+    if getattr(sim, "_box_gap", None) is None or sim._box_gap.shape != (n,):
+        sim._box_gap = np.full(n, np.nan, np.float32)
+    lock = sim._box_gap
+    lock[sim.t == 0] = np.nan
+    me, my_v = sim.pos[:, CARRIER], sim.vel[:, CARRIER]
+    ol_y = np.sort(pos[:, sim.blk, 1], axis=1)
+    gaps = np.concatenate([ol_y[:, :1] - 1.3, (ol_y[:, 1:] + ol_y[:, :-1]) / 2, ol_y[:, -1:] + 1.3], axis=1)
+    gaps = np.clip(gaps, 1.0, w - 1.0)                                       # (N, G)
+    spot = np.stack([np.broadcast_to(sim.los[:, None] + 1.0, gaps.shape), gaps], -1)
+    d = np.linalg.norm(spot[:, :, None] - pos[:, None, sim.dfn], axis=-1)    # (N, G, D)
+    blocked = (sim.partner[:, sim.dfn] >= 0)[:, None]
+    stunned = (sim.stun[:, sim.dfn] > 0)[:, None]
+    d = np.where(stunned, np.inf, np.where(blocked, d * 1.5, d))
+    best = gaps[np.arange(n), np.argmax(d.min(-1), axis=1)]
+    reading = np.isnan(lock) & (sim.los - me[:, 0] > read_until)
+    lock[np.isnan(lock) & ~reading] = best[np.isnan(lock) & ~reading]
+    gap_y = np.where(reading, best, lock)
+    press = _unit(np.stack([sim.los - read_until + 0.5 - me[:, 0], gap_y - me[:, 1]], 1))
+    cut = _unit(np.stack([sim.los + 1.5, gap_y], 1) - me)
+    run = np.stack([np.full(n, 10.0), np.zeros(n)], 1) - my_v
+    run /= np.maximum(np.linalg.norm(run, axis=-1, keepdims=True), 1.0)
+    through = me[:, 0] > sim.los + 1.0
+    return np.where(through[:, None], run, np.where(reading[:, None], press, cut)).astype(np.float32)
+
+
+def box_blockers(sim: TeamSim, pos: np.ndarray, climb_depth: float = 2.5) -> np.ndarray:
+    """Zone-style combos for any number of OL: a free OL doubles the nearest
+    singly-blocked DL while the LBs are deep; when an LB comes within
+    `climb_depth` yd of the line, the double-teamer nearest him releases
+    (square-up 0) and climbs to him. Otherwise `lead_blockers`. (N, B, 3)"""
+    n = sim.n
+    a = np.zeros((n, len(sim.blk), 3), np.float32)
+    a[..., :2] = lead_blockers(sim, pos)
+    a[..., 2] = 1.0
+    roles = np.array(sim.roles)
+    dls = sim.dfn[roles[sim.dfn] == "DL"]
+    lbs = sim.dfn[roles[sim.dfn] == "LB"]
+    on = sim.blockers_on()
+    lb_deep = ((pos[:, lbs, 0] - sim.los[:, None]) >= climb_depth).all(1) if lbs.size else np.ones(n, bool)
+    for j, b in enumerate(sim.blk):
+        me = sim.pos[:, b]
+        free = sim.partner[:, b] < 0
+        single = on[:, dls] == 1
+        dist = np.where(single, np.linalg.norm(pos[:, dls] - me[:, None], axis=-1), np.inf)
+        k = np.argmin(dist, axis=1)
+        go = free & lb_deep & np.isfinite(dist.min(1))
+        a[:, j, :2] = np.where(go[:, None], _unit(pos[np.arange(n), dls[k]] - me), a[:, j, :2])
+    for lb in lbs:
+        come = (pos[:, lb, 0] - sim.los < climb_depth) & (sim.partner[:, lb] < 0)
+        tgt = sim.partner[:, sim.blk]                                        # (N, B) whose man
+        in_double = (tgt >= 0) & (on[np.arange(n)[:, None], np.maximum(tgt, 0)] >= 2)
+        dist = np.where(in_double, np.linalg.norm(pos[:, sim.blk] - pos[:, lb, None], axis=-1), np.inf)
+        j = np.argmin(dist, axis=1)
+        climb = come & np.isfinite(dist.min(1))
+        rows = np.nonzero(climb)[0]
+        a[rows, j[rows], :2] = _unit(pos[rows, lb] - sim.pos[rows, sim.blk[j[rows]]])
+        a[rows, j[rows], 2] = 0.0
+    return a
+
+
+def box_offense(sim: TeamSim, read_until: float = 3.0, climb_depth: float = 2.5) -> np.ndarray:
+    pos, _, _ = sim.perceived("offense")
+    a = np.zeros((sim.n, sim.n_off, 3), np.float32)
+    a[:, CARRIER, :2] = box_runner(sim, read_until)
+    a[:, sim.blk] = box_blockers(sim, pos, climb_depth)
+    return a.reshape(sim.n, -1)
+
+
 def lane_offense(sim: TeamSim, **kw) -> np.ndarray:
     pos, _, _ = sim.perceived("offense")
     a = np.zeros((sim.n, sim.n_off, 3), np.float32)
@@ -239,5 +314,5 @@ def gap_defense(sim: TeamSim, lead: float = 0.3) -> np.ndarray:
 
 
 OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense,
-           "combo": combo_offense}
+           "combo": combo_offense, "box": box_offense}
 DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense}

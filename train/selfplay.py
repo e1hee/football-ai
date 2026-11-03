@@ -30,7 +30,7 @@ from stable_baselines3 import PPO
 from sim.core import FieldConfig, OneVOneSim, RewardConfig, SimConfig, TackleConfig
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
 from sim.team import SIMS, config_for
-from sim.team_policies import (combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
+from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
                                 screen_offense)
 from train.evaluate import evaluate
 from train.vec_env import SideVecEnv
@@ -167,8 +167,8 @@ def main() -> None:
     if args.sim == "3v3":
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
-    elif args.sim.startswith("lane") or args.sim == "combo":
-        script_runner = combo_offense if args.sim == "combo" else lane_offense
+    elif args.sim.startswith("lane") or args.sim in ("combo", "box"):
+        script_runner = {"combo": combo_offense, "box": box_offense}.get(args.sim, lane_offense)
         script_tackler = gap_defense
     else:
         script_runner = evasive_runner

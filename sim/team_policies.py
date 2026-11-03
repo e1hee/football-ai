@@ -186,7 +186,7 @@ def gap_defense(sim: TeamSim, lead: float = 0.3) -> np.ndarray:
     a = pursuit_defense(sim).reshape(sim.n, sim.n_def, 3)
     pos, vel, _ = sim.perceived("defense")
     me = sim.pos[:, sim.dfn]
-    aim_y = pos[:, CARRIER, None, 1] + vel[:, CARRIER, None, 1] * lead
+    aim_y = np.broadcast_to(pos[:, CARRIER, None, 1] + vel[:, CARRIER, None, 1] * lead, me[..., 1].shape)
     fight = np.stack([np.full_like(aim_y, -0.3), np.clip((aim_y - me[..., 1]) * 2.0, -1.0, 1.0)], -1)
     engaged = sim.partner[:, sim.dfn] >= 0
     a[..., :2] = np.where(engaged[..., None], _unit(fight), a[..., :2])

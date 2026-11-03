@@ -9,6 +9,8 @@ Per offense-vs-defense pair, over the same starts:
   direction flips within 4 yd of the line), and hitting the open side (crossing
   on the side away from where the DL leans off his blocker)
 - who tackles: DL out of the block, DL after shedding it, LB
+- with an LB: speed when crossing the line, share that slowed 1+ yd/s from
+  their top speed before it, and crossing on the side away from the LB
 
     uv run python -m scripts.lane_report experiments/EXP-013-lane-drill --gen 12
     uv run python -m scripts.lane_report experiments/EXP-013-lane-drill --gen 12 --json out.json
@@ -44,6 +46,10 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
     flips = np.zeros(n, bool)
     last_vy_sign = np.zeros(n)
     tackler = np.full(n, -1)                  # 0 DL engaged, 1 DL free, 2 LB
+    peak = np.zeros(n)
+    line_speed = np.full(n, np.nan)
+    away_lb = np.zeros(n, bool)
+    lb = sim.dfn[1] if sim.n_def > 1 else None
     rad = sim.bodies.radius
     dl, ol = sim.dfn[0], sim.blk[0]
     while live.any():
@@ -61,6 +67,7 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         approach = live & before & ~done
         t = sim.t * DT
         min_speed = np.where(approach & (t > 0.5), np.minimum(min_speed, sp1), min_speed)
+        peak = np.where(approach, np.maximum(peak, sp1), peak)
         braked |= approach & ~touching & (sp0 > 2.0) & ((sp0 - sp1) / DT >= 2.5)
         near = approach & (sim.los - pos[:, CARRIER, 0] < 4.0)
         s = np.sign(v1[:, 1]) * (np.abs(v1[:, 1]) >= 0.8)
@@ -71,6 +78,9 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         cross_vy[crossed] = v0[crossed, 1]
         side = np.sign(pos[:, CARRIER, 1] - pos[:, ol, 1])
         open_side[crossed] = (side * np.sign(lean) < 0)[crossed]
+        line_speed[crossed] = sp0[crossed]
+        if lb is not None:
+            away_lb[crossed] = (side * np.sign(pos[:, lb, 1] - pos[:, ol, 1]) < 0)[crossed]
         made = live & info["tackle_made"]
         if made.any():
             idx = np.nonzero(made)[0]
@@ -99,13 +109,17 @@ def lane_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         "tackle_by_dl_engaged": float((tackler[tk] == 0).mean()) if tk.any() else float("nan"),
         "tackle_by_dl_free": float((tackler[tk] == 1).mean()) if tk.any() else float("nan"),
         "tackle_by_lb": float((tackler[tk] == 2).mean()) if tk.any() else float("nan"),
+        "speed_at_line": float(np.nanmedian(line_speed)) if got.any() else float("nan"),
+        "slowed_before_line": float((peak[got] - line_speed[got] >= 1.0).mean()) if got.any() else float("nan"),
+        "away_from_lb": float(away_lb[got].mean()) if (got.any() and lb is not None) else float("nan"),
     }
 
 
 COLS = [("win", "승", "%"), ("tackled", "태클", "%"), ("out", "이탈", "%"), ("yards_mean", "야드", "f"),
         ("time_to_line", "라인까지s", "f"), ("min_speed_approach", "최저속도", "f"), ("brake_share", "감속", "%"),
         ("sideways_at_line", "옆으로통과", "%"), ("cutback_share", "컷백", "%"), ("open_side_share", "빈쪽", "%"),
-        ("tackle_by_dl_engaged", "블록중태클", "%")]
+        ("tackle_by_dl_engaged", "블록중태클", "%"), ("tackle_by_lb", "LB태클", "%"),
+        ("speed_at_line", "라인속도", "f"), ("slowed_before_line", "늦춤", "%"), ("away_from_lb", "LB반대", "%")]
 
 
 def fmt_row(name: str, s: dict) -> str:

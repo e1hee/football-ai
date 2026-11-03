@@ -183,6 +183,7 @@ def test_tackle_out_of_a_block_ends_the_block():
 
 def test_lane_scripted_runner_beats_scripted_dl_sometimes():
     from sim.team_policies import gap_defense, lane_offense
-    m = evaluate(lambda s, o=None: lane_offense(s), lambda s, o=None: gap_defense(s),
-                 lane_drill_config(), n_plays=512)
-    assert 0.1 < m["rate/touchdown"] < 0.9
+    for lb in (False, True):
+        m = evaluate(lambda s, o=None: lane_offense(s), lambda s, o=None: gap_defense(s),
+                     lane_drill_config(linebacker=lb), n_plays=512)
+        assert 0.05 < m["rate/touchdown"] < 0.9

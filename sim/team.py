@@ -66,6 +66,19 @@ class BlockConfig:
     double_team: bool = False
     release_below: float | None = None
     release_cooldown: float = 0.5
+    # Holding the line (EXP-018; all off before). `blocker_control`: share of his
+    # push an engaged blocker keeps, so a one-on-one block is a stalemate and it
+    # takes a double team to move a DL. `engaged_speed`: top speed (yd/s) of an
+    # engaged player. `shed_leverage`: shed rate x exp(this * cos), cos of the
+    # angle at the blocker between his man and the carrier: -1 with the blocker
+    # between them, +1 once the defender is on the carrier's side.
+    # `release_double_only`: only one of a double team can let go, not a lone
+    # blocker (at 0.2 square-up EXP-017's s0 dropped 54% of its blocks that way,
+    # median 0.2 s after the snap).
+    blocker_control: float = 1.0
+    engaged_speed: float | None = None
+    shed_leverage: float = 0.0
+    release_double_only: bool = False
 
 
 @dataclass
@@ -126,6 +139,9 @@ class TeamConfig:
     # hover 2 yd short of the end line until time ran out (critic credit for
     # the score he "would" get) while the DL camped on that line.
     timeout_ends: bool = False
+    # Seconds the snap takes to reach the carrier (EXP-018; 0 = he has the ball at
+    # the start). Until then he stands still, and everyone else is already playing.
+    snap_time: float = 0.0
 
 
 def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: float = 10.0,
@@ -151,7 +167,7 @@ def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: fl
                       defense=("DL", "LB") if (linebacker or combo) else ("DL",), **kw)
 
 
-def box_config(width: float = 20.0, past_los: float = 10.0, **kw) -> TeamConfig:
+def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, **kw) -> TeamConfig:
     """Inside run, 6v6: RB + 5 OL vs a 4-3 front's 4 DL + 2 LB. Five blockers
     for six defenders, so one defender is always unblocked at the snap, as in
     a real run against a six-man box.
@@ -161,19 +177,27 @@ def box_config(width: float = 20.0, past_los: float = 10.0, **kw) -> TeamConfig:
     the RG, right end outside the RT; each starts engaged with the nearest OL,
     leaving one OL free to double team or climb. LBs at +/-1.5 yd, 4-5 yd deep.
     Reaching `past_los` yd beyond the line ends the play as a win (no
-    secondary is modelled). `kw` as in `lane_drill_config`."""
-    fm = Formation(kind="lane", carrier_y_jitter=0.3, ol_spacing=1.3, shade=0.3,
+    secondary is modelled). `kw` as in `lane_drill_config`.
+
+    `snap` (EXP-018): the centre snaps the ball to an RB 7 yd deep, 0.6 s in the
+    air, with blocks that hold (see BlockConfig). NFL backs take about 2.5-3.1 s
+    to the line (Next Gen Stats); without the snap ours took 1.5 s."""
+    fm = Formation(kind="lane", carrier_y_jitter=0.3, ol_spacing=1.3, shade=0.3, los_ahead=7.0 if snap else 5.0,
                    dl_align=(-3.2, -0.6, 1.9, 3.2), lb_align=(-1.5, 1.5))
     field = kw.pop("field", FieldConfig())
     field = FieldConfig(**{**field.__dict__, "width": width, "runner_start_x": 5.0, "breakaway_lead": None,
-                           "length": 5.0 + fm.los_ahead + past_los, "max_steps": 50})
+                           "length": 5.0 + fm.los_ahead + past_los, "max_steps": 70 if snap else 50})
+    hold = dict(blocker_control=0.7, engaged_speed=1.0, shed_rate=0.25, shed_leverage=1.0,
+                release_double_only=True) if snap else {}
     block = kw.pop("block", BlockConfig(engaged_control=0.7, engaged_tackle_logit=-1.5,
-                                        double_team=True, release_below=0.2))
+                                        double_team=True, release_below=0.2, **hold))
+    if snap:
+        kw.setdefault("snap_time", 0.6)
     return TeamConfig(field=field, block=block, formation=fm, offense=("RB",) + ("OL",) * 5,
                       defense=("DL",) * 4 + ("LB",) * 2, **kw)
 
 
-SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box")
+SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box", "box-snap")
 
 
 def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
@@ -183,8 +207,8 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
         return base
     if sim == "3v3":
         return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
-    if sim == "box":
-        return box_config(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
+    if sim in ("box", "box-snap"):
+        return box_config(snap=sim == "box-snap", field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     return lane_drill_config(width=lane_width, linebacker=sim == "lane-lb", combo=sim == "combo", field=base.field,
                              tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
 
@@ -227,7 +251,8 @@ class TeamSim:
         self.los = np.full(n, self.cfg.field.runner_start_x, np.float32)   # lane drill line of scrimmage
         self.full_run = np.ones(n, bool)
         self._half_w = self.cfg.field.width / 2.0
-        self.obs_dim = GLOBAL_OBS + PER_PLAYER_OBS * p
+        self.n_global = GLOBAL_OBS + (self.cfg.snap_time > 0)      # + time until the ball arrives
+        self.obs_dim = self.n_global + PER_PLAYER_OBS * p
         d = self.cfg.field.reaction_delay
         self._hist_pos = np.zeros((d + 1, n, p, 2), np.float32) if d else None
         self._hist_vel = np.zeros((d + 1, n, p, 2), np.float32) if d else None
@@ -433,6 +458,11 @@ class TeamSim:
         hit = np.clip((dv - own) * c.stumble, 0.0, c.stumble_max) * ~exempt
         self.stun = np.maximum(self.stun, hit.astype(np.float32))
 
+    def ball_at(self, center_start: np.ndarray) -> np.ndarray:
+        """(N, 2) ball spot: in the air from the centre's starting spot, then on the carrier."""
+        a = 1.0 if self.cfg.snap_time <= 0 else np.minimum(1.0, self.t * self.cfg.field.dt / self.cfg.snap_time)
+        return center_start + (self.pos[:, CARRIER] - center_start) * np.reshape(a, (-1, 1))
+
     def blockers_on(self) -> np.ndarray:
         """(N, P) how many blockers each player is tied up with (blockers: 0/1)."""
         on = self.partner[:, self.blk]                                         # (N, B)
@@ -460,6 +490,8 @@ class TeamSim:
         bc = self.cfg.block
         for j, blk in enumerate(self.blk):
             go = (self.partner[:, blk] >= 0) & (square[:, blk] < bc.release_below)
+            if bc.release_double_only:
+                go &= np.take_along_axis(self.blockers_on(), np.maximum(self.partner[:, blk, None], 0), 1)[:, 0] >= 2
             if go.any():
                 rows = np.nonzero(go)[0]
                 self._unlink(rows, blk)
@@ -477,6 +509,11 @@ class TeamSim:
                 continue
             m_blk = (b.mass_lb[rows][:, self.blk] * on[rows]).sum(1)
             rate = bc.shed_rate * (b.mass_lb[rows, d] / m_blk) ** bc.shed_mass_power
+            if bc.shed_leverage:
+                at = (self.pos[rows][:, self.blk] * on[rows][..., None]).sum(1) / on[rows].sum(1, keepdims=True)
+                to_d, to_c = self.pos[rows, d] - at, self.pos[rows, CARRIER] - at
+                cos = np.sum(to_d * to_c, -1) / np.maximum(np.linalg.norm(to_d, axis=-1) * np.linalg.norm(to_c, axis=-1), 1e-6)
+                rate = rate * np.exp(bc.shed_leverage * cos)
             go = self.rng.random(rows.size) < 1.0 - np.exp(-rate * dt)
             r = rows[go]
             for j, blk in enumerate(self.blk):
@@ -576,6 +613,9 @@ class TeamSim:
         action = np.concatenate([self._actions(offense_action, self.n_off),
                                  self._actions(defense_action, self.n_def)], axis=1)
         push = action[..., :2].copy()
+        waiting = self.t * dt < self.cfg.snap_time - 1e-6     # the ball hasn't reached the carrier
+        if waiting.any():
+            push[waiting, CARRIER] = 0.0
         if self.cfg.facing:
             self._turn_hips(push, np.clip(action[..., 2], 0.0, 1.0))
         if self.cfg.block.release_below is not None:
@@ -585,8 +625,17 @@ class TeamSim:
         n_ = np.linalg.norm(push, axis=-1, keepdims=True)
         push = np.where(n_ > 1.0, push / np.maximum(n_, 1e-6), push)
         push[:, self.dfn] *= (self.cfg.block.engaged_control ** n_on)[..., None]
+        bc = self.cfg.block
+        if bc.blocker_control != 1.0:
+            push[:, self.blk] *= np.where(self.partner[:, self.blk, None] >= 0, bc.blocker_control, 1.0)
         apply_controls(self.pos, self.vel, push, self.bodies, dt, stunned=self.stun > 0,
                        facing=self.facing if self.cfg.facing else None)
+        if bc.engaged_speed is not None:
+            sp = np.linalg.norm(self.vel, axis=-1, keepdims=True)
+            over = (self.partner >= 0)[..., None] & (sp > bc.engaged_speed)
+            capped = np.where(over, self.vel * bc.engaged_speed / np.maximum(sp, 1e-6), self.vel)
+            self.pos += (capped - self.vel) * dt
+            self.vel = capped
 
         if wrapped.any():   # carrier and the wrapping defender slide together
             rows = np.nonzero(wrapped)[0]
@@ -698,7 +747,9 @@ class TeamSim:
         obs[:, 1] = ref[:, 1] / f.width
         obs[:, 2] = np.minimum(ref[:, 1], f.width - ref[:, 1]) / self._half_w
         obs[:, 3] = (self.wrap > 0).astype(np.float32)
-        per = obs[:, GLOBAL_OBS:].reshape(self.n, self.p, PER_PLAYER_OBS)
+        if self.cfg.snap_time > 0:
+            obs[:, GLOBAL_OBS] = np.maximum(0.0, 1.0 - self.t * f.dt / self.cfg.snap_time)
+        per = obs[:, self.n_global:].reshape(self.n, self.p, PER_PLAYER_OBS)
         per[..., 0:2] = (pos[:, order] - ref[:, None]) / 20.0
         per[..., 2:4] = vel[:, order] / b.max_speed[:, order, None]
         per[..., 4:6] = face[:, order]

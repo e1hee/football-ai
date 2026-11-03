@@ -111,12 +111,16 @@ def main() -> None:
     p.add_argument("--gen", type=int, default=None)
     p.add_argument("--n", type=int, default=2048)
     p.add_argument("--stumble", type=float, default=0.2)
+    p.add_argument("--snap", action="store_true", help="--sim box-snap")
     p.add_argument("--json", type=Path, default=None)
     args = p.parse_args()
-    cfg = box_config(stumble=args.stumble, carrier_square_ahead=True, timeout_ends=True,
+    cfg = box_config(snap=args.snap, stumble=args.stumble, carrier_square_ahead=True, timeout_ends=True,
                      field=FieldConfig(reaction_delay=2),
                      tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
     runs = sorted(d for d in args.exp.iterdir() if (d / "checkpoints").is_dir())
+    for r in runs:       # this report runs with hips on: a run trained without them is a different game
+        if "facing: false" in (r / "config.yaml").read_text():
+            raise SystemExit(f"{r} was trained without --facing")
 
     def ckpt(run, kind):
         files = sorted((run / "checkpoints").glob(f"{kind}_g*.zip"))

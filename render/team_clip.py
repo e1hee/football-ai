@@ -22,7 +22,7 @@ from sim.core import OUTCOME_NAMES, FieldConfig, SimConfig, TackleConfig
 from sim.team import CARRIER, SIMS, TeamConfig, TeamSim, config_for
 from sim.team_policies import DEFENSE, OFFENSE
 from .clip import HOLD_END_S, OUT_FPS, OUT_SIZE, SIM_HZ, outcome_tag, play_frames, write_mp4
-from .frames import (RUNNER, RUNNER_DARK, TACKLER, TACKLER_DARK, Layout, PlayRenderer, fit_canvas, stack)
+from .frames import (BALL, RUNNER, RUNNER_DARK, TACKLER, TACKLER_DARK, Layout, PlayRenderer, fit_canvas, stack)
 
 ENGAGE_LINE = (250, 245, 200)
 BLOCKER = (215, 120, 45)          # a shade off the carrier so the ball carrier stands out
@@ -39,6 +39,8 @@ class TeamPlay:
     outcome: str
     yards: float
     events: list[tuple[int, str]] = field(default_factory=list)
+    snap_steps: int = 0      # steps the snap is in the air
+    center: int = 0          # who snaps it
 
     @property
     def steps(self) -> int:
@@ -97,7 +99,8 @@ def record_team_plays(offense, defense, cfg: TeamConfig, n_plays: int = 32, seed
         finished |= done
     P, F, E = np.stack(pos), np.stack(face), np.stack(part)
     return [TeamPlay(P[: end[i] + 1, i], F[: end[i] + 1, i], E[: end[i] + 1, i], sim.n_off,
-                     OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i]) for i in range(n_plays)]
+                     OUTCOME_NAMES[outcome[i]], float(yards[i]), events[i],
+                     int(round(cfg.snap_time / cfg.field.dt)), int(sim.blk[len(sim.blk) // 2])) for i in range(n_plays)]
 
 
 BAG = (235, 200, 60)
@@ -142,7 +145,12 @@ class TeamRenderer(PlayRenderer):
                 d.line([self._xy(*cur[j]), self._xy(*cur[k])], fill=ENGAGE_LINE, width=1)
         order = [j for j in range(n) if j != CARRIER] + [CARRIER]   # carrier on top
         for j in order:
-            self._player(d, cur[j], colors[j][0], colors[j][1], has_ball=(j == CARRIER), face=play.facing[i0, j])
+            self._player(d, cur[j], colors[j][0], colors[j][1], has_ball=(j == CARRIER and step >= play.snap_steps),
+                         face=play.facing[i0, j])
+        if step < play.snap_steps:             # the snap in the air, centre to carrier
+            x, y = self._xy(*(play.pos[0, play.center] + (play.pos[0, CARRIER] - play.pos[0, play.center])
+                              * step / play.snap_steps))
+            d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=BALL)
         self._events(d, play, step, cur[CARRIER])
         self._caption(d, title, tag)
         s = self.L.scale

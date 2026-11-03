@@ -3,7 +3,7 @@ import dataclasses
 import numpy as np
 
 from sim.core import FieldConfig, OUTCOME_TOUCHDOWN, TackleConfig
-from sim.team import CARRIER, TeamConfig, TeamSim, lane_drill_config
+from sim.team import CARRIER, TeamConfig, TeamSim, box_config, lane_drill_config
 from sim.team_policies import OFFENSE, DEFENSE
 from train.evaluate import evaluate
 
@@ -309,3 +309,84 @@ def test_box_scripted_reading_runner_beats_committing_at_the_snap():
     snap = evaluate(lambda s, o=None: box_offense(s, read_until=99.0), lambda s, o=None: gap_defense(s), cfg,
                     n_plays=512)
     assert read["yards/mean"] > snap["yards/mean"]
+
+
+def snap_box(n=256, **kw):
+    return TeamSim(n, box_config(snap=True, **kw), seed=3)
+
+
+def test_snap_carrier_waits_for_the_ball_then_runs():
+    sim = snap_box(8)
+    sim.reset()
+    start = sim.pos[:, CARRIER].copy()
+    assert sim.obs_dim == 5 + 8 * 12 and sim.observe()[0, 4] == 1.0
+    a = np.zeros((8, sim.n_off, 3), np.float32)
+    a[:, CARRIER, 0] = 1.0
+    d = np.zeros((8, sim.n_def, 3), np.float32)
+    for _ in range(6):                       # 0.6 s in the air: he hasn't moved
+        sim.step(a.reshape(8, -1), d.reshape(8, -1))
+    assert np.allclose(sim.pos[:, CARRIER], start) and sim.observe()[0, 4] == 0.0
+    sim.step(a.reshape(8, -1), d.reshape(8, -1))
+    assert (sim.pos[:, CARRIER, 0] > start[:, 0]).all()
+
+
+def test_snap_ball_flies_from_the_centre_to_the_carrier():
+    sim = snap_box(4)
+    sim.reset()
+    center = sim.pos[:, sim.blk[2]].copy()
+    assert np.allclose(sim.ball_at(center), center)
+    z = np.zeros((4, sim.n_off * 3)), np.zeros((4, sim.n_def * 3))
+    for _ in range(3):
+        sim.step(*z)
+    assert np.allclose(sim.ball_at(center), (center + sim.pos[:, CARRIER]) / 2)
+    for _ in range(3):
+        sim.step(*z)
+    assert np.allclose(sim.ball_at(center), sim.pos[:, CARRIER])
+
+
+def test_lone_blocker_cant_let_go_but_a_double_team_can():
+    sim = snap_box(16)
+    sim.reset()
+    a = np.zeros((16, sim.n_off, 3), np.float32)    # square-up 0 = release, for everyone
+    before = sim.partner[:, sim.blk].copy()
+    d = np.zeros((16, sim.n_def * 3))
+    sim.cfg.block.shed_rate = 0.0
+    sim._release(np.zeros((16, sim.p), np.float32))
+    assert (sim.partner[:, sim.blk] == before).all()
+    # Put a second blocker on a DL: now either of the two may go.
+    free = np.argmax(before < 0, axis=1)
+    rows = np.arange(16)
+    other = (free + 1) % 5
+    other = np.where(before[rows, other] >= 0, other, (free + 4) % 5)
+    sim.partner[rows, sim.blk[free]] = before[rows, other]
+    sim._release(np.zeros((16, sim.p), np.float32))
+    assert (sim.blockers_on()[:, sim.dfn] < 2).all()
+    assert (sim.partner[:, sim.dfn[:4]] >= 0).all()      # the other blocker still has him
+
+
+def test_engaged_players_stay_under_the_speed_cap():
+    sim = snap_box(64)
+    sim.cfg.block.shed_rate = 0.0
+    sim.reset()
+    a = np.tile(np.array([1.0, 0.0, 1.0], np.float32), (64, sim.n_off, 1))
+    d = np.tile(np.array([0.0, 1.0, 1.0], np.float32), (64, sim.n_def, 1))
+    for _ in range(8):
+        was = sim.partner >= 0
+        sim.step(a.reshape(64, -1), d.reshape(64, -1))
+    held = was & (sim.partner >= 0)      # a block that started this step hasn't been capped yet
+    assert held.any()
+    # Collisions may add a little after the cap.
+    assert np.linalg.norm(sim.vel, axis=-1)[held].max() < sim.cfg.block.engaged_speed + 1.0
+
+
+def test_shed_is_likelier_once_the_defender_has_the_carriers_side():
+    def sheds(dx):
+        sim = snap_box(2048)
+        sim.reset()
+        blk, d = sim.blk[0], sim.dfn[0]
+        keep = sim.partner[:, blk] == d
+        sim.pos[:, d] = sim.pos[:, blk] + np.array([dx, 0.0], np.float32)
+        sim.pos[:, CARRIER] = sim.pos[:, blk] + np.array([-5.0, 0.0], np.float32)
+        sim._blocking()
+        return (sim.partner[keep, d] < 0).mean()
+    assert sheds(-0.8) > 2.5 * sheds(0.8)

@@ -65,8 +65,9 @@ def tackle_stats(offense, defense, cfg, n: int = 2048, seed: int = 7) -> dict:
         outcome[newly] = info["outcome"][newly]
         yards[newly] = info["yards"][newly]
         live &= ~done
-    pf, pe = np.concatenate(p_free), np.concatenate(p_eng)
-    of, oe = np.concatenate(ok_free), np.concatenate(ok_eng)
+    # A runner can go a whole sample untouched, so the lists may be empty.
+    pf, pe = (np.concatenate(x) if x else np.empty(0) for x in (p_free, p_eng))
+    of, oe = (np.concatenate(x) if x else np.empty(0, bool) for x in (ok_free, ok_eng))
     n_att = len(pf) + len(pe)
     return {
         "plays": n, "attempts": n_att,

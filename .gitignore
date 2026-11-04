@@ -9,6 +9,7 @@ experiments/**/checkpoints/
 experiments/**/*.pt
 experiments/**/*.zip
 experiments/**/*.mp4
+!experiments/*/clips/*.mp4
 experiments/**/*.gif
 experiments/**/tb/
 runs/

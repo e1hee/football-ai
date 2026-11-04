@@ -22,4 +22,4 @@ description: Render a pixel-style mp4 from a saved policy checkpoint or a record
 ## 규칙
 - 선수는 원형 스프라이트 + 가상 팀 색. NFL 로고나 팀명은 쓰지 않는다.
 - 비교 클립은 반드시 **같은 시드, 같은 초기 배치**로 만든다. 다르면 비교가 아니다.
-- mp4는 커밋하지 않는다. 경로만 기록한다.
+- 대표 클립은 `experiments/EXP-NNN/clips/`에 두고 커밋한다(클립당 1MB 안팎). 다른 위치의 mp4는 커밋하지 않는다.

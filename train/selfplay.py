@@ -135,6 +135,10 @@ def main() -> None:
     p.add_argument("--sidestep", type=float, default=0.0)
     p.add_argument("--engaged-tackle", type=float, default=None,
                    help="team sim: logit offset for a defender tackling out of a block (box default -1.5)")
+    p.add_argument("--shed-rate", type=float, default=None,
+                   help="team sim: block sheds per second between equal weights (box default 0.25, EXP-021)")
+    p.add_argument("--reengage-cooldown", type=float, default=None,
+                   help="team sim: s before a shed defender can be blocked again (default 1.0, EXP-021)")
     p.add_argument("--facing", action="store_true", help="body facing (hips), EXP-008+")
     p.add_argument("--n-envs", type=int, default=512)
     p.add_argument("--spread", type=float, default=8.0)

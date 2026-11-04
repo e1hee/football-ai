@@ -38,3 +38,12 @@ def test_tackle_odds_are_reported_per_attempt():
         assert not (info["tackle_missed_by_def"] & ~att).any()
         seen += att.sum()
     assert seen > 0
+
+
+def test_block_args_only_move_their_fields():
+    a = run_args(EXP019)
+    base = build_config(a)
+    b = build_config(argparse.Namespace(**{**vars(a), "shed_rate": 0.15, "reengage_cooldown": 0.3}))
+    assert (b.block.shed_rate, b.block.reengage_cooldown) == (0.15, 0.3)
+    assert dataclasses.replace(b, block=dataclasses.replace(b.block, shed_rate=base.block.shed_rate,
+                                                            reengage_cooldown=base.block.reengage_cooldown)) == base

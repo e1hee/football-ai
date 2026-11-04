@@ -17,7 +17,7 @@ from sim.core import FieldConfig, RewardConfig, SimConfig, TackleConfig
 from sim.team import config_for
 
 # Args added after older runs were trained, with the value those runs used.
-LATER_ARGS = {"engaged_tackle": None}
+LATER_ARGS = {"engaged_tackle": None, "shed_rate": None, "reengage_cooldown": None}
 
 
 def build_config(args):
@@ -30,9 +30,11 @@ def build_config(args):
     team = (dict(stumble=args.stumble, carrier_square_ahead=args.square_ahead, timeout_ends=args.timeout_ends)
             if args.sim != "1v1" else {})
     cfg = config_for(args.sim, cfg, lane_width=args.lane_width, **team)
-    engaged = getattr(args, "engaged_tackle", None)
-    if engaged is not None:
-        cfg = dataclasses.replace(cfg, block=dataclasses.replace(cfg.block, engaged_tackle_logit=engaged))
+    block = {k: v for k, v in (("engaged_tackle_logit", getattr(args, "engaged_tackle", None)),
+                               ("shed_rate", getattr(args, "shed_rate", None)),
+                               ("reengage_cooldown", getattr(args, "reengage_cooldown", None))) if v is not None}
+    if block:
+        cfg = dataclasses.replace(cfg, block=dataclasses.replace(cfg.block, **block))
     return cfg
 
 

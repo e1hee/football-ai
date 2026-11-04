@@ -603,7 +603,13 @@ class TeamSim:
                 logit -= tc.sidestep_weight * np.abs(vr[..., 0] * u[..., 1] - vr[..., 1] * u[..., 0])
             if bc.engaged_tackle_logit is not None:
                 logit += bc.engaged_tackle_logit * engaged
-            made = attempt & (self.rng.random(attempt.shape) < 1.0 / (1.0 + np.exp(-logit)))
+            p = 1.0 / (1.0 + np.exp(-logit))
+            made = attempt & (self.rng.random(attempt.shape) < p)
+            # Kept for reports: the odds of each attempt and whether the defender was engaged.
+            self.last_tackle_p = np.where(attempt, p, np.nan)
+        else:
+            self.last_tackle_p = np.full(attempt.shape, np.nan)
+        self.last_tackle_engaged = engaged & attempt
         missed = attempt & ~made
         made_any = made.any(axis=1)
         wrapper = self.n_off + np.argmax(made, axis=1)
@@ -750,6 +756,7 @@ class TeamSim:
             "tackler_reward": -base,
             "tackle_attempt": attempt.any(axis=1), "tackle_made": made, "tackle_missed": missed.any(axis=1),
             "attempts": attempt.sum(1), "misses": missed.sum(1),
+            "tackle_by_def": attempt, "tackle_missed_by_def": missed, "tackle_p": self.last_tackle_p, "tackle_engaged": self.last_tackle_engaged,
             "wrapped": self.wrap > 0, "breakaway": breakaway,
             "blocks_started": new_blocks, "blocks_shed": sheds,
             "pos": self.pos.copy(), "facing": self.facing.copy(), "partner": self.partner.copy(),

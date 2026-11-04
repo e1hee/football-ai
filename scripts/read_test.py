@@ -24,6 +24,7 @@ from sim.core import OUTCOME_TACKLED, FieldConfig, TackleConfig
 from sim.team import CARRIER, FRONTS, TeamSim, box_config
 from sim.team_policies import box_offense
 from train.evaluate import ppo_runner, ppo_tackler
+from train.run_config import exp_config
 
 SETUPS = {"원래 자리": None, "LB 둘 다 오른쪽 길목": 6.0, "LB 둘 다 왼쪽 길목": -6.0}
 SLIDES = {"LB 오른쪽으로 3야드": 3.0, "LB 왼쪽으로 3야드": -3.0}
@@ -93,6 +94,7 @@ def main() -> None:
     cfg = box_config(snap=True, mix=args.mix, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
                      field=FieldConfig(reaction_delay=2),
                      tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
+    cfg = exp_config(args.exp, cfg)   # the runs' own rules (tackle odds changed in EXP-020)
     fixed = dataclasses.replace(cfg, formation=dataclasses.replace(cfg.formation, fronts=None, lb_shift=0.0))
     runners = {"스크립트 구멍 읽기": lambda s, o=None: box_offense(s)}
     defenses = {}

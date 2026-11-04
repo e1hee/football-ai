@@ -20,6 +20,7 @@ from sim.core import FieldConfig, TackleConfig
 from sim.team import CARRIER, TeamSim, box_config
 from sim.team_policies import box_offense, gap_defense
 from train.evaluate import ppo_runner, ppo_tackler
+from train.run_config import exp_config
 
 TIMES = (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
 
@@ -97,6 +98,7 @@ def main() -> None:
     args = p.parse_args()
     cfg = box_config(snap=args.snap, mix=args.mix, stumble=0.2, carrier_square_ahead=True, timeout_ends=True, field=FieldConfig(reaction_delay=2),
                      tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
+    cfg = exp_config(args.exp, cfg)   # the runs' own rules (tackle odds changed in EXP-020)
     results = {}
     r = line_stats(lambda s, o=None: box_offense(s), lambda s, o=None: gap_defense(s), cfg, n=args.n)
     results["scripted"] = r

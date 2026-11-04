@@ -1,0 +1,40 @@
+import argparse
+import dataclasses
+import json
+from pathlib import Path
+
+import numpy as np
+import yaml
+
+from sim.team import TeamSim
+from sim.team_policies import box_offense, gap_defense
+from train.run_config import build_config, config_from_run, run_args
+
+EXP019 = Path(__file__).resolve().parents[1] / "experiments" / "EXP-019-mix" / "s0"
+
+
+def test_rebuilds_a_saved_run_exactly():
+    saved = yaml.safe_load((EXP019 / "config.yaml").read_text())["sim"]
+    assert json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019)))) == saved
+
+
+def test_engaged_tackle_arg_only_moves_the_engaged_offset():
+    a = run_args(EXP019)
+    base = build_config(a)
+    b = build_config(argparse.Namespace(**{**vars(a), "engaged_tackle": -2.4}))
+    assert b.block.engaged_tackle_logit == -2.4
+    assert dataclasses.replace(b, block=dataclasses.replace(b.block, engaged_tackle_logit=-1.5)) == base
+
+
+def test_tackle_odds_are_reported_per_attempt():
+    sim = TeamSim(256, config_from_run(EXP019), seed=1)
+    sim.reset()
+    seen = 0
+    for _ in range(70):
+        _, _, _, info = sim.step(box_offense(sim), gap_defense(sim))
+        att, p = info["tackle_by_def"], info["tackle_p"]
+        assert np.isnan(p[~att]).all() and ((p[att] > 0) & (p[att] < 1)).all()
+        assert not (info["tackle_engaged"] & ~att).any()
+        assert not (info["tackle_missed_by_def"] & ~att).any()
+        seen += att.sum()
+    assert seen > 0

@@ -14,6 +14,7 @@ import numpy as np
 from sim.core import OUTCOME_TOUCHDOWN, FieldConfig, TackleConfig
 from sim.team import CARRIER, TeamSim, box_config
 from train.evaluate import ppo_runner, ppo_tackler
+from train.run_config import exp_config
 
 
 def crossings(offense, defense, cfg, n: int = 512, seed: int = 7) -> dict:
@@ -48,6 +49,7 @@ def main() -> None:
     cfg = box_config(snap=args.snap, mix=args.mix, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
                      field=FieldConfig(reaction_delay=2),
                      tackle=TackleConfig(base_logit=2.3, overspeed_weight=0.25, sidestep_weight=0.2))
+    cfg = exp_config(args.exp, cfg)   # the runs' own rules (tackle odds changed in EXP-020)
     runs = sorted(d for d in args.exp.iterdir() if (d / "checkpoints").is_dir())
     for r in runs:
         print(r.name)

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run *)",
+      "Bash(uv sync*)",
+      "Bash(PYTHONPATH=. uv run *)",
+      "Bash(python3 *)",
+      "Bash(git status*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git -c user.name=* commit *)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(git fetch*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git update-index *)",
+      "Bash(ffmpeg *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(ps *)",
+      "Bash(nproc)",
+      "Bash(date*)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(diff *)",
+      "Bash(rm -rf experiments/*)",
+      "Bash(rm -f experiments/*)",
+      "Bash(experiments/*/launch.sh)"
+    ]
+  }
+}

@@ -1,1 +1,2 @@
 warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+[phase  0 tackler learned] R00 vs T01: TD 0.0% oob 0.0% yd -7.8 | R vs scripted T 0.0% | champion R vs T 0.0% | scripted R vs T 35.3% | 187s

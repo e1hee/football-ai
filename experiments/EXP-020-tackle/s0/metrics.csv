@@ -1,0 +1,2 @@
+phase,learner,runner_gen,tackler_gen,wall_s,td_latest_vs_latest,oob_latest_vs_latest,yards_latest_vs_latest,td_runner_vs_scripted_tackler,td_champion_runner_vs_tackler,td_scripted_runner_vs_tackler
+0,tackler,0,1,187.3,0.0,0.0,-7.7842,0.0,0.0,0.3525

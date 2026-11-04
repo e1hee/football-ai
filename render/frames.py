@@ -33,6 +33,7 @@ TAG_BG = (220, 70, 70)
 
 _FONT_CANDIDATES = [
     os.path.expanduser("~/Library/Fonts/Galmuri11.ttf"),   # pixel font if the user installs it
+    os.path.expanduser("~/.local/share/fonts/Galmuri11.ttf"),  # same font on Linux (cloud VM)
     "/System/Library/Fonts/AppleSDGothicNeo.ttc",           # macOS Korean fallback
 ]
 

@@ -67,15 +67,23 @@ def make_team_policy(name: str):
 
 def team_label(name: str) -> str:
     if name.startswith(("ckpt:", "tckpt:")):
-        stem = Path(name.split(":", 1)[1]).stem
-        num = int("".join(ch for ch in stem.split("_")[-1] if ch.isdigit()) or 0)
-        return f"{'AI 수비' if name.startswith('tckpt:') else 'AI 공격'} {num}세대"
+        path = Path(name.split(":", 1)[1])
+        num = int("".join(ch for ch in path.stem.split("_")[-1] if ch.isdigit()) or 0)
+        run = path.parent.parent.name          # experiments/EXP-NNN/sK/checkpoints/x.zip -> sK
+        seed = f" {run}" if run[:1] == "s" and run[1:].isdigit() else ""
+        return f"{'AI 수비' if name.startswith('tckpt:') else 'AI 공격'}{seed} {num}세대"
     return LABELS.get(name, name)
 
 
-def record_team_plays(offense, defense, cfg: TeamConfig, n_plays: int = 32, seed: int = 0) -> list[TeamPlay]:
+def record_team_plays(offense, defense, cfg: TeamConfig, n_plays: int = 32, seed: int = 0,
+                      setup=None) -> list[TeamPlay]:
+    """`setup(sim)`, if given, edits the start (e.g. slides the LBs) right after the reset."""
     sim = TeamSim(n_plays, cfg, seed=seed)
     obs = sim.reset()
+    if setup is not None:
+        setup(sim)
+        sim._push_history(np.ones(n_plays, bool))
+        obs = sim.observe()
     pos, face, part = [sim.pos.copy()], [sim.facing.copy()], [sim.partner.copy()]
     finished = np.zeros(n_plays, bool)
     end = np.full(n_plays, -1)
@@ -176,6 +184,8 @@ def main() -> None:
     p.add_argument("--square-ahead", action="store_true")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--png", action="store_true")
+    p.add_argument("--rules", type=Path, default=None,
+                   help="experiments/EXP-NNN/sK: use that run's rules (overrides the rule flags above)")
     args = p.parse_args()
 
     cfg = config_for(args.sim, SimConfig(field=FieldConfig(reaction_delay=args.delay), facing=True,
@@ -183,6 +193,9 @@ def main() -> None:
                                                              overspeed_weight=args.overspeed,
                                                              sidestep_weight=args.sidestep)),
                      lane_width=args.lane_width, stumble=args.stumble, carrier_square_ahead=args.square_ahead)
+    if args.rules is not None:
+        from train.run_config import config_from_run
+        cfg = config_from_run(args.rules)
     layout = Layout.shorts() if args.format == "shorts" else Layout.episode()
     view, lane, shift = cfg.field, None, 0.0
     if cfg.formation.kind == "lane":

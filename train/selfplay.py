@@ -124,13 +124,16 @@ class Pool:
 
 
 def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
-              scripted_share: float | None = None, skip_untrained: bool = False, mirror_share: float = 0.0) -> Pool:
+              scripted_share: float | None = None, skip_untrained: bool = False, mirror_share: float = 0.0,
+              extra: list | None = None, extra_share: float = 0.0) -> Pool:
     """`scripted_share=None`: EXP-003 behaviour, the scripted opponent shares the
     leftover with the history (its weight shrinks as generations pile up).
     A number keeps it fixed, so learners never forget how to handle it.
     `skip_untrained`: generation 0 is a random policy; facing it teaches nothing
     useful (EXP-006: a runner that barely moves taught tacklers to flee), so it is
-    left out, and with no trained opponent yet the pool is all scripted."""
+    left out, and with no trained opponent yet the pool is all scripted.
+    `extra`: more opponents sharing `extra_share` evenly, taken from the newest opponent's share
+    (EXP-027). Only with a fixed `scripted_share`, and not while the pool is all scripted."""
     if skip_untrained:
         history = history[1:]
         if not history:
@@ -142,10 +145,14 @@ def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 
         rest = (1 - latest_share) / (len(older) + 1)
         return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed, mirror_share)
     older = history[:-1]
+    extra = extra or []
+    cut = extra_share if extra else 0.0
+    tail = [extra_share / len(extra)] * len(extra) if extra else []
     if not older:
-        return Pool(n, [history[-1], scripted], [1 - scripted_share, scripted_share], seed, mirror_share)
+        return Pool(n, [history[-1], scripted, *extra], [1 - scripted_share - cut, scripted_share, *tail], seed, mirror_share)
     rest = (1 - latest_share - scripted_share) / len(older)
-    return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), scripted_share], seed, mirror_share)
+    return Pool(n, [history[-1], *older, scripted, *extra], [latest_share - cut, *[rest] * len(older), scripted_share, *tail],
+                seed, mirror_share)
 
 
 def as_runner(fn):
@@ -183,6 +190,12 @@ def main() -> None:
     p.add_argument("--ol-run-cost", type=float, default=0.0, help="box: per OL-step running upfield with nobody to block (EXP-025)")
     p.add_argument("--lane-bonus", type=float, default=0.0, help="box: once per play, per yard of room when the runner crosses inside (EXP-026)")
     p.add_argument("--lb-rush-cost", type=float, default=0.0, help="box: per LB-step in the backfield, runner not near (EXP-025)")
+    p.add_argument("--lb-chase-free", action="store_true", help="box: no rush cost for an LB chasing a runner who went wide (EXP-027)")
+    p.add_argument("--new-offense-share", type=float, default=0.0,
+                   help="each generation, also train a new offense against the newest defense; this share of the defense's "
+                        "plays goes to recent new offenses and replaced offenses (EXP-027)")
+    p.add_argument("--replace-margin", type=float, default=1.0,
+                   help="a new offense replaces the current one when it gains this many more yards on the newest defense")
     p.add_argument("--sim", choices=SIMS, default="1v1",
                    help="3v3 = RB screen, lane(-lb) = Oklahoma drill (sim/team.py)")
     p.add_argument("--lane-width", type=float, default=5.0, help="lane drill: yd between the bags")
@@ -236,6 +249,8 @@ def main() -> None:
     tackler_model.save(tackler_path)
     runners = [Frozen(runner_path, "runner")]
     tacklers = [Frozen(tackler_path, "tackler")]
+    new_offenses: list[Frozen] = []     # EXP-027, the last few stay in the defense's pool
+    replaced: list[Frozen] = []         # EXP-027: an offense that lost its place still knows its own way to run
 
     floor = lambda: StdFloor(args.min_std) if args.min_std else None
     log = open(out / "metrics.csv", "w", newline="")
@@ -248,7 +263,9 @@ def main() -> None:
             venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, script_runner, args.seed + phase,
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=args.runner_init is None,
-                                                              mirror_share=args.mirror_share),
+                                                              mirror_share=args.mirror_share,
+                                                              extra=replaced[-3:] + new_offenses[-3:],
+                                                              extra_share=args.new_offense_share),
                               side="tackler", seed=args.seed + phase)
             tackler_model.set_env(venv)
             tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler", callback=floor())
@@ -275,6 +292,33 @@ def main() -> None:
             runner_model.save(path)
             runners.append(Frozen(path, "runner"))
 
+        new_yards, main_yards, swapped = float("nan"), float("nan"), False
+        if side == "runner" and args.new_offense_share:
+            # Same steps as the current offense just had, against the newest defense alone: what
+            # EXP-026 found the current offense can no longer do. It may take over, except on the
+            # last phase, where the defense would get no turn to answer and the final pair would
+            # say nothing about either side.
+            fresh_env = SideVecEnv(args.n_envs, cfg, Pool(args.n_envs, [tacklers[-1]], [1.0], args.seed + phase),
+                                   side="runner", seed=args.seed + phase + 1000)
+            fresh_model = PPO("MlpPolicy", fresh_env, seed=args.seed + phase + 1000, **ppo_kw)
+            fresh_model.learn(args.phase_steps, callback=floor())
+            fresh_path = ck / f"new_offense_g{gen:02d}.zip"
+            fresh_model.save(fresh_path)
+            fresh = Frozen(fresh_path, "runner")
+            new_offenses.append(fresh)
+            pick = lambda f: (lambda sim, *a: f.model.predict(sim.observe(), deterministic=True)[0])
+            t_pick = lambda sim, *a: tacklers[-1].model.predict(sim.observe_tackler(), deterministic=True)[0]
+            new_yards = evaluate(pick(fresh), t_pick, cfg, n_plays=2048)["yards/mean"]
+            main_yards = evaluate(pick(runners[-1]), t_pick, cfg, n_plays=2048)["yards/mean"]
+            if new_yards >= main_yards + args.replace_margin and phase + 1 < args.phases:
+                swapped = True
+                main_path = ck / f"replaced_g{gen:02d}.zip"
+                main_path.write_bytes(path.read_bytes())
+                replaced.append(Frozen(main_path, "runner"))
+                path.write_bytes(fresh_path.read_bytes())
+                runners[-1] = Frozen(path, "runner")
+                runner_model = fresh_model
+
         # Deterministic evals on fixed starts.
         r_new = Frozen(ck / f"runner_g{len(runners) - 1:02d}.zip", "runner")
         t_new = Frozen(ck / f"tackler_g{len(tacklers) - 1:02d}.zip", "tackler")
@@ -292,6 +336,7 @@ def main() -> None:
             "td_runner_vs_scripted_tackler": r_vs_script["rate/touchdown"],
             "td_champion_runner_vs_tackler": t_vs_champ["rate/touchdown"],
             "td_scripted_runner_vs_tackler": t_vs_script["rate/touchdown"],
+            "new_offense_yards": new_yards, "main_yards": main_yards, "replaced": int(swapped),
         }
         if writer is None:
             writer = csv.DictWriter(log, fieldnames=list(row))

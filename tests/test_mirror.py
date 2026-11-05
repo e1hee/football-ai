@@ -88,3 +88,16 @@ def test_pool_without_mirror_is_unchanged():
     pool = Pool(16, [_Stub()], [1.0], seed=0)
     assert pool.flip is None
     assert np.array_equal(pool(sim), np.tile(np.arange(18, dtype=np.float32) + 1, (16, 1)))
+
+
+def test_extra_opponents_take_their_share_from_the_newest():
+    from train.selfplay import make_pool
+    names = [object() for _ in range(6)]        # three generations, scripted, two extras
+    pool = make_pool(200_000, names[:3], names[3], seed=0, scripted_share=0.3, extra=names[4:], extra_share=0.2)
+    share = {id(o): (pool.assign == k).mean() for k, o in enumerate(pool.opponents)}
+    assert abs(share[id(names[2])] - 0.4) < 0.01        # newest: 0.6 - 0.2
+    assert abs(share[id(names[3])] - 0.3) < 0.01
+    assert abs(share[id(names[4])] - 0.1) < 0.01 and abs(share[id(names[5])] - 0.1) < 0.01
+    assert abs(share[id(names[0])] - 0.05) < 0.01       # the older ones keep their 0.1
+    plain = make_pool(1000, names[:3], names[3], seed=0, scripted_share=0.3)
+    assert len(plain.opponents) == 4

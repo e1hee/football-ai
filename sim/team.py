@@ -654,6 +654,20 @@ class TeamSim:
         dist = np.linalg.norm(self.pos[:, lb] - self.pos[:, CARRIER, None], axis=-1)
         return room[:, None] & (self.pos[:, lb, 0] < self.los[:, None]) & (dist >= 2.5)
 
+    def lb_chasing_wide(self) -> np.ndarray:
+        """(N, LB) a linebacker going for a runner who has left the middle: moving 2+ yd/s within
+        about 45 deg of where the runner will be in 0.5 s. A charge from the snap isn't this: the
+        runner must already be outside the box (`lane_box`) behind the line."""
+        f, rw = self.cfg.field, self.cfg.reward
+        lb = np.asarray(self.dfn)[4:]
+        rb = self.pos[:, CARRIER]
+        wide = (rb[:, 0] < self.los) & (np.abs(rb[:, 1] - f.width / 2) > rw.lane_box)
+        rel = (rb + 0.5 * self.vel[:, CARRIER])[:, None] - self.pos[:, lb]
+        v = self.vel[:, lb]
+        speed = np.linalg.norm(v, axis=-1)
+        cos = (v * rel).sum(-1) / np.maximum(speed * np.linalg.norm(rel, axis=-1), 1e-6)
+        return wide[:, None] & (speed >= 2.0) & (cos >= 0.7)
+
     def lane_width(self) -> np.ndarray:
         """Yards from the runner to the nearest defender, blocked or not."""
         return np.linalg.norm(self.pos[:, self.dfn] - self.pos[:, CARRIER, None], axis=-1).min(axis=1)
@@ -770,7 +784,10 @@ class TeamSim:
         if rw.ol_run_cost or rw.lb_rush_cost:
             snapped = self.t * dt > self.cfg.snap_time
             reward = (base - rw.ol_run_cost * (self.ol_running_free().sum(1) * snapped)).astype(np.float32)
-            lb_cost = rw.lb_rush_cost * (self.lb_rushing().sum(1) * snapped)
+            rushing = self.lb_rushing()
+            if rw.lb_chase_free:
+                rushing = rushing & ~self.lb_chasing_wide()
+            lb_cost = rw.lb_rush_cost * (rushing.sum(1) * snapped)
         if rw.lane_bonus:
             first = ~self.lane_paid & (prev_x < self.los) & (self.pos[:, CARRIER, 0] >= self.los)
             self.lane_paid |= first

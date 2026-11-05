@@ -21,7 +21,8 @@ RB: shortest way, chooses side or gap.
 
 DL: break through. dl_x_15: mean yd past the line at 1.5 s, toward the backfield.
 LB: read, no charging. lb_early: share of LB-steps in the backfield while the runner is 2+ yd
-  behind the line and the LB is 2.5+ yd from him. lb_x_15: same as dl_x_15.
+  behind the line and the LB is 2.5+ yd from him. lb_early_free: the same without an LB chasing a
+  runner who has gone wide (`TeamSim.lb_chasing_wide`). lb_x_15: same as dl_x_15.
 
     uv run python -m scripts.role_report experiments/EXP-024-explore/B --gen 12 24 --json out.json
 """
@@ -61,7 +62,7 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
     contact = np.zeros(n, bool)
     lane = np.full(n, np.nan)
     gap = np.full(n, np.nan)
-    ol_steps = ol_run = lb_steps = lb_early = 0
+    ol_steps = ol_run = lb_steps = lb_early = lb_early_free = 0
     dl_15, lb_15 = [], []
     t = 0
     while not fin.all():
@@ -108,6 +109,7 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
             early = (pos[:, lb, 0] < los[:, None]) & (d_lb >= 2.5)
             lb_steps += int(room.sum()) * len(lb)
             lb_early += int(early[room].sum())
+            lb_early_free += int((early & ~sim.lb_chasing_wide())[room].sum())
         if t == 15:
             dl_15 = los[behind, None] - pos[behind][:, dl, 0]
             lb_15 = los[behind, None] - pos[behind][:, lb, 0]
@@ -134,6 +136,7 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
         "dl_x_15": float(np.mean(dl_15)) if len(dl_15) else float("nan"),
         "lb_x_15": float(np.mean(lb_15)) if len(lb_15) else float("nan"),
         "lb_early": lb_early / max(lb_steps, 1),
+        "lb_early_free": lb_early_free / max(lb_steps, 1),
     }
 
 

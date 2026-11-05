@@ -554,3 +554,33 @@ def test_lane_paid_clears_when_the_play_resets():
     sim.reset(np.ones(4, bool))
     assert not sim.lane_paid.any()
 
+
+def _chase_sim(rb_y: float, **reward):
+    sim = _role_sim(-6.0, lb_rush_cost=0.02, **reward)
+    lb = np.asarray(sim.dfn)[4]
+    sim.pos[0, CARRIER] = (sim.los[0] - 6.0, rb_y)
+    sim.vel[0, CARRIER] = (0.0, 0.0)
+    sim.pos[0, lb] = (sim.los[0] - 1.0, rb_y)
+    sim.vel[0, lb] = (-4.0, 0.0)            # straight at the runner
+    return sim, lb
+
+
+def test_lb_chase_counts_only_once_the_runner_has_gone_wide():
+    wide, lb = _chase_sim(2.0)
+    assert wide.lb_chasing_wide()[0, 0]
+    middle, _ = _chase_sim(10.0)            # the same charge at a runner still in the middle
+    assert not middle.lb_chasing_wide()[0, 0]
+    away, lb = _chase_sim(2.0)
+    away.vel[0, lb] = (4.0, 0.0)            # moving away from him
+    assert not away.lb_chasing_wide()[0, 0]
+
+
+
+def test_lb_chase_free_only_drops_the_chasing_lbs_cost():
+    charged, _ = _chase_sim(2.0)
+    _, _, _, info = charged.step(_still(charged, "runner"), _still(charged, "tackler"))
+    assert np.isclose(info["tackler_reward"][0], -0.04, atol=1e-4)  # both LBs
+    free, _ = _chase_sim(2.0, lb_chase_free=True)
+    _, _, _, info = free.step(_still(free, "runner"), _still(free, "tackler"))
+    assert np.isclose(info["tackler_reward"][0], -0.02, atol=1e-4)  # the LB standing still still pays
+    assert np.allclose(info["tackler_reward"][1:], -0.04, atol=1e-4)  # other plays: nobody chases

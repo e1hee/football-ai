@@ -17,7 +17,7 @@ EXP019 = Path(__file__).resolve().parents[1] / "experiments" / "EXP-019-mix" / "
 def test_rebuilds_a_saved_run_exactly():
     saved = yaml.safe_load((EXP019 / "config.yaml").read_text())["sim"]
     now = json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019))))
-    for later in ("ol_run_cost", "lb_rush_cost", "lane_bonus", "lane_cap", "lane_box"):    # added after EXP-019
+    for later in ("ol_run_cost", "lb_rush_cost", "lb_chase_free", "lane_bonus", "lane_cap", "lane_box"):    # added after EXP-019
         assert now["reward"].pop(later) == dataclasses.asdict(RewardConfig())[later]
     assert now == saved
 

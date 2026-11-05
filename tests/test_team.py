@@ -426,3 +426,32 @@ def test_scripted_runner_reads_mixed_fronts():
                     n_plays=512, seed=2)
     assert read["rate/touchdown"] > snap["rate/touchdown"] + 0.2
 
+
+
+def test_box_sim_is_left_right_symmetric():
+    """Flipping every y and every y action gives the flipped play (no randomness: no sheds, no tackles)."""
+    cfg = box_config(mix=True, stumble=0.2, carrier_square_ahead=True, field=FieldConfig(reaction_delay=2))
+    cfg.block.shed_rate = 0.0
+    cfg.tackle = dataclasses.replace(cfg.tackle, reach=-5.0)
+    a, b = TeamSim(64, cfg, seed=1), TeamSim(64, cfg, seed=1)
+    a.reset(), b.reset()
+    w = cfg.field.width
+    b.pos[..., 1] = w - a.pos[..., 1]
+    b.partner[...] = a.partner
+    b.facing[...] = a.facing
+    b.los = a.los.copy()
+    b._push_history(np.ones(64, bool))
+    rng = np.random.default_rng(0)
+    clean = np.ones(64, bool)
+    for _ in range(40):
+        oa = rng.normal(size=(64, 18)).astype(np.float32) * 0.5
+        da = rng.normal(size=(64, 18)).astype(np.float32) * 0.5
+        ob, db = oa.copy(), da.copy()
+        ob[:, 1::3] *= -1
+        db[:, 1::3] *= -1
+        _, _, d1, _ = a.step(oa, da)
+        _, _, d2, _ = b.step(ob, db)
+        clean &= ~(d1 | d2)          # a finished play restarts with its own random spots
+    assert clean.sum() > 30
+    assert np.allclose(a.pos[clean, :, 0], b.pos[clean, :, 0], atol=1e-2)
+    assert np.allclose(a.pos[clean, :, 1], w - b.pos[clean, :, 1], atol=1e-2)

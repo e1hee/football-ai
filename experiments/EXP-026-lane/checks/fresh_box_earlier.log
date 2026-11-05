@@ -1,0 +1,12 @@
+experiments/EXP-025-roles 0 trained box 0.0% reach 66% yd 5.12 box_yd nan out_yd 8.55
+experiments/EXP-025-roles 0 fresh box 100.0% reach 100% yd 9.97 box_yd 9.99 out_yd nan
+experiments/EXP-025-roles 1 trained box 0.2% reach 44% yd 2.46 box_yd 10.00 out_yd 8.98
+experiments/EXP-025-roles 1 fresh box 100.0% reach 100% yd 9.90 box_yd 9.90 out_yd nan
+experiments/EXP-025-roles 2 trained box 0.0% reach 31% yd 0.23 box_yd nan out_yd 8.67
+experiments/EXP-025-roles 2 fresh box 100.0% reach 99% yd 9.86 box_yd 10.00 out_yd nan
+experiments/EXP-024-explore/B 0 trained box 5.8% reach 52% yd 3.89 box_yd 9.36 out_yd 9.50
+experiments/EXP-024-explore/B 0 fresh box 100.0% reach 100% yd 9.94 box_yd 10.00 out_yd nan
+experiments/EXP-024-explore/B 1 trained box 24.6% reach 48% yd 3.47 box_yd 7.60 out_yd 9.34
+experiments/EXP-024-explore/B 1 fresh box 31.2% reach 84% yd 8.12 box_yd 9.96 out_yd 9.99
+experiments/EXP-024-explore/B 2 trained box 44.8% reach 41% yd 2.46 box_yd 7.68 out_yd 8.42
+experiments/EXP-024-explore/B 2 fresh box 99.7% reach 69% yd 6.32 box_yd 9.75 out_yd 10.00

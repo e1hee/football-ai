@@ -1,0 +1,25 @@
+[phase  0 tackler learned] R00 vs T01: TD 0.0% oob 0.0% yd -8.0 | R vs scripted T 0.0% | champion R vs T 0.0% | scripted R vs T 37.8% | 149s
+[phase  1  runner learned] R01 vs T01: TD 100.0% oob 0.0% yd 10.0 | R vs scripted T 97.5% | champion R vs T 0.0% | scripted R vs T 37.8% | 296s
+[phase  2 tackler learned] R01 vs T02: TD 60.7% oob 0.8% yd 5.6 | R vs scripted T 97.5% | champion R vs T 0.0% | scripted R vs T 33.8% | 444s
+[phase  3  runner learned] R02 vs T02: TD 99.1% oob 0.2% yd 9.9 | R vs scripted T 97.9% | champion R vs T 0.0% | scripted R vs T 33.8% | 595s
+[phase  4 tackler learned] R02 vs T03: TD 48.8% oob 2.7% yd 3.6 | R vs scripted T 97.9% | champion R vs T 0.0% | scripted R vs T 27.5% | 745s
+[phase  5  runner learned] R03 vs T03: TD 61.8% oob 2.1% yd 5.4 | R vs scripted T 99.0% | champion R vs T 0.0% | scripted R vs T 27.5% | 893s
+[phase  6 tackler learned] R03 vs T04: TD 42.1% oob 2.0% yd 2.7 | R vs scripted T 99.0% | champion R vs T 0.0% | scripted R vs T 23.7% | 1045s
+[phase  7  runner learned] R04 vs T04: TD 43.3% oob 2.3% yd 2.9 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 23.7% | 1196s
+[phase  8 tackler learned] R04 vs T05: TD 31.2% oob 6.9% yd 1.3 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 18.4% | 1350s
+[phase  9  runner learned] R05 vs T05: TD 47.6% oob 6.8% yd 3.6 | R vs scripted T 98.0% | champion R vs T 0.0% | scripted R vs T 18.4% | 1502s
+[phase 10 tackler learned] R05 vs T06: TD 26.8% oob 14.8% yd 0.6 | R vs scripted T 98.0% | champion R vs T 0.0% | scripted R vs T 16.9% | 1656s
+[phase 11  runner learned] R06 vs T06: TD 47.5% oob 0.4% yd 3.6 | R vs scripted T 98.3% | champion R vs T 0.0% | scripted R vs T 16.9% | 1811s
+[phase 12 tackler learned] R06 vs T07: TD 29.0% oob 2.3% yd 1.5 | R vs scripted T 98.3% | champion R vs T 0.0% | scripted R vs T 15.6% | 1968s
+[phase 13  runner learned] R07 vs T07: TD 36.0% oob 8.3% yd 2.3 | R vs scripted T 98.1% | champion R vs T 0.0% | scripted R vs T 15.6% | 2120s
+[phase 14 tackler learned] R07 vs T08: TD 29.6% oob 5.9% yd 1.6 | R vs scripted T 98.1% | champion R vs T 0.0% | scripted R vs T 15.3% | 2276s
+[phase 15  runner learned] R08 vs T08: TD 29.2% oob 4.5% yd 1.5 | R vs scripted T 98.0% | champion R vs T 0.0% | scripted R vs T 15.3% | 2433s
+[phase 16 tackler learned] R08 vs T09: TD 24.6% oob 4.2% yd 0.9 | R vs scripted T 98.0% | champion R vs T 0.0% | scripted R vs T 14.0% | 2590s
+[phase 17  runner learned] R09 vs T09: TD 38.7% oob 8.0% yd 2.5 | R vs scripted T 98.5% | champion R vs T 0.0% | scripted R vs T 14.0% | 2744s
+[phase 18 tackler learned] R09 vs T10: TD 29.2% oob 7.3% yd 1.2 | R vs scripted T 98.5% | champion R vs T 0.0% | scripted R vs T 13.0% | 2902s
+[phase 19  runner learned] R10 vs T10: TD 36.8% oob 3.0% yd 2.5 | R vs scripted T 97.6% | champion R vs T 0.0% | scripted R vs T 13.0% | 3059s
+[phase 20 tackler learned] R10 vs T11: TD 32.3% oob 2.5% yd 1.8 | R vs scripted T 97.6% | champion R vs T 0.0% | scripted R vs T 11.8% | 3216s
+[phase 21  runner learned] R11 vs T11: TD 42.6% oob 6.7% yd 3.2 | R vs scripted T 98.2% | champion R vs T 0.0% | scripted R vs T 11.8% | 3368s
+[phase 22 tackler learned] R11 vs T12: TD 32.1% oob 7.6% yd 1.7 | R vs scripted T 98.2% | champion R vs T 0.0% | scripted R vs T 15.6% | 3527s
+[phase 23  runner learned] R12 vs T12: TD 34.6% oob 8.1% yd 1.9 | R vs scripted T 97.9% | champion R vs T 0.0% | scripted R vs T 15.6% | 3682s
+done in 61.4 min

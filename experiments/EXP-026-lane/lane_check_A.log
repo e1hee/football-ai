@@ -1,0 +1,12 @@
+g1  s0 paid/play 0.000 (0.0% of plays, nan each) box 0.0% | yd 9.55 box nan out 10.00 td box nan% out 100% | dumb middle yd 0.63 reach 27% td 19% | dumb side yd 4.92 reach 92% td 0%
+g1  s1 paid/play 0.031 (41.1% of plays, 0.076 each) box 96.5% | yd 3.11 box 9.07 out 9.49 td box 90% out 84% | dumb middle yd 2.61 reach 39% td 33% | dumb side yd 3.63 reach 77% td 1%
+g1  s2 paid/play 0.035 (39.1% of plays, 0.089 each) box 55.2% | yd 6.47 box 9.65 out 9.39 td box 96% out 93% | dumb middle yd 1.33 reach 28% td 23% | dumb side yd 3.16 reach 77% td 2%
+g3  s0 paid/play 0.000 (0.1% of plays, 0.064 each) box 0.2% | yd 5.66 box 3.62 out 9.18 td box 33% out 90% | dumb middle yd 0.38 reach 27% td 12% | dumb side yd 1.59 reach 62% td 6%
+g3  s1 paid/play 0.000 (0.0% of plays, nan each) box 0.0% | yd 9.40 box nan out 9.98 td box nan% out 100% | dumb middle yd 5.51 reach 64% td 59% | dumb side yd 3.83 reach 79% td 1%
+g3  s2 paid/play 0.000 (0.1% of plays, 0.144 each) box 0.1% | yd 8.33 box 10.00 out 9.85 td box 100% out 98% | dumb middle yd 6.54 reach 73% td 68% | dumb side yd 3.72 reach 74% td 2%
+g6  s0 paid/play 0.001 (1.1% of plays, 0.064 each) box 2.7% | yd 2.38 box 9.56 out 9.37 td box 95% out 92% | dumb middle yd 2.38 reach 39% td 34% | dumb side yd 1.36 reach 42% td 7%
+g6  s1 paid/play 0.000 (0.0% of plays, nan each) box 0.0% | yd 9.00 box nan out 9.52 td box nan% out 91% | dumb middle yd 0.58 reach 21% td 16% | dumb side yd 3.18 reach 73% td 3%
+g6  s2 paid/play 0.000 (0.0% of plays, 0.064 each) box 0.1% | yd 6.82 box 0.27 out 9.76 td box 0% out 97% | dumb middle yd 6.45 reach 73% td 67% | dumb side yd 1.49 reach 48% td 4%
+g12 s0 paid/play 0.003 (3.0% of plays, 0.088 each) box 9.9% | yd 0.75 box 7.24 out 7.79 td box 67% out 68% | dumb middle yd 0.10 reach 23% td 14% | dumb side yd -0.25 reach 25% td 6%
+g12 s1 paid/play 0.000 (0.0% of plays, nan each) box 0.0% | yd 8.41 box nan out 9.23 td box nan% out 89% | dumb middle yd 2.26 reach 36% td 29% | dumb side yd 2.31 reach 62% td 3%
+g12 s2 paid/play 0.000 (0.1% of plays, 0.072 each) box 0.2% | yd 3.55 box 10.00 out 8.91 td box 100% out 87% | dumb middle yd 0.72 reach 26% td 14% | dumb side yd 1.04 reach 43% td 4%

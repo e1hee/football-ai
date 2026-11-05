@@ -59,6 +59,10 @@ def make_team_policy(name: str):
     if name.startswith("tckpt:"):
         from train.evaluate import ppo_tackler
         return ppo_tackler(name[6:])
+    if name.startswith("middle:"):             # the AI's blockers, with a runner who just aims up the middle
+        from scripts.lane_check import dumb_runner, middle
+        from train.evaluate import ppo_runner
+        return dumb_runner(ppo_runner(name[7:]), middle)
     fn = OFFENSE.get(name) or DEFENSE.get(name)
     if fn is None:
         raise ValueError(f"unknown team policy {name!r}")
@@ -66,6 +70,8 @@ def make_team_policy(name: str):
 
 
 def team_label(name: str) -> str:
+    if name.startswith("middle:"):
+        return "가운데 직진 러너"
     if name.startswith(("ckpt:", "tckpt:")):
         path = Path(name.split(":", 1)[1])
         if path.stem.startswith("fresh"):      # a new network from scripts.recovery_test has no generation

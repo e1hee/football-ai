@@ -159,6 +159,13 @@ def as_runner(fn):
     return lambda sim, obs: fn(sim)
 
 
+def may_replace(new_yards: float, main_yards: float, margin: float, age: int, min_age: int, last_phase: bool) -> bool:
+    """EXP-027/028: the new offense takes over when it beats the current one by `margin` yd, the current
+    one has trained `min_age`+ generations (`age` counts the generation it started in), and the
+    defense still gets a turn to answer."""
+    return new_yards >= main_yards + margin and age >= min_age and not last_phase
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--exp", required=True)
@@ -196,6 +203,8 @@ def main() -> None:
                         "plays goes to recent new offenses and replaced offenses (EXP-027)")
     p.add_argument("--replace-margin", type=float, default=1.0,
                    help="a new offense replaces the current one when it gains this many more yards on the newest defense")
+    p.add_argument("--min-offense-age", type=int, default=0,
+                   help="the current offense can only be replaced once it has trained this many generations (EXP-028)")
     p.add_argument("--sim", choices=SIMS, default="1v1",
                    help="3v3 = RB screen, lane(-lb) = Oklahoma drill (sim/team.py)")
     p.add_argument("--lane-width", type=float, default=5.0, help="lane drill: yd between the bags")
@@ -251,6 +260,7 @@ def main() -> None:
     tacklers = [Frozen(tackler_path, "tackler")]
     new_offenses: list[Frozen] = []     # EXP-027, the last few stay in the defense's pool
     replaced: list[Frozen] = []         # EXP-027: an offense that lost its place still knows its own way to run
+    main_since = 1                      # EXP-028: generation the current offense first trained in
 
     floor = lambda: StdFloor(args.min_std) if args.min_std else None
     log = open(out / "metrics.csv", "w", newline="")
@@ -310,8 +320,10 @@ def main() -> None:
             t_pick = lambda sim, *a: tacklers[-1].model.predict(sim.observe_tackler(), deterministic=True)[0]
             new_yards = evaluate(pick(fresh), t_pick, cfg, n_plays=2048)["yards/mean"]
             main_yards = evaluate(pick(runners[-1]), t_pick, cfg, n_plays=2048)["yards/mean"]
-            if new_yards >= main_yards + args.replace_margin and phase + 1 < args.phases:
+            if may_replace(new_yards, main_yards, args.replace_margin, gen - main_since + 1, args.min_offense_age,
+                           last_phase=phase + 1 == args.phases):
                 swapped = True
+                main_since = gen
                 main_path = ck / f"replaced_g{gen:02d}.zip"
                 main_path.write_bytes(path.read_bytes())
                 replaced.append(Frozen(main_path, "runner"))

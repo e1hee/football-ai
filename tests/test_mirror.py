@@ -101,3 +101,12 @@ def test_extra_opponents_take_their_share_from_the_newest():
     assert abs(share[id(names[0])] - 0.05) < 0.01       # the older ones keep their 0.1
     plain = make_pool(1000, names[:3], names[3], seed=0, scripted_share=0.3)
     assert len(plain.opponents) == 4
+
+
+def test_a_young_offense_is_not_replaced():
+    from train.selfplay import may_replace
+    assert may_replace(9.0, 3.0, 1.0, age=4, min_age=4, last_phase=False)
+    assert not may_replace(9.0, 3.0, 1.0, age=3, min_age=4, last_phase=False)
+    assert not may_replace(9.0, 3.0, 1.0, age=9, min_age=4, last_phase=True)
+    assert not may_replace(3.5, 3.0, 1.0, age=9, min_age=0, last_phase=False)
+    assert may_replace(4.0, 3.0, 1.0, age=1, min_age=0, last_phase=False)     # EXP-027 behaviour

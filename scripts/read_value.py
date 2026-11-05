@@ -14,7 +14,9 @@ other way round, so luck in picking a maximum doesn't count as value.
 This only reads at the snap; a runner who reads after it could gain more.
 
 The AI runner on the same fronts: its yards and where it crosses, per group, show whether it
-changes with the front at all.
+changes with the front at all. side switch: the largest minus the smallest share of crossings
+left of the middle over the 12 groups; 1 = always left in one group and always right in another,
+0 = the same split everywhere.
 
     PYTHONPATH=. uv run python -m scripts.read_value experiments/EXP-027-league/A --gen 12 --json out.json
 """
@@ -118,18 +120,21 @@ def measure(name: str, off, dfn, ai_runner, cfg, n: int) -> dict:
                 row["ai_yards"] = float(ai[f]["yards"][ai[f]["slide"] == g].mean())
                 row["ai_cross_median"] = float(np.median(y[got])) if got.any() else float("nan")
                 row["ai_box"] = float((np.abs(y[got]) <= cfg.reward.lane_box).mean()) if got.any() else float("nan")
+                row["ai_left"] = float((y[got] < 0).mean()) if got.any() else float("nan")
             out["groups"][f"front{f} {SLIDE[g]}"] = row
     if ai:
         out["ai_yards"] = float(np.mean([a["yards"].mean() for a in ai]))
+        left = [r["ai_left"] for r in out["groups"].values() if not np.isnan(r["ai_left"])]
+        out["read_switch"] = float(max(left) - min(left)) if left else float("nan")
     return out
 
 
 def show(o: dict) -> None:
     print(f"\n== {o['name']}: best fixed {o['best_fixed']:.2f} yd, read at snap {o['read_at_snap']:.2f} yd, "
-          f"read value {o['read_value']:+.2f} yd" + (f", AI runner {o['ai_yards']:.2f} yd" if "ai_yards" in o else ""))
+          f"read value {o['read_value']:+.2f} yd" + (f", AI runner {o['ai_yards']:.2f} yd, side switch {o['read_switch']:.2f}" if "ai_yards" in o else ""))
     print("   all fronts by target " + " ".join(f"{t:+.1f}:{v:.2f}" for t, v in zip(TARGETS, o["by_target"])))
     for k, r in o["groups"].items():
-        ai = f" | AI {r['ai_yards']:.2f} yd, crosses at {r['ai_cross_median']:+.1f}, box {r['ai_box']*100:.0f}%" if "ai_yards" in r else ""
+        ai = f" | AI {r['ai_yards']:.2f} yd, crosses at {r['ai_cross_median']:+.1f}, box {r['ai_box']*100:.0f}%, left {r['ai_left']*100:.0f}%" if "ai_yards" in r else ""
         print(f"   {k:16} {r['share']*100:4.1f}% best {r['best_target']:+.2f} -> {r['best_yards']:.2f} yd"
               f" [{' '.join(f'{v:5.2f}' for v in r['by_target'])}]{ai}")
 

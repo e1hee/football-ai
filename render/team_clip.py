@@ -68,6 +68,8 @@ def make_team_policy(name: str):
 def team_label(name: str) -> str:
     if name.startswith(("ckpt:", "tckpt:")):
         path = Path(name.split(":", 1)[1])
+        if path.stem.startswith("fresh"):      # a new network from scripts.recovery_test has no generation
+            return "새 수비" if name.startswith("tckpt:") else "새 공격"
         num = int("".join(ch for ch in path.stem.split("_")[-1] if ch.isdigit()) or 0)
         run = path.parent.parent.name          # experiments/EXP-NNN/sK/checkpoints/x.zip -> sK
         seed = f" {run}" if run[:1] == "s" and run[1:].isdigit() else ""

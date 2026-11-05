@@ -72,6 +72,16 @@ def test_pool_flips_only_the_flip_slots():
     assert np.array_equal(stub.seen[~pool.flip], sim.observe()[~pool.flip])
 
 
+def test_pool_survives_an_opponent_with_no_flipped_slots():
+    # A late-generation pool gives old opponents a few slots each; all of them can be unflipped (EXP-024 crash).
+    sim = TeamSim(8, box_config(mix=True, field=FieldConfig(reaction_delay=2)), seed=0)
+    sim.reset()
+    pool = Pool(8, [_Stub()], [1.0], seed=0, mirror_share=0.5)
+    for flip in (np.zeros(8, bool), np.ones(8, bool)):
+        pool.flip = flip
+        assert pool(sim).shape == (8, 18)
+
+
 def test_pool_without_mirror_is_unchanged():
     sim = TeamSim(16, box_config(mix=True, field=FieldConfig(reaction_delay=2)), seed=0)
     sim.reset()

@@ -23,7 +23,7 @@ def mirror_obs(o: np.ndarray, side: str) -> np.ndarray:
     out[:, 1] = 1 - out[:, 1]
     per = o[:, N_GLOBAL:].reshape(len(o), len(own) + len(other), PLAYER_OBS).copy()
     per[..., FLIP_OBS] *= -1
-    out[:, N_GLOBAL:] = per[:, own + [i + len(own) for i in other]].reshape(len(o), -1)
+    out[:, N_GLOBAL:] = per[:, own + [i + len(own) for i in other]].reshape(len(o), o.shape[1] - N_GLOBAL)
     return out
 
 
@@ -32,4 +32,4 @@ def mirror_action(a: np.ndarray, side: str) -> np.ndarray:
     own = OFFENSE if side == "runner" else DEFENSE
     out = np.array(a).reshape(len(a), len(own), 3).copy()
     out[..., 1] *= -1
-    return out[:, own].reshape(len(a), -1)
+    return out[:, own].reshape(len(a), len(own) * 3)

@@ -14,8 +14,11 @@ run() { # arm seed extra-args
     --sim box-mix --lane-width 5.0 --stumble 0.2 --square-ahead --timeout-ends --net 256 --seed $2 --threads $THREADS \
     "${@:3}" > $O/$1/train_s$2.log 2>&1 &
 }
+# ARMS="B" reruns one arm. Each run's exit code is checked: a plain `wait` reported success after B crashed.
 for s in 0 1 2; do
-  run A $s --min-std 0.8
-  run B $s --min-std 0.8 --mirror-share 0.5
+  [[ " ${ARMS:-A B} " == *" A "* ]] && run A $s --min-std 0.8
+  [[ " ${ARMS:-A B} " == *" B "* ]] && run B $s --min-std 0.8 --mirror-share 0.5
 done
-wait
+rc=0
+for pid in $(jobs -p); do wait $pid || rc=1; done
+exit $rc

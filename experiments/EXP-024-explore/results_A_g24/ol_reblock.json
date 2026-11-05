@@ -1,0 +1,44 @@
+{
+ "스크립트": {
+  "sheds_per_play": 2.806640625,
+  "reblock": 0.6837160751565762,
+  "reblock_1s": 0.9472182596291013,
+  "reblock_median_s": 0.6000000000000001,
+  "upfield_after_shed": 1.0,
+  "upfield_moving_up": 0.7651113467656415,
+  "upfield_mean_vx": 0.42689443210560596
+ },
+ "s0": {
+  "sheds_per_play": 2.01171875,
+  "reblock": 0.20388349514563106,
+  "reblock_1s": 0.255079006772009,
+  "reblock_median_s": 0.6000000000000001,
+  "upfield_after_shed": 0.6139575971731449,
+  "upfield_moving_up": 0.9387514723203769,
+  "upfield_mean_vx": 3.5135172950926603,
+  "ai_line": 2.63522438518703,
+  "script_line": 1.7194414706900716
+ },
+ "s1": {
+  "sheds_per_play": 2.564453125,
+  "reblock": 0.48134044173648133,
+  "reblock_1s": 0.6813611755607115,
+  "reblock_median_s": 0.6000000000000001,
+  "upfield_after_shed": 0.538175508180466,
+  "upfield_moving_up": 0.9576103123450669,
+  "upfield_mean_vx": 2.812827244541346,
+  "ai_line": 9.976400679443032,
+  "script_line": 1.9659153486136347
+ },
+ "s2": {
+  "sheds_per_play": 1.8583984375,
+  "reblock": 0.3184445612191277,
+  "reblock_1s": 0.3976555455365194,
+  "reblock_median_s": 0.6000000000000001,
+  "upfield_after_shed": 0.6774168112285128,
+  "upfield_moving_up": 0.9839142091152815,
+  "upfield_mean_vx": 4.113556809726902,
+  "ai_line": 7.957514892797917,
+  "script_line": 5.247619478031993
+ }
+}

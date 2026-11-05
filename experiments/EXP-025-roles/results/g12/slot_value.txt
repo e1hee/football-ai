@@ -1,0 +1,21 @@
+s0 base 5.45 play std 5.38 (se of a difference 0.08)
+  OL one still  : [-0.2, -1.27, -0.26, 0.14, -0.43]
+  OL one script : [np.float64(-0.79), np.float64(-2.77), np.float64(-0.31), np.float64(-0.14), np.float64(0.02)]
+  OL all still  : -2.83
+  RB still      : -12.89
+  DF one still  : [np.float64(-0.16), np.float64(0.47), np.float64(-0.06), np.float64(0.55), np.float64(3.22), np.float64(-0.58)] (DL0-3, LB4-5)
+  DL all still  : 1.71  LB both still: 3.37
+s1 base 2.96 play std 6.12 (se of a difference 0.10)
+  OL one still  : [-0.17, -1.08, -1.82, -1.39, -0.06]
+  OL one script : [np.float64(-0.32), np.float64(0.98), np.float64(1.05), np.float64(-0.73), np.float64(0.42)]
+  OL all still  : -1.68
+  RB still      : -10.24
+  DF one still  : [np.float64(0.51), np.float64(0.0), np.float64(1.92), np.float64(0.09), np.float64(-0.18), np.float64(5.22)] (DL0-3, LB4-5)
+  DL all still  : 2.92  LB both still: 5.75
+s2 base 0.57 play std 6.07 (se of a difference 0.09)
+  OL one still  : [1.25, 0.43, 0.02, 2.41, -0.7]
+  OL one script : [np.float64(3.61), np.float64(0.69), np.float64(2.88), np.float64(-0.25), np.float64(-0.43)]
+  OL all still  : 0.26
+  RB still      : -8.51
+  DF one still  : [np.float64(-0.19), np.float64(1.48), np.float64(2.55), np.float64(3.28), np.float64(0.49), np.float64(4.91)] (DL0-3, LB4-5)
+  DL all still  : 6.24  LB both still: 6.52

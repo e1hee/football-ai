@@ -455,3 +455,48 @@ def test_box_sim_is_left_right_symmetric():
     assert clean.sum() > 30
     assert np.allclose(a.pos[clean, :, 0], b.pos[clean, :, 0], atol=1e-2)
     assert np.allclose(a.pos[clean, :, 1], w - b.pos[clean, :, 1], atol=1e-2)
+
+
+def _role_sim(runner_x_from_los, **costs):
+    """OLs running upfield past the line, DL far off, LBs in the backfield wide of the runner."""
+    import dataclasses
+    from sim.core import RewardConfig
+    from sim.team import box_config
+    cfg = box_config(mix=True, field=FieldConfig(reaction_delay=2))
+    cfg = dataclasses.replace(cfg, reward=RewardConfig(yards_scale=0.0, **costs))
+    sim = TeamSim(4, cfg, seed=0)
+    sim.reset()
+    los = sim.los.copy()
+    sim.t[:] = 20
+    sim.partner[:] = -1
+    sim.vel[:] = 0.0
+    sim.pos[:, 0] = np.stack([los + runner_x_from_los, np.full(4, 10.0)], -1)
+    for j, y in zip(sim.blk, (6, 8, 10, 12, 14)):
+        sim.pos[:, j] = np.stack([los + 3.0, np.full(4, float(y))], -1)
+        sim.vel[:, j] = [4.0, 0.0]
+    for j, y in zip(sim.dfn[:4], (4, 8, 12, 16)):
+        sim.pos[:, j] = np.stack([los + 9.0, np.full(4, float(y))], -1)
+    for j, y in zip(sim.dfn[4:], (2, 18)):
+        sim.pos[:, j] = np.stack([los - 1.0, np.full(4, float(y))], -1)
+    return sim
+
+
+def test_role_costs_charge_the_right_side():
+    sim = _role_sim(-6.0, ol_run_cost=0.01, lb_rush_cost=0.02)
+    _, rew, done, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert not done.any()
+    assert np.allclose(rew, -0.05, atol=1e-5)                       # 5 OL, offense only
+    assert np.allclose(info["tackler_reward"], -0.04, atol=1e-5)    # 2 LB, defense only
+
+
+def test_role_costs_stop_once_the_runner_reaches_the_line():
+    sim = _role_sim(0.5, ol_run_cost=0.01, lb_rush_cost=0.02)
+    _, rew, done, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert not done.any()
+    assert np.allclose(rew, 0.0, atol=1e-5) and np.allclose(info["tackler_reward"], 0.0, atol=1e-5)
+
+
+def test_role_costs_are_off_by_default():
+    sim = _role_sim(-6.0)
+    _, rew, _, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert np.allclose(rew, 0.0, atol=1e-5) and np.allclose(info["tackler_reward"], 0.0, atol=1e-5)

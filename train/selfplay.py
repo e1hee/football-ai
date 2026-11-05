@@ -180,6 +180,8 @@ def main() -> None:
     p.add_argument("--full-play-share", type=float, default=0.1)
     p.add_argument("--yards-scale", type=float, default=0.1)
     p.add_argument("--blocker-shaping", type=float, default=0.0, help="team sim: OL shaping per yard (EXP-010)")
+    p.add_argument("--ol-run-cost", type=float, default=0.0, help="box: per OL-step running upfield with nobody to block (EXP-025)")
+    p.add_argument("--lb-rush-cost", type=float, default=0.0, help="box: per LB-step in the backfield, runner not near (EXP-025)")
     p.add_argument("--sim", choices=SIMS, default="1v1",
                    help="3v3 = RB screen, lane(-lb) = Oklahoma drill (sim/team.py)")
     p.add_argument("--lane-width", type=float, default=5.0, help="lane drill: yd between the bags")

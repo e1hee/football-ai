@@ -634,6 +634,24 @@ class TeamSim:
             phi -= miss
         return phi
 
+    def ol_running_free(self) -> np.ndarray:
+        """(N, B) an OL running upfield with no one to block while the runner is behind the
+        line: free, 1+ yd past it, moving forward, no unblocked defender within 2.5 yd."""
+        blk, dfn = np.asarray(self.blk), np.asarray(self.dfn)
+        behind = self.pos[:, CARRIER, 0] < self.los
+        dist = np.linalg.norm(self.pos[:, blk, None] - self.pos[:, dfn][:, None], axis=-1)
+        nobody = ~np.any((dist < 2.5) & (self.partner[:, dfn] < 0)[:, None], axis=2)
+        return (behind[:, None] & (self.partner[:, blk] < 0) & (self.pos[:, blk, 0] - self.los[:, None] >= 1.0)
+                & (self.vel[:, blk, 0] > 0) & nobody)
+
+    def lb_rushing(self) -> np.ndarray:
+        """(N, LB) a linebacker in the backfield while the runner is 2+ yd behind the line and
+        2.5+ yd from him. Defense slots: 4 DL, then the LBs."""
+        lb = np.asarray(self.dfn)[4:]
+        room = self.los - self.pos[:, CARRIER, 0] >= 2.0
+        dist = np.linalg.norm(self.pos[:, lb] - self.pos[:, CARRIER, None], axis=-1)
+        return room[:, None] & (self.pos[:, lb, 0] < self.los[:, None]) & (dist >= 2.5)
+
     # ------------------------------------------------------------------- step
     def step(self, offense_action: np.ndarray, defense_action: np.ndarray):
         f, rw, tc = self.cfg.field, self.cfg.reward, self.cfg.tackle
@@ -742,6 +760,11 @@ class TeamSim:
         base = (rw.yards_scale * gained + rw.touchdown_bonus * touchdown - rw.tackle_penalty * tackled
                   - rw.out_of_bounds_penalty * out_of_bounds - rw.time_penalty).astype(np.float32)
         reward = base
+        lb_cost = 0.0
+        if rw.ol_run_cost or rw.lb_rush_cost:
+            snapped = self.t * dt > self.cfg.snap_time
+            reward = (base - rw.ol_run_cost * (self.ol_running_free().sum(1) * snapped)).astype(np.float32)
+            lb_cost = rw.lb_rush_cost * (self.lb_rushing().sum(1) * snapped)
         if shaping:
             # F = gamma * Phi(s') - Phi(s), with Phi = 0 once the play is really over.
             # A timeout is a cut-off, not an end: the learner bootstraps the value of
@@ -749,11 +772,11 @@ class TeamSim:
             # the bootstrapped value, and EXP-010's offense learned to send its blockers
             # far away and run out the clock (71% timeouts) to collect it.
             phi_after = np.where(done & ~timeout, 0.0, self.blocker_potential())
-            reward = (base + shaping * (rw.shaping_gamma * phi_after - phi_before)).astype(np.float32)
+            reward = (reward + shaping * (rw.shaping_gamma * phi_after - phi_before)).astype(np.float32)
 
         info = {
             "outcome": outcome, "yards": self.yards.copy(), "steps": self.t.copy(),
-            "tackler_reward": -base,
+            "tackler_reward": (-base - lb_cost).astype(np.float32),
             "tackle_attempt": attempt.any(axis=1), "tackle_made": made, "tackle_missed": missed.any(axis=1),
             "attempts": attempt.sum(1), "misses": missed.sum(1),
             "tackle_by_def": attempt, "tackle_missed_by_def": missed, "tackle_p": self.last_tackle_p, "tackle_engaged": self.last_tackle_engaged,

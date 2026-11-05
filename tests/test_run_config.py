@@ -15,7 +15,10 @@ EXP019 = Path(__file__).resolve().parents[1] / "experiments" / "EXP-019-mix" / "
 
 def test_rebuilds_a_saved_run_exactly():
     saved = yaml.safe_load((EXP019 / "config.yaml").read_text())["sim"]
-    assert json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019)))) == saved
+    now = json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019))))
+    for later in ("ol_run_cost", "lb_rush_cost"):    # added after EXP-019, off for it
+        assert now["reward"].pop(later) == 0.0
+    assert now == saved
 
 
 def test_engaged_tackle_arg_only_moves_the_engaged_offset():

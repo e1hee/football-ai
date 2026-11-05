@@ -93,6 +93,10 @@ class RewardConfig:
     # Offense only; the defense keeps the plain negated yards.
     blocker_shaping: float = 0.0
     shaping_gamma: float = 0.995    # = PPO gamma, so the shaping can't change the best policy
+    # Team sim, box formations only (EXP-025), per player per step while the runner is behind the
+    # line. Unlike the shaping these do change the best policy: that is the point.
+    ol_run_cost: float = 0.0        # offense: an OL running upfield with nobody to block
+    lb_rush_cost: float = 0.0       # defense: an LB in the backfield with the runner not near
 
 
 @dataclass

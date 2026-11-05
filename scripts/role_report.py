@@ -14,7 +14,10 @@ OL: hold, keep the DL off the runner, open a lane so he can run the shortest way
 RB: shortest way, chooses side or gap.
 - path_ratio: path length to the line / straight-line distance (median).
 - time_to_line (s, plays that got there), inside (crossed between the tackles),
-  right (crossed on the right half).
+  right (crossed on the right half), box (share of plays that crossed that crossed within the
+  reward's box), room_at_cross (median yd to the nearest defender at the crossing).
+- gap_if_box / gap_if_out: mean best_gap when he then crossed in the box / outside. A runner
+  who reads the gap goes inside more when it is wide.
 
 DL: break through. dl_x_15: mean yd past the line at 1.5 s, toward the backfield.
 LB: read, no charging. lb_early: share of LB-steps in the backfield while the runner is 2+ yd
@@ -54,6 +57,7 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
     t_line = np.full(n, np.nan)
     y_line = np.full(n, np.nan)
     inside = np.full(n, np.nan)
+    room_x = np.full(n, np.nan)
     contact = np.zeros(n, bool)
     lane = np.full(n, np.nan)
     gap = np.full(n, np.nan)
@@ -86,6 +90,7 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
         crossed = behind & (to_line <= 0.0)
         t_line[crossed] = t * cfg.field.dt
         y_line[crossed] = rb[crossed, 1]
+        room_x[crossed] = dist.min(axis=1)[crossed]
         if crossed.any():
             ol_y = pos[:, blk, 1]
             inside[crossed] = ((rb[:, 1] >= ol_y.min(axis=1)) & (rb[:, 1] <= ol_y.max(axis=1)))[crossed]
@@ -110,6 +115,8 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
 
     crossed_any = ~np.isnan(t_line)
     straight = np.maximum(los - start[:, 0], 1e-6)
+    in_box = np.abs(y_line - cfg.field.width / 2) <= cfg.reward.lane_box
+    out_box = crossed_any & ~in_box
     return {
         "yards": float(yards.mean()), "td": float((outcome == 1).mean()), "timeout": float((outcome == 4).mean()),
         "ol_free_run": ol_run / max(ol_steps, 1),
@@ -119,6 +126,10 @@ def role_stats(offense, defense, cfg, n: int = 1024, seed: int = 7) -> dict:
         "time_to_line": float(np.nanmedian(t_line)),
         "inside": float(np.nanmean(inside)),
         "right": float(np.nanmean(y_line > cfg.field.width / 2)) if crossed_any.any() else float("nan"),
+        "box": float(in_box[crossed_any].mean()) if crossed_any.any() else float("nan"),
+        "room_at_cross": float(np.nanmedian(room_x)),
+        "gap_if_box": float(np.nanmean(gap[in_box])) if in_box.any() else float("nan"),
+        "gap_if_out": float(np.nanmean(gap[out_box])) if out_box.any() else float("nan"),
         "reach_line": float(crossed_any.mean()),
         "dl_x_15": float(np.mean(dl_15)) if len(dl_15) else float("nan"),
         "lb_x_15": float(np.mean(lb_15)) if len(lb_15) else float("nan"),

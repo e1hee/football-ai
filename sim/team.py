@@ -265,6 +265,7 @@ class TeamSim:
         self.t = np.zeros(n, np.int32)
         self.yards = np.zeros(n, np.float32)
         self.los = np.full(n, self.cfg.field.runner_start_x, np.float32)   # lane drill line of scrimmage
+        self.lane_paid = np.zeros(n, bool)
         self.full_run = np.ones(n, bool)
         self._half_w = self.cfg.field.width / 2.0
         self.n_global = GLOBAL_OBS + (self.cfg.snap_time > 0)      # + time until the ball arrives
@@ -410,6 +411,7 @@ class TeamSim:
         self.partner[mask] = -1
         self.release_cd[mask] = 0
         self.wrap[mask] = 0
+        self.lane_paid[mask] = False
         self.t[mask] = 0
         self.yards[mask] = 0
         if f.breakaway_lead is not None:
@@ -652,6 +654,10 @@ class TeamSim:
         dist = np.linalg.norm(self.pos[:, lb] - self.pos[:, CARRIER, None], axis=-1)
         return room[:, None] & (self.pos[:, lb, 0] < self.los[:, None]) & (dist >= 2.5)
 
+    def lane_width(self) -> np.ndarray:
+        """Yards from the runner to the nearest defender, blocked or not."""
+        return np.linalg.norm(self.pos[:, self.dfn] - self.pos[:, CARRIER, None], axis=-1).min(axis=1)
+
     # ------------------------------------------------------------------- step
     def step(self, offense_action: np.ndarray, defense_action: np.ndarray):
         f, rw, tc = self.cfg.field, self.cfg.reward, self.cfg.tackle
@@ -765,6 +771,12 @@ class TeamSim:
             snapped = self.t * dt > self.cfg.snap_time
             reward = (base - rw.ol_run_cost * (self.ol_running_free().sum(1) * snapped)).astype(np.float32)
             lb_cost = rw.lb_rush_cost * (self.lb_rushing().sum(1) * snapped)
+        if rw.lane_bonus:
+            first = ~self.lane_paid & (prev_x < self.los) & (self.pos[:, CARRIER, 0] >= self.los)
+            self.lane_paid |= first
+            inside = np.abs(cy - f.width / 2) <= rw.lane_box
+            paid = first & inside & ~tackled & ~out_of_bounds
+            reward = (reward + rw.lane_bonus * paid * np.minimum(self.lane_width(), rw.lane_cap)).astype(np.float32)
         if shaping:
             # F = gamma * Phi(s') - Phi(s), with Phi = 0 once the play is really over.
             # A timeout is a cut-off, not an end: the learner bootstraps the value of

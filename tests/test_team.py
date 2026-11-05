@@ -500,3 +500,57 @@ def test_role_costs_are_off_by_default():
     sim = _role_sim(-6.0)
     _, rew, _, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
     assert np.allclose(rew, 0.0, atol=1e-5) and np.allclose(info["tackler_reward"], 0.0, atol=1e-5)
+
+
+def _lane_sim(y, room=2.0):
+    """Runner about to cross at `y`: one defender `room` yd up the field, the rest far off."""
+    from sim.core import RewardConfig
+    cfg = box_config(mix=True, field=FieldConfig(reaction_delay=2))
+    cfg = dataclasses.replace(cfg, reward=RewardConfig(yards_scale=0.0, lane_bonus=0.05))
+    sim = TeamSim(4, cfg, seed=0)
+    sim.reset()
+    los = sim.los.copy()
+    sim.t[:] = 20
+    sim.partner[:] = -1
+    sim.vel[:] = 0.0
+    sim.pos[:, 0] = np.stack([los - 0.2, np.full(4, y)], -1)
+    sim.vel[:, 0] = [5.0, 0.0]
+    for j, x in zip(sim.blk, (-3.0, -3.0, -3.0, -3.0, -3.0)):
+        sim.pos[:, j] = np.stack([los + x, np.full(4, 1.0 + 2 * list(sim.blk).index(j))], -1)
+    for j in sim.dfn:
+        sim.pos[:, j] = np.stack([los + 8.0, np.full(4, 2.0 + 2.5 * list(sim.dfn).index(j))], -1)
+    sim.pos[:, sim.dfn[0]] = np.stack([los + 0.3 + room, np.full(4, y)], -1)
+    return sim
+
+
+def test_lane_bonus_pays_once_per_yard_of_room_inside_the_box():
+    sim = _lane_sim(10.0)
+    _, rew, _, _ = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert sim.lane_paid.all()
+    assert np.allclose(rew, 0.05 * sim.lane_width(), atol=2e-2) and (rew > 0.05).all()
+    sim.pos[:, 0, 0] = sim.los - 0.2                 # back behind the line and over it again: no more pay
+    _, rew, _, _ = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert np.allclose(rew, 0.0, atol=1e-6)
+
+
+def test_lane_bonus_is_capped():
+    sim = _lane_sim(10.0, room=6.0)
+    _, rew, _, _ = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert np.allclose(rew, 0.05 * 3.0, atol=1e-5)
+
+
+def test_lane_bonus_pays_nothing_outside_the_box_and_nothing_to_the_defense():
+    sim = _lane_sim(15.0)
+    _, rew, _, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert sim.lane_paid.all() and np.allclose(rew, 0.0, atol=1e-6)
+    sim = _lane_sim(10.0)
+    _, _, _, info = sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    assert np.allclose(info["tackler_reward"], 0.0, atol=1e-6)
+
+
+def test_lane_paid_clears_when_the_play_resets():
+    sim = _lane_sim(10.0)
+    sim.step(_still(sim, "runner"), _still(sim, "tackler"))
+    sim.reset(np.ones(4, bool))
+    assert not sim.lane_paid.any()
+

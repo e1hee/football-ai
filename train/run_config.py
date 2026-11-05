@@ -18,7 +18,7 @@ from sim.team import config_for
 
 # Args added after older runs were trained, with the value those runs used.
 LATER_ARGS = {"engaged_tackle": None, "shed_rate": None, "reengage_cooldown": None,
-              "ol_run_cost": 0.0, "lb_rush_cost": 0.0}
+              "ol_run_cost": 0.0, "lb_rush_cost": 0.0, "lane_bonus": 0.0}
 
 
 def build_config(args):
@@ -28,7 +28,8 @@ def build_config(args):
                                         sidestep_weight=args.sidestep),
                     reward=RewardConfig(yards_scale=args.yards_scale, blocker_shaping=args.blocker_shaping,
                                         ol_run_cost=getattr(args, "ol_run_cost", 0.0),
-                                        lb_rush_cost=getattr(args, "lb_rush_cost", 0.0)),
+                                        lb_rush_cost=getattr(args, "lb_rush_cost", 0.0),
+                                        lane_bonus=getattr(args, "lane_bonus", 0.0)),
                     facing=args.facing)
     team = (dict(stumble=args.stumble, carrier_square_ahead=args.square_ahead, timeout_ends=args.timeout_ends)
             if args.sim != "1v1" else {})

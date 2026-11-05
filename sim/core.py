@@ -97,6 +97,12 @@ class RewardConfig:
     # line. Unlike the shaping these do change the best policy: that is the point.
     ol_run_cost: float = 0.0        # offense: an OL running upfield with nobody to block
     lb_rush_cost: float = 0.0       # defense: an LB in the backfield with the runner not near
+    # EXP-026, offense, paid once per play when the runner first crosses the line inside the
+    # box: per yard to the nearest defender, up to lane_cap. Once only, so waiting earns nothing;
+    # inside only, so an empty sideline earns nothing.
+    lane_bonus: float = 0.0
+    lane_cap: float = 3.0           # yd
+    lane_box: float = 3.6           # yd each side of the middle: the OL's span at the snap + 1
 
 
 @dataclass

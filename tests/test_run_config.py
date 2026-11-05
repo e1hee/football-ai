@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
+from sim.core import RewardConfig
 from sim.team import TeamSim
 from sim.team_policies import box_offense, gap_defense
 from train.run_config import build_config, config_from_run, run_args
@@ -16,8 +17,8 @@ EXP019 = Path(__file__).resolve().parents[1] / "experiments" / "EXP-019-mix" / "
 def test_rebuilds_a_saved_run_exactly():
     saved = yaml.safe_load((EXP019 / "config.yaml").read_text())["sim"]
     now = json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019))))
-    for later in ("ol_run_cost", "lb_rush_cost"):    # added after EXP-019, off for it
-        assert now["reward"].pop(later) == 0.0
+    for later in ("ol_run_cost", "lb_rush_cost", "lane_bonus", "lane_cap", "lane_box"):    # added after EXP-019
+        assert now["reward"].pop(later) == dataclasses.asdict(RewardConfig())[later]
     assert now == saved
 
 

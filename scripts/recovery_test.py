@@ -19,7 +19,7 @@ import numpy as np
 import torch
 from stable_baselines3 import PPO
 
-from sim.core import OUTCOME_TOUCHDOWN
+from sim.core import OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN
 from sim.team import CARRIER, TeamSim
 from train.run_config import config_from_run
 from train.selfplay import Frozen
@@ -47,22 +47,23 @@ class ShapedTackler(SideVecEnv):
         return obs, rew + (self.gamma * after - before).astype(np.float32), done, infos
 
 
-def measure(runner, tackler, cfg, n: int = 2048, seed: int = 7) -> dict:
-    """Deterministic both ways, as the box report does."""
+def measure(runner, tackler, cfg, n: int = 2048, seed: int = 7, deterministic: bool = True) -> dict:
+    """Deterministic both ways by default, as the box report does."""
     sim = TeamSim(n, cfg, seed=seed)
     sim.reset()
     live = np.ones(n, bool)
     out, yards, end_y, tries = np.zeros(n, np.int8), np.zeros(n), np.zeros(n), np.zeros(n)
     while live.any():
-        a = runner.predict(sim.observe(), deterministic=True)[0]
-        b = tackler.predict(sim.observe_tackler(), deterministic=True)[0]
+        a = runner.predict(sim.observe(), deterministic=deterministic)[0]
+        b = tackler.predict(sim.observe_tackler(), deterministic=deterministic)[0]
         _, _, done, info = sim.step(a, b)
         tries += info["attempts"] * live
         new = done & live
         out[new], yards[new], end_y[new] = info["outcome"][new], info["yards"][new], info["r_pos"][new, 1]
         live &= ~done
     return {"td": float((out == OUTCOME_TOUCHDOWN).mean()), "yards": float(yards.mean()),
-            "end_right": float((end_y > cfg.field.width / 2).mean()), "any_try": float((tries > 0).mean())}
+            "end_right": float((end_y > cfg.field.width / 2).mean()), "any_try": float((tries > 0).mean()),
+            "timeout": float((out == OUTCOME_TIMEOUT).mean())}
 
 
 def main() -> None:
@@ -102,8 +103,9 @@ def main() -> None:
 
     def row(done_steps: int) -> dict:
         r, t = (model, opp.model) if args.learner == "runner" else (opp.model, model)
+        noisy = measure(r, t, cfg, deterministic=False)
         return {"name": args.name, "steps": done_steps, **measure(r, t, cfg),
-                "std": float(model.policy.log_std.detach().exp().mean())}
+                "td_sto": noisy["td"], "yards_sto": noisy["yards"], "std": float(model.policy.log_std.detach().exp().mean())}
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as f:

@@ -26,6 +26,7 @@ import numpy as np
 import torch
 import yaml
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 
 from sim.core import OneVOneSim
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
@@ -33,6 +34,7 @@ from sim.team import SIMS
 from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
                                 screen_offense)
 from train.evaluate import evaluate
+from train.mirror import mirror_action, mirror_obs
 from train.run_config import build_config
 from train.vec_env import SideVecEnv
 
@@ -57,19 +59,40 @@ class Frozen:
         return self.act(self.observe(sim))
 
 
+class StdFloor(BaseCallback):
+    """Keep PPO's exploration noise from shrinking below `min_std`. With no entropy
+    bonus it only ever fell (RB 1.0 -> 0.12), and in EXP-023 policies stuck at low
+    noise barely learned against a fixed opponent until the noise was put back."""
+
+    def __init__(self, min_std: float):
+        super().__init__()
+        self.min_log_std = float(np.log(min_std))
+
+    def _on_rollout_start(self) -> None:
+        with torch.no_grad():
+            self.model.policy.log_std.clamp_(min=self.min_log_std)
+
+    def _on_step(self) -> bool:
+        return True
+
+
 class Pool:
     """Assign each play slot to one opponent; recomputed whenever the pool changes.
 
     Frozen opponents only run on the slots assigned to them, from one shared
     observation: late in self-play the pool holds 12+ networks, and running
-    each on every slot made the pool ~3/4 of the rollout time."""
+    each on every slot made the pool ~3/4 of the rollout time.
 
-    def __init__(self, n: int, opponents: list, weights: list[float], seed: int):
+    `mirror_share` of the slots play a left-right flipped frozen opponent, so a
+    learner can't get away with covering only one side (`train/mirror.py`)."""
+
+    def __init__(self, n: int, opponents: list, weights: list[float], seed: int, mirror_share: float = 0.0):
         rng = np.random.default_rng(seed)
         w = np.asarray(weights, float)
         self.assign = rng.choice(len(opponents), size=n, p=w / w.sum())
         self.opponents = opponents
         self.masks = [self.assign == k for k in range(len(opponents))]
+        self.flip = rng.random(n) < mirror_share if mirror_share else None
 
     def __call__(self, sim: OneVOneSim) -> np.ndarray:
         obs: dict[str, np.ndarray] = {}
@@ -81,7 +104,7 @@ class Pool:
             if isinstance(opp, Frozen):
                 if opp.side not in obs:
                     obs[opp.side] = opp.observe(sim)
-                acts[k] = opp.act(obs[opp.side][m])
+                acts[k] = self._frozen_act(opp, obs[opp.side][m], m)
             else:
                 acts[k] = opp(sim)[m]
         out = np.zeros((sim.n, max(a.shape[1] for a in acts.values())), np.float32)
@@ -89,9 +112,19 @@ class Pool:
             out[self.masks[k], :a.shape[1]] = a
         return out
 
+    def _frozen_act(self, opp: "Frozen", ob: np.ndarray, m: np.ndarray) -> np.ndarray:
+        if self.flip is None:
+            return opp.act(ob)
+        fl = self.flip[m]
+        ob = ob.copy()
+        ob[fl] = mirror_obs(ob[fl], opp.side)
+        a = opp.act(ob).copy()
+        a[fl] = mirror_action(a[fl], opp.side)
+        return a
+
 
 def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
-              scripted_share: float | None = None, skip_untrained: bool = False) -> Pool:
+              scripted_share: float | None = None, skip_untrained: bool = False, mirror_share: float = 0.0) -> Pool:
     """`scripted_share=None`: EXP-003 behaviour, the scripted opponent shares the
     leftover with the history (its weight shrinks as generations pile up).
     A number keeps it fixed, so learners never forget how to handle it.
@@ -101,18 +134,18 @@ def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 
     if skip_untrained:
         history = history[1:]
         if not history:
-            return Pool(n, [scripted], [1.0], seed)
+            return Pool(n, [scripted], [1.0], seed, mirror_share)
     if scripted_share is None:
         if len(history) == 1:
-            return Pool(n, [history[-1], scripted], [0.8, 0.2], seed)
+            return Pool(n, [history[-1], scripted], [0.8, 0.2], seed, mirror_share)
         older = history[:-1]
         rest = (1 - latest_share) / (len(older) + 1)
-        return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed)
+        return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed, mirror_share)
     older = history[:-1]
     if not older:
-        return Pool(n, [history[-1], scripted], [1 - scripted_share, scripted_share], seed)
+        return Pool(n, [history[-1], scripted], [1 - scripted_share, scripted_share], seed, mirror_share)
     rest = (1 - latest_share - scripted_share) / len(older)
-    return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), scripted_share], seed)
+    return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), scripted_share], seed, mirror_share)
 
 
 def as_runner(fn):
@@ -154,9 +187,14 @@ def main() -> None:
     p.add_argument("--square-ahead", action="store_true", help="team sim: carrier squares up only to defenders ahead")
     p.add_argument("--timeout-ends", action="store_true", help="team sim: the play clock is a real end (no bootstrap)")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
+    p.add_argument("--min-std", type=float, default=None, help="exploration noise never falls below this (EXP-024)")
+    p.add_argument("--mirror-share", type=float, default=0.0,
+                   help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--threads", type=int, default=4)
     args = p.parse_args()
+    if args.mirror_share and args.sim != "box-mix":
+        p.error("--mirror-share only knows the box-mix slots")
 
     torch.set_num_threads(args.threads)
     out = ROOT / "experiments" / args.exp
@@ -196,6 +234,7 @@ def main() -> None:
     runners = [Frozen(runner_path, "runner")]
     tacklers = [Frozen(tackler_path, "tackler")]
 
+    floor = lambda: StdFloor(args.min_std) if args.min_std else None
     log = open(out / "metrics.csv", "w", newline="")
     writer = None
     t0 = time.time()
@@ -205,10 +244,11 @@ def main() -> None:
         if side == "tackler":
             venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, script_runner, args.seed + phase,
                                                               scripted_share=args.scripted_share,
-                                                              skip_untrained=args.runner_init is None),
+                                                              skip_untrained=args.runner_init is None,
+                                                              mirror_share=args.mirror_share),
                               side="tackler", seed=args.seed + phase)
             tackler_model.set_env(venv)
-            tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler")
+            tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler", callback=floor())
             gen = len(tacklers)
             path = ck / f"tackler_g{gen:02d}.zip"
             tackler_model.save(path)
@@ -217,7 +257,8 @@ def main() -> None:
             venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, tacklers, script_tackler,
                                                               args.seed + phase,
                                                               scripted_share=args.scripted_share,
-                                                              skip_untrained=True),
+                                                              skip_untrained=True,
+                                                              mirror_share=args.mirror_share),
                               side="runner", seed=args.seed + phase)
             if runner_model is None:
                 runner_model = PPO.load(str(runner_path), env=venv, device="cpu",
@@ -225,7 +266,7 @@ def main() -> None:
                                                                            if k not in ("policy_kwargs", "device")})
             else:
                 runner_model.set_env(venv)
-            runner_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="runner")
+            runner_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="runner", callback=floor())
             gen = len(runners)
             path = ck / f"runner_g{gen:02d}.zip"
             runner_model.save(path)

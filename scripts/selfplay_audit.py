@@ -22,32 +22,17 @@ from stable_baselines3 import PPO
 from sim.core import OUTCOME_OUT_OF_BOUNDS, OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN
 from sim.team import TeamSim
 from sim.team_policies import box_blockers, box_offense, gap_defense
+from train.mirror import mirror_action, mirror_obs
 from train.run_config import config_from_run
 
-# Left-right swap of the box-mix slots: RB, then OL left to right; DL left to right, LBs.
-OFF = [0, 5, 4, 3, 2, 1]
-DEF = [3, 2, 1, 0, 5, 4]
-
-
-def mirror_obs(o: np.ndarray, own: list[int], other: list[int], n_global: int = 5) -> np.ndarray:
-    o = o.copy()
-    o[:, 1] = 1 - o[:, 1]
-    per = o[:, n_global:].reshape(len(o), len(own) + len(other), 8)
-    per[..., [1, 3, 5]] *= -1
-    o[:, n_global:] = per[:, own + [i + len(own) for i in other]].reshape(len(o), -1)
-    return o
-
-
 def actor(model, side: str, mirror: bool = False):
-    own, other = (OFF, DEF) if side == "off" else (DEF, OFF)
+    who = "runner" if side == "off" else "tackler"
 
     def act(sim):
         ob = sim.observe() if side == "off" else sim.observe_tackler()
         if not mirror:
             return model.predict(ob, deterministic=True)[0]
-        a = model.predict(mirror_obs(ob, own, other), deterministic=True)[0].reshape(sim.n, 6, 3).copy()
-        a[..., 1] *= -1
-        return a[:, own].reshape(sim.n, -1)
+        return mirror_action(model.predict(mirror_obs(ob, who), deterministic=True)[0], who)
     return act
 
 

@@ -21,7 +21,7 @@ EXP-029에서 오래된 공격이 길을 못 옮긴 원인을 찾았다. 시뮬�
 - `--push-bound 1.25`. 분석용 새 망(`recovery_test.py`)도 실험과 같은 정책으로 만든다.
 - A: EXP-028 A 그대로(새 공격 리그 0.2, 교체 없음) + 밀기 묶기.
 - B: A에서 새 공격 리그를 뺀다(`--new-offense-share 0`). 리그는 습관을 깨려고 넣었다. 습관의 원인을 막았으니 리그 없이도 되는지 본다.
-- 테스트 `test_bounded_push_policy_keeps_the_push_short_and_survives_save`, 79개 통과.
+- 테스트 `test_bounded_push_policy_keeps_the_push_short_and_survives_save`, 78개 통과.
 
 ## 판정 기준 (학습 전에 정함)
 12세대, 조건별, 시드 평균. 합격선은 내 판단이다. 기준값은 EXP-028 A.

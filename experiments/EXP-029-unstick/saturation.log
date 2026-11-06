@@ -1,0 +1,35 @@
+s0 start (24M)   push length RB 3.54 OL 1.47 | past 1: RB  97% OL  67% | noise turns the push  32 deg | std 0.81
+s0 warm  +2M      push length RB 3.87 OL 1.44 | past 1: RB 100% OL  63% | noise turns the push  32 deg | std 0.78
+s0 noise +2M      push length RB 4.40 OL 1.58 | past 1: RB 100% OL  68% | noise turns the push  34 deg | std 0.96
+s0 head  +2M      push length RB 1.59 OL 0.78 | past 1: RB  80% OL  25% | noise turns the push  52 deg | std 0.92
+s0 fresh +2M      push length RB 1.66 OL 0.67 | past 1: RB  79% OL  18% | noise turns the push  56 deg | std 0.94
+s1 start (24M)   push length RB 4.03 OL 1.73 | past 1: RB 100% OL  81% | noise turns the push  26 deg | std 0.81
+s1 warm  +2M      push length RB 3.99 OL 1.65 | past 1: RB 100% OL  76% | noise turns the push  27 deg | std 0.78
+s1 noise +2M      push length RB 4.16 OL 1.70 | past 1: RB 100% OL  76% | noise turns the push  31 deg | std 0.96
+s1 head  +2M      push length RB 1.25 OL 0.62 | past 1: RB  75% OL  17% | noise turns the push  59 deg | std 0.94
+s1 fresh +2M      push length RB 1.53 OL 0.68 | past 1: RB  83% OL  14% | noise turns the push  56 deg | std 0.94
+s2 start (24M)   push length RB 2.86 OL 1.45 | past 1: RB 100% OL  72% | noise turns the push  30 deg | std 0.80
+s2 warm  +2M      push length RB 2.80 OL 1.61 | past 1: RB 100% OL  83% | noise turns the push  26 deg | std 0.77
+s2 noise +2M      push length RB 3.07 OL 1.70 | past 1: RB 100% OL  82% | noise turns the push  30 deg | std 0.94
+s2 head  +2M      push length RB 1.64 OL 0.72 | past 1: RB  81% OL  18% | noise turns the push  55 deg | std 0.93
+s2 fresh +2M      push length RB 1.77 OL 0.68 | past 1: RB  85% OL  22% | noise turns the push  56 deg | std 0.94
+
+EXP-028 A offense through the generations, each against its own generation's defense
+s0 g01           push length RB 1.90 OL 0.48 | past 1: RB  85% OL   7% | noise turns the push  62 deg | std 0.95
+s0 g02           push length RB 2.04 OL 0.72 | past 1: RB  87% OL  27% | noise turns the push  53 deg | std 0.93
+s0 g03           push length RB 2.30 OL 0.91 | past 1: RB  87% OL  39% | noise turns the push  48 deg | std 0.92
+s0 g06           push length RB 3.26 OL 1.42 | past 1: RB  96% OL  70% | noise turns the push  33 deg | std 0.86
+s0 g09           push length RB 3.62 OL 1.40 | past 1: RB  99% OL  63% | noise turns the push  33 deg | std 0.81
+s0 g12           push length RB 3.54 OL 1.47 | past 1: RB  97% OL  67% | noise turns the push  32 deg | std 0.81
+s1 g01           push length RB 1.81 OL 0.45 | past 1: RB  87% OL   4% | noise turns the push  63 deg | std 0.95
+s1 g02           push length RB 2.21 OL 0.82 | past 1: RB  93% OL  22% | noise turns the push  49 deg | std 0.93
+s1 g03           push length RB 2.45 OL 0.98 | past 1: RB  92% OL  41% | noise turns the push  45 deg | std 0.91
+s1 g06           push length RB 3.31 OL 1.28 | past 1: RB 100% OL  55% | noise turns the push  37 deg | std 0.87
+s1 g09           push length RB 3.55 OL 1.42 | past 1: RB 100% OL  66% | noise turns the push  32 deg | std 0.82
+s1 g12           push length RB 4.03 OL 1.73 | past 1: RB 100% OL  81% | noise turns the push  26 deg | std 0.81
+s2 g01           push length RB 1.76 OL 0.46 | past 1: RB  81% OL   6% | noise turns the push  63 deg | std 0.95
+s2 g02           push length RB 2.07 OL 0.57 | past 1: RB  92% OL  18% | noise turns the push  58 deg | std 0.93
+s2 g03           push length RB 2.23 OL 0.76 | past 1: RB  91% OL  29% | noise turns the push  52 deg | std 0.91
+s2 g06           push length RB 2.64 OL 1.02 | past 1: RB  95% OL  43% | noise turns the push  42 deg | std 0.85
+s2 g09           push length RB 2.89 OL 1.14 | past 1: RB  96% OL  54% | noise turns the push  37 deg | std 0.81
+s2 g12           push length RB 2.86 OL 1.45 | past 1: RB 100% OL  72% | noise turns the push  30 deg | std 0.80

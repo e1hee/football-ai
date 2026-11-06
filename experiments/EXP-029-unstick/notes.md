@@ -35,7 +35,7 @@ EXP-028 A의 24M 스텝 공격은 12가지 배치 모두에서 바깥으로 가�
 - 재현: `launch.sh` → `PYTHONPATH=. uv run python experiments/EXP-029-unstick/measure.py`.
 
 ## 결과
-**판정: head가 옮겨 간 가장 작은 칸이다.** warm, noise는 못 옮기고, 출력층만 새로 하면 새 망처럼 가운데를 찾는다. 유효성 통과(fresh 구역 통과 s0 89.4%, s2 99.6%). 결과 `measure.log`, `measure.json`, 학습 기록 `runs/`.
+**판정: head가 옮겨 간 가장 작은 칸이다.** warm, noise는 못 옮기고, 출력층만 새로 하면 새 망처럼 가운데를 찾는다. 유효성 통과(fresh 구역 통과 s0 89.4%, s2 99.6%). 결과 `measure.log`, `measure.json`, 학습 기록 `curves/`(0.5M마다 야드, std).
 
 2M 시점, 구역 통과 % / 야드 (s0 / s1 / s2). 시작점(24M 공격)은 0 / 3.7 / 0.1%, 5.52 / 2.58 / 4.68야드.
 | | s0 | s1 | s2 | 판정 |

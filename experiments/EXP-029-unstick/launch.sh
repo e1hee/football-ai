@@ -12,11 +12,11 @@ X=experiments/EXP-028-older/A
 O=experiments/EXP-029-unstick
 STEPS=${STEPS:-4000000}
 EVERY=${EVERY:-500000}
-mkdir -p $O/runs $O/checkpoints
+mkdir -p $O/curves $O/checkpoints
 run() { # variant seed extra-args
   uv run python -m scripts.recovery_test --name $1_s$2 --learner runner --run $X/s$2 --opp-gen 12 \
     --steps $STEPS --every $EVERY --threads ${THREADS:-1} \
-    --save $O/checkpoints/$1_s$2.zip --save-each --out $O/runs/$1_s$2.jsonl "${@:3}" > $O/runs/$1_s$2.log 2>&1 &
+    --save $O/checkpoints/$1_s$2.zip --save-each --out $O/curves/$1_s$2.jsonl "${@:3}" > $O/curves/$1_s$2.log 2>&1 &
 }
 for s in 0 1 2; do
   run warm $s --init-gen 12

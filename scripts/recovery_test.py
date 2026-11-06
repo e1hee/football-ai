@@ -21,7 +21,7 @@ from stable_baselines3 import PPO
 
 from sim.core import OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN
 from sim.team import CARRIER, TeamSim
-from train.policies import action_std, calibrate_sde, policy_for, resample_noise
+from train.policies import action_std, calibrate_sde, policy_for, resample_noise, reset_head
 from train.run_config import config_from_run
 from train.selfplay import Frozen
 from train.vec_env import SideVecEnv
@@ -85,13 +85,6 @@ def to_sde(old: PPO, venv, args, obs: np.ndarray) -> PPO:
     assert missing == ["log_std"] and not unexpected, (missing, unexpected)
     calibrate_sde(model.policy, obs, args.sde_std)
     return model
-
-
-def reset_head(model: PPO) -> None:
-    """The action layer as SB3 builds it for a new policy: orthogonal, gain 0.01, zero bias."""
-    with torch.no_grad():
-        torch.nn.init.orthogonal_(model.policy.action_net.weight, gain=0.01)
-        model.policy.action_net.bias.zero_()
 
 
 def main() -> None:

@@ -114,7 +114,7 @@ def test_a_young_offense_is_not_replaced():
 
 def test_reset_head_keeps_the_hidden_layers():
     from stable_baselines3 import PPO
-    from scripts.recovery_test import reset_head
+    from train.policies import reset_head
     model = PPO("MlpPolicy", "Pendulum-v1", device="cpu", seed=0, n_steps=64, batch_size=64)
     with __import__("torch").no_grad():
         model.policy.action_net.weight.fill_(1.0)

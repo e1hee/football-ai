@@ -35,7 +35,7 @@ from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_off
                                 screen_offense)
 from train.evaluate import evaluate
 from train.mirror import mirror_action, mirror_obs
-from train.policies import calibrate_sde, policy_for, resample_noise
+from train.policies import calibrate_sde, policy_for, resample_noise, reset_head
 from train.run_config import build_config
 from train.vec_env import SideVecEnv
 
@@ -229,6 +229,8 @@ def main() -> None:
     p.add_argument("--sde-freq", type=int, default=None,
                    help="gSDE exploration, new noise every this many steps (-1: once per 64-step rollout), EXP-031")
     p.add_argument("--sde-std", type=float, default=1.0, help="gSDE: starting action std of a new network")
+    p.add_argument("--reset-head-every", type=int, default=0,
+                   help="offense: new action layer and std 1 before generation 2, 2+N, ... (0: never), EXP-033")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -323,6 +325,14 @@ def main() -> None:
                                                                            if k not in ("policy_kwargs", "device")})
             else:
                 runner_model.set_env(venv)
+            gen = len(runners)
+            if args.reset_head_every and gen >= 2 and (gen - 2) % args.reset_head_every == 0:
+                # EXP-033: an old offense can't move to another way (EXP-029, EXP-032); a new action layer
+                # starts its mean push at zero again, the hidden layers that see the front stay.
+                reset_head(runner_model)
+                with torch.no_grad():
+                    runner_model.policy.log_std.zero_()
+                print(f"[phase {phase:2d}] offense action layer reset before generation {gen}", flush=True)
             runner_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="runner", callback=floor())
             gen = len(runners)
             path = ck / f"runner_g{gen:02d}.zip"

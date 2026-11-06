@@ -80,3 +80,11 @@ def resample_noise(policy: ActorCriticPolicy, n: int) -> None:
     """New gSDE noise matrices, one per play slot (no-op without gSDE)."""
     if isinstance(policy.action_dist, StateDependentNoiseDistribution):
         policy.reset_noise(n)
+
+
+def reset_head(model) -> None:
+    """The action layer as SB3 builds it for a new policy: orthogonal, gain 0.01, zero bias (EXP-029).
+    The hidden layers (what the policy sees in a front) stay."""
+    with torch.no_grad():
+        torch.nn.init.orthogonal_(model.policy.action_net.weight, gain=0.01)
+        model.policy.action_net.bias.zero_()

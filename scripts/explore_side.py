@@ -48,7 +48,8 @@ def measure(off: PPO, dfn: PPO, cfg, n: int = 1024, draws: int = 4, seed: int = 
     crossed = ~np.isnan(base["y"])
     return {"flip": float(np.nanmean(flips)) if not np.isnan(flips).all() else float("nan"), "box_noisy": float(np.mean(box)), "yards_noisy": float(np.mean(yards)),
             "box_mean": float((np.abs(base["y"][crossed]) <= cfg.reward.lane_box).mean()),
-            "yards_mean": float(base["yards"].mean()), "far_share": float(far.mean())}
+            "yards_mean": float(base["yards"].mean()), "far_share": float(far.mean()),
+            "left_mean": float((base["y"][crossed] < 0).mean())}
 
 
 def main() -> None:
@@ -68,7 +69,8 @@ def main() -> None:
             r = {"seed": s, "gen": g, **measure(off, dfn, cfg, draws=args.draws)}
             rows.append(r)
             print(f"s{s} g{g:02d} flip {r['flip']*100:4.1f}% | box mean {r['box_mean']*100:3.0f}% noisy {r['box_noisy']*100:3.0f}% "
-                  f"| yd mean {r['yards_mean']:.2f} noisy {r['yards_noisy']:.2f} | starts off-middle {r['far_share']*100:.0f}%",
+                  f"| yd mean {r['yards_mean']:.2f} noisy {r['yards_noisy']:.2f} | starts off-middle {r['far_share']*100:.0f}% "
+                  f"| left {r['left_mean']*100:.0f}%",
                   flush=True)
     if args.json:
         args.json.write_text(json.dumps(rows, indent=1))

@@ -145,3 +145,33 @@ def test_bounded_push_policy_keeps_the_push_short_and_survives_save(tmp_path):
     assert isinstance(back.policy, BoundedPushPolicy) and back.policy.push_bound == 1.25
     assert torch.allclose(back.policy.get_distribution(obs).distribution.mean, mean)
     assert policy_for(None, 16)[0] == "MlpPolicy"
+
+
+def test_sde_noise_is_held_calibrated_and_frozen_opponents_can_use_it(tmp_path):
+    import numpy as np
+    import torch
+    from stable_baselines3 import PPO
+    from train.policies import action_std, calibrate_sde, policy_for, resample_noise
+    from train.selfplay import Frozen, StdFloor
+    policy, kw = policy_for(1.25, 16)
+    model = PPO(policy, "Pendulum-v1", device="cpu", seed=0, n_steps=64, batch_size=64, policy_kwargs=kw,
+                use_sde=True, sde_sample_freq=-1)
+    obs = np.random.default_rng(0).normal(size=(32, 3)).astype(np.float32)
+    log0 = calibrate_sde(model.policy, obs, 0.7)
+    assert abs(float(action_std(model.policy, obs).mean()) - 0.7) < 1e-4 and model.policy.log_std0 == log0
+    resample_noise(model.policy, 32)
+    a1, a2 = (model.predict(obs, deterministic=False)[0] for _ in range(2))
+    assert np.allclose(a1, a2)                                   # same state, same held noise
+    resample_noise(model.policy, 32)
+    assert not np.allclose(model.predict(obs, deterministic=False)[0], a1)
+    model.save(tmp_path / "m.zip")
+    frozen = Frozen(tmp_path / "m.zip", "runner")
+    b1 = frozen.act(obs)
+    assert b1.shape == (32, 1) and np.allclose(frozen.act(obs), b1)
+    assert frozen.act(obs[:5]).shape == (5, 1)                    # a new slot count gets its own noise
+    with torch.no_grad():
+        model.policy.log_std.fill_(log0 - 5.0)
+    floor = StdFloor(0.8)
+    floor.init_callback(model)
+    floor.on_rollout_start()
+    assert abs(float(model.policy.log_std.min()) - (log0 + np.log(0.8))) < 1e-5

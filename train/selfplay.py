@@ -30,12 +30,12 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from sim.core import OneVOneSim
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
-from sim.team import SIMS
+from sim.team import SIMS, TeamSim
 from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
                                 screen_offense)
 from train.evaluate import evaluate
 from train.mirror import mirror_action, mirror_obs
-from train.policies import policy_for
+from train.policies import calibrate_sde, policy_for, resample_noise
 from train.run_config import build_config
 from train.vec_env import SideVecEnv
 
@@ -48,11 +48,18 @@ class Frozen:
     def __init__(self, path: Path, side: str):
         self.path, self.side = path, side
         self.model = PPO.load(str(path), device="cpu")
+        self._noise_n, self._noise_age = -1, 0     # gSDE: one noise matrix per slot, held a while
 
     def observe(self, sim: OneVOneSim) -> np.ndarray:
         return sim.observe() if self.side == "runner" else sim.observe_tackler()
 
     def act(self, obs: np.ndarray) -> np.ndarray:
+        if self.model.use_sde:
+            freq = self.model.sde_sample_freq if self.model.sde_sample_freq > 0 else 64
+            if len(obs) != self._noise_n or self._noise_age >= freq:
+                resample_noise(self.model.policy, len(obs))
+                self._noise_n, self._noise_age = len(obs), 0
+            self._noise_age += 1
         a, _ = self.model.predict(obs, deterministic=False)
         return a.astype(np.float32)
 
@@ -70,8 +77,11 @@ class StdFloor(BaseCallback):
         self.min_log_std = float(np.log(min_std))
 
     def _on_rollout_start(self) -> None:
+        # gSDE (EXP-031): the action std is |latent| * std, so the floor is `min_std` times the
+        # starting std set by `calibrate_sde`.
+        base = getattr(self.model.policy, "log_std0", 0.0) if self.model.use_sde else 0.0
         with torch.no_grad():
-            self.model.policy.log_std.clamp_(min=self.min_log_std)
+            self.model.policy.log_std.clamp_(min=base + self.min_log_std)
 
     def _on_step(self) -> bool:
         return True
@@ -216,6 +226,9 @@ def main() -> None:
     p.add_argument("--min-std", type=float, default=None, help="exploration noise never falls below this (EXP-024)")
     p.add_argument("--push-bound", type=float, default=None,
                    help="keep each player's mean push no longer than this (train/policies.py, EXP-030)")
+    p.add_argument("--sde-freq", type=int, default=None,
+                   help="gSDE exploration, new noise every this many steps (-1: once per 64-step rollout), EXP-031")
+    p.add_argument("--sde-std", type=float, default=1.0, help="gSDE: starting action std of a new network")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -245,6 +258,16 @@ def main() -> None:
     policy, policy_kwargs = policy_for(args.push_bound, args.net)
     ppo_kw = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=3e-4, gamma=0.995, gae_lambda=0.95,
                   clip_range=0.2, policy_kwargs=policy_kwargs, device="cpu", verbose=0)
+    if args.sde_freq is not None:
+        ppo_kw.update(use_sde=True, sde_sample_freq=args.sde_freq)
+
+    def calibrate(model: PPO, side: str) -> PPO:
+        """gSDE: start the new network's noise at --sde-std on starting positions."""
+        if args.sde_freq is not None:
+            sim = TeamSim(1024, cfg, seed=args.seed)
+            ob = sim.reset()
+            calibrate_sde(model.policy, ob if side == "runner" else sim.observe_tackler(), args.sde_std)
+        return model
 
     # Generation 0 of each side: a given runner (e.g. the EXP-002 champion) or a fresh one,
     # and a fresh tackler.
@@ -254,10 +277,10 @@ def main() -> None:
         runner_model = None
     else:
         venv_r = SideVecEnv(args.n_envs, cfg, script_tackler, side="runner", seed=args.seed)
-        runner_model = PPO(policy, venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
+        runner_model = calibrate(PPO(policy, venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw), "runner")
         runner_model.save(runner_path)
     venv_t = SideVecEnv(args.n_envs, cfg, script_tackler, side="tackler", seed=args.seed)
-    tackler_model = PPO(policy, venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
+    tackler_model = calibrate(PPO(policy, venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw), "tackler")
     tackler_path = ck / "tackler_g00.zip"
     tackler_model.save(tackler_path)
     runners = [Frozen(runner_path, "runner")]
@@ -314,7 +337,7 @@ def main() -> None:
             # say nothing about either side.
             fresh_env = SideVecEnv(args.n_envs, cfg, Pool(args.n_envs, [tacklers[-1]], [1.0], args.seed + phase),
                                    side="runner", seed=args.seed + phase + 1000)
-            fresh_model = PPO(policy, fresh_env, seed=args.seed + phase + 1000, **ppo_kw)
+            fresh_model = calibrate(PPO(policy, fresh_env, seed=args.seed + phase + 1000, **ppo_kw), "runner")
             fresh_model.learn(args.phase_steps, callback=floor())
             fresh_path = ck / f"new_offense_g{gen:02d}.zip"
             fresh_model.save(fresh_path)

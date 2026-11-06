@@ -21,12 +21,19 @@ from stable_baselines3 import PPO
 
 from sim.core import OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN
 from sim.team import CARRIER, TeamSim
-from train.policies import policy_for
+from train.policies import action_std, calibrate_sde, policy_for, resample_noise
 from train.run_config import config_from_run
 from train.selfplay import Frozen
 from train.vec_env import SideVecEnv
 
 PPO_KW = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=3e-4, gamma=0.995, gae_lambda=0.95, clip_range=0.2)
+
+
+def start_obs(cfg, side: str, seed: int, n: int = 1024) -> np.ndarray:
+    """Observations at the start of `n` plays, for the given side."""
+    sim = TeamSim(n, cfg, seed=seed)
+    ob = sim.reset()
+    return ob if side == "runner" else sim.observe_tackler()
 
 
 class ShapedTackler(SideVecEnv):
@@ -52,6 +59,8 @@ def measure(runner, tackler, cfg, n: int = 2048, seed: int = 7, deterministic: b
     """Deterministic both ways by default, as the box report does."""
     sim = TeamSim(n, cfg, seed=seed)
     sim.reset()
+    if not deterministic:                  # gSDE: one held noise per play (no-op otherwise)
+        resample_noise(runner.policy, n), resample_noise(tackler.policy, n)
     live = np.ones(n, bool)
     out, yards, end_y, tries = np.zeros(n, np.int8), np.zeros(n), np.zeros(n), np.zeros(n)
     while live.any():
@@ -107,7 +116,11 @@ def main() -> None:
         run_args = __import__("yaml").safe_load((args.run / "config.yaml").read_text())["args"]
         bound = run_args.get("push_bound", "None")     # a new network of the same kind as the run's
         policy, kw = policy_for(None if bound == "None" else float(bound), int(run_args["net"]))
-        model = PPO(policy, venv, seed=args.seed, device="cpu", verbose=0, policy_kwargs=kw, **PPO_KW)
+        sde = run_args.get("sde_freq", "None")
+        sde_kw = {} if sde == "None" else dict(use_sde=True, sde_sample_freq=int(sde))
+        model = PPO(policy, venv, seed=args.seed, device="cpu", verbose=0, policy_kwargs=kw, **PPO_KW, **sde_kw)
+        if sde_kw:                                      # EXP-031: same starting noise as the run's new networks
+            calibrate_sde(model.policy, start_obs(cfg, args.learner, args.seed), float(run_args.get("sde_std", 1.0)))
     else:
         model = PPO.load(str(ck / f"{args.learner}_g{args.init_gen:02d}.zip"), env=venv, device="cpu", **PPO_KW)
     if args.reset_std:
@@ -120,7 +133,7 @@ def main() -> None:
         r, t = (model, opp.model) if args.learner == "runner" else (opp.model, model)
         noisy = measure(r, t, cfg, deterministic=False)
         return {"name": args.name, "steps": done_steps, **measure(r, t, cfg),
-                "td_sto": noisy["td"], "yards_sto": noisy["yards"], "std": float(model.policy.log_std.detach().exp().mean())}
+                "td_sto": noisy["td"], "yards_sto": noisy["yards"], "std": float(action_std(model.policy, start_obs(cfg, args.learner, 1, 256)).mean())}
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as f:

@@ -1,0 +1,60 @@
+
+== 스크립트 블로킹 vs 스크립트 갭 수비: best fixed 8.37 yd, read at snap 9.56 yd, read value +1.19 yd, AI runner 6.27 yd, side switch 0.99
+   all fronts by target -7.5:5.10 -5.0:8.37 -3.2:4.61 -1.9:0.79 -0.7:-0.58 +0.7:-0.59 +1.9:0.68 +3.2:4.54 +5.0:8.22 +7.5:5.10
+   front0 LB 왼쪽      8.6% best +5.00 -> 9.74 yd [ 4.37  6.48  1.99 -0.42 -0.71  0.22  2.25  7.53  9.74  5.48] | AI 5.85 yd, crosses at +4.9, box 18%, left 19%
+   front0 LB 가운데     8.0% best -5.00 -> 9.22 yd [ 5.32  9.22  5.10  0.84 -0.86 -0.47  0.92  5.34  9.15  5.43] | AI 6.71 yd, crosses at -3.6, box 9%, left 54%
+   front0 LB 오른쪽     8.3% best -5.00 -> 9.94 yd [ 5.53  9.94  6.66  1.28 -0.44 -0.47 -0.40  1.47  5.93  4.66] | AI 5.90 yd, crosses at -5.7, box 19%, left 88%
+   front1 LB 왼쪽      8.1% best +5.00 -> 9.85 yd [ 4.71  6.28  1.25 -0.19 -0.44 -0.32  1.23  6.65  9.85  5.50] | AI 5.91 yd, crosses at +5.6, box 15%, left 11%
+   front1 LB 가운데     8.2% best -5.00 -> 9.20 yd [ 5.33  9.20  5.09  1.06 -0.51 -0.67  0.30  4.91  8.75  5.28] | AI 6.53 yd, crosses at +4.1, box 8%, left 45%
+   front1 LB 오른쪽     8.6% best -5.00 -> 9.93 yd [ 5.52  9.93  7.63  2.58  0.32 -0.78 -0.42  2.18  6.18  4.34] | AI 6.21 yd, crosses at -5.0, box 21%, left 86%
+   front2 LB 왼쪽      8.5% best +5.00 -> 9.86 yd [ 4.34  6.46  2.04 -0.36 -0.92 -0.46  1.83  6.76  9.86  5.53] | AI 6.03 yd, crosses at +5.5, box 13%, left 21%
+   front2 LB 가운데     8.0% best -5.00 -> 9.39 yd [ 5.48  9.39  5.86  1.07 -1.03 -1.09  0.86  5.25  9.26  5.49] | AI 6.82 yd, crosses at -3.7, box 8%, left 55%
+   front2 LB 오른쪽     8.6% best -5.00 -> 9.78 yd [ 5.51  9.78  6.54  1.80 -0.35 -0.98 -0.42  2.06  6.52  4.48] | AI 5.76 yd, crosses at -5.3, box 11%, left 81%
+   front3 LB 왼쪽      8.3% best +5.00 -> 9.70 yd [ 4.18  5.47  1.32 -0.75 -1.00 -0.33  2.73  6.98  9.70  5.53] | AI 7.38 yd, crosses at +4.7, box 18%, left 1%
+   front3 LB 가운데     8.0% best +5.00 -> 8.65 yd [ 5.41  8.56  4.91  0.06 -0.74 -0.88  0.25  4.70  8.65  5.49] | AI 4.46 yd, crosses at -2.4, box 32%, left 54%
+   front3 LB 오른쪽     8.7% best -5.00 -> 9.77 yd [ 5.53  9.77  6.77  2.41 -0.29 -0.86 -0.95  0.98  5.38  4.07] | AI 7.60 yd, crosses at -4.8, box 18%, left 99%
+
+== s0 g12: best fixed 6.73 yd, read at snap 7.10 yd, read value +0.37 yd, AI runner 5.58 yd, side switch 0.00
+   all fronts by target -7.5:1.57 -5.0:1.15 -3.2:4.62 -1.9:6.73 -0.7:5.66 +0.7:2.01 +1.9:0.81 +3.2:3.66 +5.0:1.84 +7.5:1.53
+   front0 LB 왼쪽      8.6% best -3.20 -> 9.75 yd [ 1.12  1.18  9.75  9.31  6.36  3.80  1.38  1.16  2.16  2.19] | AI 3.47 yd, crosses at -8.0, box 0%, left 100%
+   front0 LB 가운데     8.0% best -1.95 -> 9.16 yd [ 3.21  0.93  9.01  9.16  6.20  4.08  0.76  3.49  2.58  1.92] | AI 7.05 yd, crosses at -7.9, box 0%, left 100%
+   front0 LB 오른쪽     8.3% best -1.95 -> 7.98 yd [ 3.76  1.08  7.20  7.98  7.23  3.41  0.68  4.22  3.18  2.32] | AI 8.36 yd, crosses at -7.3, box 0%, left 100%
+   front1 LB 왼쪽      8.1% best -1.95 -> 5.32 yd [-0.76  0.22  1.83  5.32  4.77  2.65  0.71  4.61  1.94  0.20] | AI 4.05 yd, crosses at -7.0, box 0%, left 100%
+   front1 LB 가운데     8.2% best +3.20 -> 4.99 yd [-0.32  0.60  0.54  3.32  4.11  2.64  0.25  4.99  0.95  0.47] | AI 3.70 yd, crosses at -6.5, box 0%, left 100%
+   front1 LB 오른쪽     8.6% best +3.20 -> 4.62 yd [ 0.08  0.89  1.03  2.42  3.97  3.01  0.09  4.62  0.16  0.62] | AI 3.71 yd, crosses at -6.5, box 0%, left 100%
+   front2 LB 왼쪽      8.5% best -1.95 -> 8.72 yd [ 0.18  0.54  8.01  8.72  7.20  0.39  0.57  2.84  2.29  1.57] | AI 4.70 yd, crosses at -7.4, box 0%, left 100%
+   front2 LB 가운데     8.0% best -1.95 -> 8.90 yd [ 2.64  0.61  7.68  8.90  6.70  1.12  0.40  3.86  1.52  1.12] | AI 6.43 yd, crosses at -7.5, box 0%, left 100%
+   front2 LB 오른쪽     8.6% best -1.95 -> 7.63 yd [ 2.96  0.72  5.50  7.63  6.21  1.78  0.73  4.82  2.25  1.31] | AI 6.91 yd, crosses at -7.2, box 0%, left 100%
+   front3 LB 왼쪽      8.3% best -1.95 -> 6.12 yd [ 1.51  1.69  1.21  6.12  5.85  0.71  1.23  3.67  1.78  2.37] | AI 6.32 yd, crosses at -7.5, box 0%, left 100%
+   front3 LB 가운데     8.0% best -1.95 -> 5.75 yd [ 2.01  2.48  1.19  5.75  4.66 -0.02  1.81  3.64  1.41  1.99] | AI 6.43 yd, crosses at -7.2, box 0%, left 100%
+   front3 LB 오른쪽     8.7% best -1.95 -> 6.26 yd [ 2.54  2.80  2.46  6.26  4.71  0.56  1.14  2.13  1.93  2.26] | AI 6.03 yd, crosses at -7.1, box 0%, left 100%
+
+== s1 g12: best fixed 4.24 yd, read at snap 5.40 yd, read value +1.16 yd, AI runner 2.61 yd, side switch 0.00
+   all fronts by target -7.5:0.99 -5.0:2.28 -3.2:4.00 -1.9:4.24 -0.7:2.41 +0.7:2.13 +1.9:3.46 +3.2:1.30 +5.0:2.26 +7.5:1.18
+   front0 LB 왼쪽      8.6% best -1.95 -> 5.60 yd [ 0.66  0.82  2.73  5.60  4.62  2.69  0.17  1.39  0.89  1.23] | AI 2.35 yd, crosses at +5.3, box 4%, left 0%
+   front0 LB 가운데     8.0% best -1.95 -> 5.02 yd [ 1.52  1.51  2.39  5.02  4.30  2.72  0.42  1.98  0.75  1.21] | AI 1.83 yd, crosses at +4.7, box 9%, left 0%
+   front0 LB 오른쪽     8.3% best -0.65 -> 4.62 yd [ 2.05  2.20  2.06  4.58  4.62  3.04  0.46  1.73  1.56  0.59] | AI 0.95 yd, crosses at +5.0, box 8%, left 0%
+   front1 LB 왼쪽      8.1% best -3.20 -> 6.47 yd [-0.35  3.89  6.47  2.73  0.63  3.25  5.40  1.16  2.07  1.39] | AI 4.07 yd, crosses at +6.1, box 0%, left 0%
+   front1 LB 가운데     8.2% best -3.20 -> 6.91 yd [ 0.04  4.04  6.91  3.38  1.51  2.94  5.03  1.09  3.74  1.91] | AI 3.83 yd, crosses at +5.2, box 2%, left 0%
+   front1 LB 오른쪽     8.6% best -3.20 -> 7.58 yd [ 0.36  3.28  7.58  3.81  1.17  3.02  5.00  1.20  3.14  1.18] | AI 2.43 yd, crosses at +5.0, box 2%, left 0%
+   front2 LB 왼쪽      8.5% best +1.95 -> 4.92 yd [-0.18  1.17  3.83  3.53  1.04  1.22  4.92  0.83  2.63  1.48] | AI 3.89 yd, crosses at +5.7, box 4%, left 0%
+   front2 LB 가운데     8.0% best +1.95 -> 4.88 yd [ 0.52  1.76  4.29  3.69  1.74  1.78  4.88  1.37  2.14  1.07] | AI 2.78 yd, crosses at +5.0, box 7%, left 0%
+   front2 LB 오른쪽     8.6% best +1.95 -> 4.36 yd [ 1.43  2.31  3.97  3.95  2.29  1.83  4.36  1.24  2.97  1.86] | AI 2.05 yd, crosses at +4.9, box 10%, left 0%
+   front3 LB 왼쪽      8.3% best -1.95 -> 4.57 yd [ 1.52  2.14  2.52  4.57  2.57  0.91  3.89  1.31  1.73  0.87] | AI 3.12 yd, crosses at +6.5, box 1%, left 0%
+   front3 LB 가운데     8.0% best -1.95 -> 4.89 yd [ 1.93  2.42  2.59  4.89  2.44  1.22  4.22  1.10  2.62  0.57] | AI 2.37 yd, crosses at +5.7, box 1%, left 0%
+   front3 LB 오른쪽     8.7% best -1.95 -> 5.03 yd [ 2.34  1.86  2.68  5.03  2.00  0.97  2.92  1.23  2.81  0.76] | AI 1.69 yd, crosses at +5.3, box 2%, left 0%
+
+== s2 g12: best fixed 4.83 yd, read at snap 6.56 yd, read value +1.73 yd, AI runner 4.66 yd, side switch 0.00
+   all fronts by target -7.5:1.46 -5.0:2.69 -3.2:4.22 -1.9:2.59 -0.7:1.26 +0.7:2.69 +1.9:4.83 +3.2:3.67 +5.0:2.92 +7.5:1.95
+   front0 LB 왼쪽      8.6% best -3.20 -> 9.17 yd [ 0.68  4.37  9.17  7.84  3.14  0.88  1.86  1.12  2.03  0.23] | AI 3.48 yd, crosses at +6.6, box 0%, left 0%
+   front0 LB 가운데     8.0% best -3.20 -> 8.78 yd [ 1.07  4.85  8.78  8.47  3.76  1.03  2.21  1.42  2.06  0.38] | AI 2.61 yd, crosses at +6.7, box 0%, left 0%
+   front0 LB 오른쪽     8.3% best -1.95 -> 8.82 yd [ 1.99  3.98  7.07  8.82  3.82  0.61  2.33  1.94  1.85  0.39] | AI 2.83 yd, crosses at +6.8, box 0%, left 0%
+   front1 LB 왼쪽      8.1% best +1.95 -> 8.37 yd [ 0.57  3.37  3.83  2.63  1.09  5.51  8.37  5.66  3.71  4.31] | AI 7.22 yd, crosses at +6.9, box 0%, left 0%
+   front1 LB 가운데     8.2% best +1.95 -> 7.72 yd [ 0.76  2.70  3.35  1.69  0.14  5.97  7.72  6.12  3.66  3.82] | AI 6.92 yd, crosses at +5.5, box 0%, left 0%
+   front1 LB 오른쪽     8.6% best +3.20 -> 5.63 yd [ 2.32  1.24  1.42 -0.31 -0.20  4.56  4.92  5.63  4.91  2.83] | AI 5.03 yd, crosses at +5.1, box 0%, left 0%
+   front2 LB 왼쪽      8.5% best +1.95 -> 6.88 yd [ 0.39  3.38  4.73  0.72  0.01  2.55  6.88  5.58  3.09  3.68] | AI 7.34 yd, crosses at +7.1, box 0%, left 0%
+   front2 LB 가운데     8.0% best +1.95 -> 6.17 yd [ 0.36  1.80  3.32  0.13  0.04  1.74  6.17  5.85  3.63  2.66] | AI 5.57 yd, crosses at +5.6, box 0%, left 0%
+   front2 LB 오른쪽     8.6% best +1.95 -> 5.99 yd [ 2.02  1.17  1.73  0.01  0.95  2.63  5.99  5.85  4.00  2.15] | AI 4.75 yd, crosses at +5.3, box 0%, left 0%
+   front3 LB 왼쪽      8.3% best +1.95 -> 3.99 yd [ 1.74  2.24  2.24  0.04  0.70  2.63  3.99  0.93  1.47  1.10] | AI 3.96 yd, crosses at +6.1, box 0%, left 0%
+   front3 LB 가운데     8.0% best +1.95 -> 4.29 yd [ 2.12  1.69  2.33  0.15  0.81  2.69  4.29  2.05  2.39  0.83] | AI 3.25 yd, crosses at +5.8, box 0%, left 0%
+   front3 LB 오른쪽     8.7% best -7.50 -> 3.42 yd [ 3.42  1.58  2.70  0.98  0.91  1.56  3.41  1.95  2.25  1.05] | AI 2.97 yd, crosses at +6.2, box 0%, left 0%

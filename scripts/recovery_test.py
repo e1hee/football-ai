@@ -66,6 +66,13 @@ def measure(runner, tackler, cfg, n: int = 2048, seed: int = 7, deterministic: b
             "timeout": float((out == OUTCOME_TIMEOUT).mean())}
 
 
+def reset_head(model: PPO) -> None:
+    """The action layer as SB3 builds it for a new policy: orthogonal, gain 0.01, zero bias."""
+    with torch.no_grad():
+        torch.nn.init.orthogonal_(model.policy.action_net.weight, gain=0.01)
+        model.policy.action_net.bias.zero_()
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--name", required=True)
@@ -79,7 +86,10 @@ def main() -> None:
     p.add_argument("--threads", type=int, default=2)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--reset-std", action="store_true", help="keep the weights, put exploration noise back to std 1")
+    p.add_argument("--reset-head", action="store_true",
+                   help="keep the hidden layers, start the action layer again as a new network does (EXP-029)")
     p.add_argument("--save", type=Path, default=None, help="save the final policy here")
+    p.add_argument("--save-each", action="store_true", help="also save <save>_<steps>.zip after every --every steps")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args()
 
@@ -100,6 +110,8 @@ def main() -> None:
     if args.reset_std:
         with torch.no_grad():
             model.policy.log_std.zero_()
+    if args.reset_head:
+        reset_head(model)
 
     def row(done_steps: int) -> dict:
         r, t = (model, opp.model) if args.learner == "runner" else (opp.model, model)
@@ -113,6 +125,8 @@ def main() -> None:
         f.flush()
         for done_steps in range(args.every, args.steps + 1, args.every):
             model.learn(args.every, reset_num_timesteps=False)
+            if args.save and args.save_each:
+                model.save(args.save.with_name(f"{args.save.stem}_{done_steps // 1000}k.zip"))
             f.write(json.dumps(row(done_steps)) + "\n")
             f.flush()
     if args.save:

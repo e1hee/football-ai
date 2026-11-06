@@ -110,3 +110,16 @@ def test_a_young_offense_is_not_replaced():
     assert not may_replace(9.0, 3.0, 1.0, age=9, min_age=4, last_phase=True)
     assert not may_replace(3.5, 3.0, 1.0, age=9, min_age=0, last_phase=False)
     assert may_replace(4.0, 3.0, 1.0, age=1, min_age=0, last_phase=False)     # EXP-027 behaviour
+
+
+def test_reset_head_keeps_the_hidden_layers():
+    from stable_baselines3 import PPO
+    from scripts.recovery_test import reset_head
+    model = PPO("MlpPolicy", "Pendulum-v1", device="cpu", seed=0, n_steps=64, batch_size=64)
+    with __import__("torch").no_grad():
+        model.policy.action_net.weight.fill_(1.0)
+    hidden = [p.clone() for p in model.policy.mlp_extractor.parameters()]
+    reset_head(model)
+    w = model.policy.action_net.weight
+    assert w.abs().max() < 0.05 and float(model.policy.action_net.bias.abs().max()) == 0.0
+    assert all((a == b).all() for a, b in zip(hidden, model.policy.mlp_extractor.parameters()))

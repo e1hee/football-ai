@@ -355,41 +355,68 @@ def overload_defense(sim: TeamSim, commit: float = 2.5, spot: float = 5.0, who: 
     return a.reshape(sim.n, -1)
 
 
-def flow_side(sim: TeamSim, read_at: float = 1.0) -> np.ndarray:
+def flow_side(sim: TeamSim, read_at: float = 1.0, min_lean: float = 0.0) -> np.ndarray:
     """+1 / -1 / 0 per play: the side away from where the defense has moved since the snap
-    (mean y of all defenders, as the offense perceives them), decided at `read_at` s and kept;
-    0 until then."""
+    (mean y of all defenders, as the offense perceives them), decided once at `read_at` s and
+    kept; 0 before that, and for good if the defense had moved less than `min_lean` yd."""
     pos, _, _ = sim.perceived("offense")
     y = pos[:, sim.dfn, 1].mean(axis=1)
     if getattr(sim, "_flow_y0", None) is None or sim._flow_y0.shape != (sim.n,):
         sim._flow_y0 = y.copy()
         sim._flow_side = np.zeros(sim.n, np.float32)
+        sim._flow_done = np.zeros(sim.n, bool)
     new = sim.t == 0
     sim._flow_y0[new] = y[new]
     sim._flow_side[new] = 0.0
-    decide = (sim._flow_side == 0) & (sim.t * sim.cfg.field.dt >= read_at)
-    sim._flow_side[decide] = np.where(y[decide] >= sim._flow_y0[decide], -1.0, 1.0)
+    sim._flow_done[new] = False
+    decide = ~sim._flow_done & (sim.t * sim.cfg.field.dt >= read_at)
+    dy = y - sim._flow_y0
+    sim._flow_side[decide] = np.where(np.abs(dy[decide]) >= min_lean, np.where(dy[decide] >= 0, -1.0, 1.0), 0.0)
+    sim._flow_done |= decide
     return sim._flow_side
 
 
-def flow_offense(sim: TeamSim, read_at: float = 1.0, aim: float = 5.0, climb_depth: float = 2.5) -> np.ndarray:
-    """Reads the defense's flow (EXP-036): the RB drifts toward the middle of the line until
-    `read_at` s, then aims `aim` yd to the side away from where the defense has moved since the
-    snap, and runs straight once past the line. Blockers as `box_offense`. A defense that floods
-    one side loses to it; one that leans one way and comes back fools it."""
-    pos, _, _ = sim.perceived("offense")
+def flow_cut(sim: TeamSim, side: np.ndarray, aim: float = 5.0) -> np.ndarray:
+    """The carrier's push (N, 2): toward the line `aim` yd to `side` of the middle, straight
+    upfield once past it."""
     n, mid = sim.n, sim.cfg.field.width / 2
-    side = flow_side(sim, read_at)
     me, my_v = sim.pos[:, CARRIER], sim.vel[:, CARRIER]
-    wait = _unit(np.stack([sim.los - 2.0 - me[:, 0], mid - me[:, 1]], 1)) * 0.5
     go = _unit(np.stack([sim.los + 1.0 - me[:, 0], mid + side * aim - me[:, 1]], 1))
     run = np.stack([np.full(n, 10.0), np.zeros(n)], 1) - my_v
     run /= np.maximum(np.linalg.norm(run, axis=-1, keepdims=True), 1.0)
-    through = me[:, 0] >= sim.los
+    return np.where((me[:, 0] >= sim.los)[:, None], run, go).astype(np.float32)
+
+
+def flow_offense(sim: TeamSim, read_at: float = 1.0, aim: float = 5.0, climb_depth: float = 2.5,
+                 with_flow: bool = False) -> np.ndarray:
+    """Reads the defense's flow (EXP-036): the RB drifts toward the middle of the line until
+    `read_at` s, then aims `aim` yd to the side away from where the defense has moved since the
+    snap, and runs straight once past the line. Blockers as `box_offense`. A defense that floods
+    one side loses to it; one that leans one way and comes back fools it. `with_flow`: go the
+    side the defense moved to instead (the opposite read, to tell what reading is worth)."""
+    pos, _, _ = sim.perceived("offense")
+    n, mid = sim.n, sim.cfg.field.width / 2
+    side = flow_side(sim, read_at) * (-1.0 if with_flow else 1.0)
+    me = sim.pos[:, CARRIER]
+    wait = _unit(np.stack([sim.los - 2.0 - me[:, 0], mid - me[:, 1]], 1)) * 0.5
     a = np.zeros((n, sim.n_off, 3), np.float32)
-    a[:, CARRIER, :2] = np.where(through[:, None], run, np.where((side == 0)[:, None], wait, go))
+    a[:, CARRIER, :2] = np.where((side == 0)[:, None] & (me[:, 0] < sim.los)[:, None], wait, flow_cut(sim, side, aim))
     a[:, sim.blk] = box_blockers(sim, pos, climb_depth)
     return a.reshape(n, -1)
+
+
+def with_flow_read(offense, read_at: float = 1.0, min_lean: float = 0.5, aim: float = 5.0, with_flow: bool = False):
+    """Any offense `fn(sim) -> (N, act)` whose RB cuts away from the defense's flow when the
+    defense has moved at least `min_lean` yd by `read_at` s, and otherwise runs as it would
+    (EXP-036). A defense can steer it by leaning on purpose: a bait."""
+    def act(sim: TeamSim) -> np.ndarray:
+        a = np.asarray(offense(sim), np.float32).reshape(sim.n, sim.n_off, 3).copy()
+        side = flow_side(sim, read_at, min_lean) * (-1.0 if with_flow else 1.0)
+        cut = (side != 0) & (sim.pos[:, CARRIER, 0] < sim.los + 30.0)
+        a[cut, CARRIER, :2] = flow_cut(sim, side, aim)[cut]
+        a[cut, CARRIER, 2] = 0.0
+        return a.reshape(sim.n, -1)
+    return act
 
 
 OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense,

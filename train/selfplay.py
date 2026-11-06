@@ -33,7 +33,7 @@ from sim.core import OneVOneSim
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
 from sim.team import SIMS, TeamSim
 from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, overload_defense, pursuit_defense,
-                                read_defense, screen_offense)
+                                read_defense, screen_offense, with_flow_read)
 from train.evaluate import evaluate
 from train.mirror import mirror_action, mirror_obs
 from train.policies import calibrate_sde, policy_for, resample_noise, reset_head
@@ -137,7 +137,8 @@ class Pool:
 
 def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
               scripted_share: float | None = None, skip_untrained: bool = False, mirror_share: float = 0.0,
-              extra: list | None = None, extra_share: float = 0.0) -> Pool:
+              extra: list | None = None, extra_share: float = 0.0, more: list | None = None,
+              more_share: float = 0.0) -> Pool:
     """`scripted_share=None`: EXP-003 behaviour, the scripted opponent shares the
     leftover with the history (its weight shrinks as generations pile up).
     A number keeps it fixed, so learners never forget how to handle it.
@@ -145,7 +146,8 @@ def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 
     useful (EXP-006: a runner that barely moves taught tacklers to flee), so it is
     left out, and with no trained opponent yet the pool is all scripted.
     `extra`: more opponents sharing `extra_share` evenly, taken from the newest opponent's share
-    (EXP-027). Only with a fixed `scripted_share`, and not while the pool is all scripted."""
+    (EXP-027). Only with a fixed `scripted_share`, and not while the pool is all scripted.
+    `more`: another group sharing `more_share` the same way (EXP-036)."""
     if skip_untrained:
         history = history[1:]
         if not history:
@@ -158,8 +160,10 @@ def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 
         return Pool(n, [history[-1], *older, scripted], [latest_share, *[rest] * len(older), rest], seed, mirror_share)
     older = history[:-1]
     extra = extra or []
-    cut = extra_share if extra else 0.0
-    tail = [extra_share / len(extra)] * len(extra) if extra else []
+    more = more or []
+    cut = (extra_share if extra else 0.0) + (more_share if more else 0.0)
+    tail = ([extra_share / len(extra)] * len(extra) if extra else []) + ([more_share / len(more)] * len(more) if more else [])
+    extra = extra + more
     if not older:
         return Pool(n, [history[-1], scripted, *extra], [1 - scripted_share - cut, scripted_share, *tail], seed, mirror_share)
     rest = (1 - latest_share - scripted_share) / len(older)
@@ -237,6 +241,11 @@ def main() -> None:
                         "LBs' side (sim.team_policies.overload_defense), taken from the newest defense's share, EXP-034")
     p.add_argument("--overload-commit", type=float, default=2.5,
                    help="s the overload defense floods before it plays its gap (EXP-035)")
+    p.add_argument("--bait-share", type=float, default=0.0,
+                   help="box-mix: share of the defense's plays against the newest offense with a flow read "
+                        "(sim.team_policies.with_flow_read), taken from the newest offense's share, EXP-036")
+    p.add_argument("--bait-min-lean", type=float, default=0.5,
+                   help="yd the defense must have moved by 1 s for that offense to cut away from it")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -313,7 +322,10 @@ def main() -> None:
                                                               skip_untrained=args.runner_init is None,
                                                               mirror_share=args.mirror_share,
                                                               extra=replaced[-3:] + new_offenses[-3:],
-                                                              extra_share=args.new_offense_share),
+                                                              extra_share=args.new_offense_share,
+                                                              more=[with_flow_read(runners[-1], min_lean=args.bait_min_lean)]
+                                                              if args.bait_share and len(runners) > 1 else None,
+                                                              more_share=args.bait_share),
                               side="tackler", seed=args.seed + phase)
             tackler_model.set_env(venv)
             tackler_model.learn(args.phase_steps, reset_num_timesteps=False, tb_log_name="tackler", callback=floor())
@@ -398,6 +410,9 @@ def main() -> None:
             "td_scripted_runner_vs_tackler": t_vs_script["rate/touchdown"],
             "new_offense_yards": new_yards, "main_yards": main_yards, "replaced": int(swapped),
         }
+        if args.bait_share:
+            bait = with_flow_read(lambda sim: det(r_new)(sim), min_lean=args.bait_min_lean)
+            row["yards_bait_reader_vs_tackler"] = evaluate(lambda sim, *a: bait(sim), det(t_new), cfg, n_plays=2048)["yards/mean"]
         if args.overload_share:
             row["yards_runner_vs_overload"] = evaluate(det(r_new), overload, cfg, n_plays=2048)["yards/mean"]
         if writer is None:

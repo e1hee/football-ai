@@ -607,3 +607,32 @@ def test_overload_defense_floods_the_lb_side_and_a_reader_beats_it():
     away = run(dumb_runner(off, lambda s: mid - strong_side(s) * 5.0), dfn, cfg, 512, 3)["yards"].mean()
     toward = run(dumb_runner(off, lambda s: mid + strong_side(s) * 5.0), dfn, cfg, 512, 3)["yards"].mean()
     assert away > toward + 4.0
+
+
+def test_flow_read_cuts_away_from_a_lean_only_past_the_threshold():
+    from sim.team_policies import box_offense, flow_side, overload_defense, with_flow_read, gap_defense
+    cfg = box_config(mix=True, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
+                     field=FieldConfig(reaction_delay=2))
+    for dfn, cuts in ((overload_defense, True), (gap_defense, None)):
+        sim = TeamSim(256, cfg, seed=4)
+        sim.reset()
+        off = with_flow_read(box_offense, read_at=1.0, min_lean=0.5)
+        y0 = sim.pos[:, sim.dfn, 1].mean(axis=1).copy()
+        for _ in range(11):
+            sim.step(off(sim), dfn(sim))
+        side = sim._flow_side
+        assert sim._flow_done.all()
+        if cuts:   # the flood moves everyone well past 0.5 yd: every play cuts, away from it
+            moved = sim.pos[:, sim.dfn, 1].mean(axis=1) - y0
+            assert (side != 0).all() and (np.sign(side) == -np.sign(moved)).mean() > 0.95
+    assert flow_side is not None
+
+
+def test_make_pool_gives_the_second_group_its_share():
+    from train.selfplay import make_pool
+    hist = ["g0", "g1", "g2"]
+    pool = make_pool(10000, hist, "script", 0, scripted_share=0.3, extra=["n1", "n2"], extra_share=0.2,
+                     more=["bait"], more_share=0.3)
+    share = {name: float(m.mean()) for name, m in zip(pool.opponents, pool.masks)}
+    assert abs(share["bait"] - 0.3) < 0.02 and abs(share["n1"] - 0.1) < 0.02
+    assert abs(share["g2"] - 0.1) < 0.02 and abs(share["script"] - 0.3) < 0.02

@@ -1,0 +1,6 @@
+s0 g06 vs AI       | flow reader  1.92 yd, with the flow  2.41 -> flow value -0.49 | AI runner  5.22 | lean at 1.0s 0.21 yd | AI+read  5.22 yd, cuts   0%, cut value +nan
+s0 g06 vs overload | flow reader 10.00 yd, with the flow  4.27 -> flow value +5.73 | AI runner 10.00 | lean at 1.0s 1.16 yd | AI+read 10.00 yd, cuts  81%, cut value +7.90
+s1 g06 vs AI       | flow reader  2.07 yd, with the flow  0.71 -> flow value +1.36 | AI runner  6.27 | lean at 1.0s 0.39 yd | AI+read  6.27 yd, cuts   0%, cut value +nan
+s1 g06 vs overload | flow reader 10.00 yd, with the flow  4.11 -> flow value +5.89 | AI runner  9.98 | lean at 1.0s 1.15 yd | AI+read  9.99 yd, cuts  77%, cut value +7.58
+s2 g06 vs AI       | flow reader  1.14 yd, with the flow  1.32 -> flow value -0.18 | AI runner  4.91 | lean at 1.0s 0.26 yd | AI+read  4.91 yd, cuts   0%, cut value +nan
+s2 g06 vs overload | flow reader  9.99 yd, with the flow  3.67 -> flow value +6.32 | AI runner  9.99 | lean at 1.0s 1.14 yd | AI+read  9.99 yd, cuts  79%, cut value +8.15

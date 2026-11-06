@@ -117,6 +117,8 @@ class Pool:
                 if opp.side not in obs:
                     obs[opp.side] = opp.observe(sim)
                 acts[k] = self._frozen_act(opp, obs[opp.side][m], m)
+            elif getattr(opp, "mirrors", False):
+                acts[k] = opp(sim, self.flip)[m]
             else:
                 acts[k] = opp(sim)[m]
         out = np.zeros((sim.n, max(a.shape[1] for a in acts.values())), np.float32)
@@ -133,6 +135,28 @@ class Pool:
         a = opp.act(ob).copy()
         a[fl] = mirror_action(a[fl], opp.side)
         return a
+
+
+class FlowReader:
+    """A frozen offense with a flow read (`with_flow_read`) in a defense's pool, flipped left-right
+    on the pool's mirrored slots like any frozen opponent. EXP-036 left it unflipped, so 30% of
+    the defense's plays came from the offense's usual side and the defense flooded that side."""
+    mirrors = True
+
+    def __init__(self, frozen: Frozen, min_lean: float):
+        self.frozen, self.min_lean = frozen, min_lean
+
+    def __call__(self, sim, flip: np.ndarray | None = None) -> np.ndarray:
+        def base(s):
+            ob = self.frozen.observe(s)
+            if flip is None or not flip.any():
+                return self.frozen.act(ob)
+            ob = ob.copy()
+            ob[flip] = mirror_obs(ob[flip], "runner")
+            a = self.frozen.act(ob).copy()
+            a[flip] = mirror_action(a[flip], "runner")
+            return a
+        return with_flow_read(base, min_lean=self.min_lean)(sim)
 
 
 def make_pool(n: int, history: list, scripted, seed: int, latest_share: float = 0.6,
@@ -246,6 +270,8 @@ def main() -> None:
                         "(sim.team_policies.with_flow_read), taken from the newest offense's share, EXP-036")
     p.add_argument("--bait-min-lean", type=float, default=0.5,
                    help="yd the defense must have moved by 1 s for that offense to cut away from it")
+    p.add_argument("--bait-mirror", action="store_true",
+                   help="flip that offense on the pool's mirrored slots too (EXP-037; EXP-036 did not)")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -323,7 +349,8 @@ def main() -> None:
                                                               mirror_share=args.mirror_share,
                                                               extra=replaced[-3:] + new_offenses[-3:],
                                                               extra_share=args.new_offense_share,
-                                                              more=[with_flow_read(runners[-1], min_lean=args.bait_min_lean)]
+                                                              more=[FlowReader(runners[-1], args.bait_min_lean) if args.bait_mirror
+                                                                    else with_flow_read(runners[-1], min_lean=args.bait_min_lean)]
                                                               if args.bait_share and len(runners) > 1 else None,
                                                               more_share=args.bait_share),
                               side="tackler", seed=args.seed + phase)

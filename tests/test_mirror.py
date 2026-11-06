@@ -189,3 +189,31 @@ def test_to_sde_keeps_the_trained_mean(tmp_path):
     new = to_sde(old, old.get_env(), argparse.Namespace(seed=0, sde_freq=-1, sde_std=0.3), obs)
     assert new.use_sde and np.allclose(new.predict(obs, deterministic=True)[0], old.predict(obs, deterministic=True)[0])
     assert abs(float(action_std(new.policy, obs).mean()) - 0.3) < 1e-4
+
+
+def test_flow_reader_in_a_pool_is_flipped_on_mirrored_slots(tmp_path):
+    """EXP-037: on a mirrored slot the flow reader acts as its frozen offense flipped left-right,
+    until the flow read cuts."""
+    import numpy as np
+    from stable_baselines3 import PPO
+    from sim.core import FieldConfig
+    from train.mirror import mirror_action, mirror_obs
+    from train.selfplay import FlowReader, Frozen, Pool
+    from train.vec_env import SideVecEnv
+    from sim.team_policies import gap_defense
+    cfg = box_config(mix=True, field=FieldConfig(reaction_delay=2))
+    env = SideVecEnv(8, cfg, gap_defense, side="runner", seed=0)
+    path = tmp_path / "r.zip"
+    PPO("MlpPolicy", env, seed=0, device="cpu", policy_kwargs={"net_arch": [16]}).save(path)
+    fr = Frozen(path, "runner")
+    fr.model.policy.log_std.data.fill_(-20.0)      # near-deterministic, to compare actions
+    pool = Pool(64, [FlowReader(fr, min_lean=9.0)], [1.0], seed=1, mirror_share=0.5)
+    sim = TeamSim(64, cfg, seed=2)
+    sim.reset()
+    got = pool(sim)
+    ob = sim.observe()
+    plain = fr.model.predict(ob, deterministic=True)[0]
+    flipped = mirror_action(fr.model.predict(mirror_obs(ob, "runner"), deterministic=True)[0], "runner")
+    f = pool.flip
+    assert f.any() and (~f).any()
+    assert np.allclose(got[~f], plain[~f], atol=1e-3) and np.allclose(got[f], flipped[f], atol=1e-3)

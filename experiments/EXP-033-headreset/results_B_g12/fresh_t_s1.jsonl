@@ -1,0 +1,2 @@
+{"name": "fresh_t_s1", "steps": 0, "td": 0.99658203125, "yards": 9.985191970132291, "end_right": 0.0, "any_try": 0.0068359375, "timeout": 0.0, "td_sto": 0.8076171875, "yards_sto": 8.551562583073974, "end_right_sto": 0.0, "std": 1.0}
+{"name": "fresh_t_s1", "steps": 2000000, "td": 0.15380859375, "yards": 0.6059033670462668, "end_right": 0.0, "any_try": 0.9541015625, "timeout": 0.00927734375, "td_sto": 0.25830078125, "yards_sto": 1.889219043776393, "end_right_sto": 0.0, "std": 0.9443480372428894}

@@ -1,0 +1,36 @@
+[phase  0 tackler learned] R00 vs T01: TD 0.0% oob 0.0% yd -7.8 | R vs scripted T 0.0% | champion R vs T 0.0% | scripted R vs T 37.1% | 154s
+[phase  1  runner learned] R01 vs T01: TD 91.3% oob 0.1% yd 9.0 | R vs scripted T 93.0% | champion R vs T 0.0% | scripted R vs T 37.1% | 447s
+[phase  2 tackler learned] R01 vs T02: TD 48.6% oob 2.5% yd 5.0 | R vs scripted T 93.0% | champion R vs T 0.0% | scripted R vs T 32.0% | 603s
+[phase  3] offense action layer reset before generation 2
+[phase  3  runner learned] R02 vs T02: TD 78.3% oob 0.1% yd 7.5 | R vs scripted T 96.2% | champion R vs T 0.0% | scripted R vs T 32.0% | 897s
+[phase  4 tackler learned] R02 vs T03: TD 45.1% oob 4.1% yd 3.7 | R vs scripted T 96.2% | champion R vs T 0.0% | scripted R vs T 24.3% | 1058s
+[phase  5] offense action layer reset before generation 3
+[phase  5  runner learned] R03 vs T03: TD 92.6% oob 0.0% yd 9.1 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 24.3% | 1352s
+[phase  6 tackler learned] R03 vs T04: TD 24.6% oob 0.0% yd 1.0 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 24.4% | 1514s
+[phase  7] offense action layer reset before generation 4
+[phase  7  runner learned] R04 vs T04: TD 86.3% oob 1.6% yd 8.4 | R vs scripted T 99.4% | champion R vs T 0.0% | scripted R vs T 24.4% | 1810s
+[phase  8 tackler learned] R04 vs T05: TD 21.2% oob 18.4% yd 1.6 | R vs scripted T 99.4% | champion R vs T 0.0% | scripted R vs T 23.1% | 1974s
+[phase  9] offense action layer reset before generation 5
+[phase  9  runner learned] R05 vs T05: TD 37.4% oob 1.6% yd 4.0 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 23.1% | 2274s
+[phase 10 tackler learned] R05 vs T06: TD 26.7% oob 2.3% yd 2.3 | R vs scripted T 99.2% | champion R vs T 0.0% | scripted R vs T 15.1% | 2439s
+[phase 11] offense action layer reset before generation 6
+[phase 11  runner learned] R06 vs T06: TD 59.4% oob 8.5% yd 6.2 | R vs scripted T 98.7% | champion R vs T 0.0% | scripted R vs T 15.1% | 2739s
+[phase 12 tackler learned] R06 vs T07: TD 18.8% oob 17.8% yd 0.3 | R vs scripted T 98.7% | champion R vs T 0.0% | scripted R vs T 13.0% | 2904s
+[phase 13] offense action layer reset before generation 7
+[phase 13  runner learned] R07 vs T07: TD 28.0% oob 0.0% yd 3.0 | R vs scripted T 98.3% | champion R vs T 0.0% | scripted R vs T 13.0% | 3203s
+[phase 14 tackler learned] R07 vs T08: TD 16.6% oob 0.0% yd 0.8 | R vs scripted T 98.3% | champion R vs T 0.0% | scripted R vs T 13.8% | 3371s
+[phase 15] offense action layer reset before generation 8
+[phase 15  runner learned] R08 vs T08: TD 90.1% oob 1.9% yd 8.8 | R vs scripted T 99.0% | champion R vs T 0.0% | scripted R vs T 13.8% | 3671s
+[phase 16 tackler learned] R08 vs T09: TD 34.6% oob 17.2% yd 2.2 | R vs scripted T 99.0% | champion R vs T 0.0% | scripted R vs T 10.0% | 3837s
+[phase 17] offense action layer reset before generation 9
+[phase 17  runner learned] R09 vs T09: TD 31.3% oob 5.3% yd 2.7 | R vs scripted T 99.1% | champion R vs T 0.0% | scripted R vs T 10.0% | 4137s
+[phase 18 tackler learned] R09 vs T10: TD 33.0% oob 5.4% yd 2.4 | R vs scripted T 99.1% | champion R vs T 0.0% | scripted R vs T 10.8% | 4304s
+[phase 19] offense action layer reset before generation 10
+[phase 19  runner learned] R10 vs T10: TD 41.7% oob 5.6% yd 3.7 | R vs scripted T 98.8% | champion R vs T 0.0% | scripted R vs T 10.8% | 4606s
+[phase 20 tackler learned] R10 vs T11: TD 21.5% oob 9.2% yd 0.7 | R vs scripted T 98.8% | champion R vs T 0.0% | scripted R vs T 9.0% | 4774s
+[phase 21] offense action layer reset before generation 11
+[phase 21  runner learned] R11 vs T11: TD 30.8% oob 6.1% yd 2.5 | R vs scripted T 99.1% | champion R vs T 0.0% | scripted R vs T 9.0% | 5074s
+[phase 22 tackler learned] R11 vs T12: TD 21.6% oob 10.4% yd 1.9 | R vs scripted T 99.1% | champion R vs T 0.0% | scripted R vs T 10.3% | 5242s
+[phase 23] offense action layer reset before generation 12
+[phase 23  runner learned] R12 vs T12: TD 41.4% oob 8.0% yd 3.0 | R vs scripted T 98.6% | champion R vs T 0.0% | scripted R vs T 10.3% | 5542s
+done in 92.4 min

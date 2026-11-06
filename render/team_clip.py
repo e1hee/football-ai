@@ -27,7 +27,7 @@ from .frames import (BALL, RUNNER, RUNNER_DARK, TACKLER, TACKLER_DARK, Layout, P
 ENGAGE_LINE = (250, 245, 200)
 BLOCKER = (215, 120, 45)          # a shade off the carrier so the ball carrier stands out
 LABELS = {"screen": "스크린", "carrier_only": "블로킹 없음", "pursuit": "추격 수비", "read": "읽고 반응 수비",
-          "lane": "읽고 꺾는 RB", "gap": "갭 지키는 DL"}
+          "lane": "읽고 꺾는 RB", "gap": "갭 지키는 DL", "overload": "몰아막기 수비"}
 
 
 @dataclass

@@ -1,0 +1,12 @@
+s0 g01 flip  0.1% | box mean   0% noisy   3% | yd mean 7.94 noisy 6.32 | starts off-middle 86% | left 100%
+s0 g03 flip  0.0% | box mean   0% noisy   1% | yd mean 4.74 noisy 5.47 | starts off-middle 59% | left 100%
+s0 g06 flip  0.0% | box mean  43% noisy  29% | yd mean 4.76 noisy 3.64 | starts off-middle 62% | left 100%
+s0 g12 flip  0.0% | box mean   0% noisy   0% | yd mean 8.75 noisy 4.20 | starts off-middle 92% | left 100%
+s1 g01 flip  0.0% | box mean   0% noisy   1% | yd mean 8.99 noisy 7.15 | starts off-middle 95% | left 0%
+s1 g03 flip  0.0% | box mean   0% noisy   0% | yd mean 9.93 noisy 8.78 | starts off-middle 100% | left 0%
+s1 g06 flip  0.0% | box mean   0% noisy   1% | yd mean 3.86 noisy 3.54 | starts off-middle 82% | left 0%
+s1 g12 flip  0.1% | box mean   0% noisy   0% | yd mean 2.58 noisy 0.81 | starts off-middle 60% | left 100%
+s2 g01 flip  0.1% | box mean  28% noisy  38% | yd mean 3.15 noisy 2.70 | starts off-middle 45% | left 100%
+s2 g03 flip  0.0% | box mean   0% noisy   0% | yd mean 7.97 noisy 6.63 | starts off-middle 87% | left 100%
+s2 g06 flip  0.1% | box mean   0% noisy   0% | yd mean 5.54 noisy 3.77 | starts off-middle 73% | left 100%
+s2 g12 flip  0.0% | box mean   0% noisy   0% | yd mean 4.52 noisy 2.95 | starts off-middle 58% | left 100%

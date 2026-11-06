@@ -1,0 +1,6 @@
+s0 g01 commit 0.25s | flood LB side: 8.76 yd, switch +0.00 | flood away from LBs: 9.75 yd, switch +0.00 | cue mixed
+s1 g01 commit 0.25s | flood LB side: 9.52 yd, switch +0.00 | flood away from LBs: 9.90 yd, switch +0.00 | cue mixed
+s2 g01 commit 0.25s | flood LB side: 9.58 yd, switch +0.99 | flood away from LBs: 7.43 yd, switch -0.35 | cue mixed
+s0 g02 commit 0.25s | flood LB side: 8.74 yd, switch +0.00 | flood away from LBs: 9.39 yd, switch +0.00 | cue mixed
+s1 g02 commit 0.25s | flood LB side: 8.97 yd, switch +0.00 | flood away from LBs: 9.62 yd, switch +0.00 | cue mixed
+s2 g02 commit 0.25s | flood LB side: 9.74 yd, switch +0.98 | flood away from LBs: 9.45 yd, switch -0.21 | cue mixed

@@ -1,0 +1,70 @@
+overload commit 1.0 s, spot 5.0 yd, who all
+
+== 스크립트 블로킹 (LB right 49%) read gain +3.17 yd
+   aim -5.0:  6.52 yd | LB left  3.27 | LB right  9.97
+   aim -3.2:  5.40 yd | LB left  3.05 | LB right  7.89
+   aim +0.0:  1.25 yd | LB left  1.14 | LB right  1.37
+   aim +3.2:  5.38 yd | LB left  7.78 | LB right  2.84
+   aim +5.0:  6.78 yd | LB left 10.00 | LB right  3.36
+   away 3.2:  7.74 yd | LB left  7.67 | LB right  7.82
+   away 5.0:  9.95 yd | LB left  9.95 | LB right  9.95
+
+== s0 g1 (LB right 49%) read gain +2.95 yd
+   aim -5.0:  6.21 yd | LB left  2.94 | LB right  9.68
+   aim -3.2:  4.65 yd | LB left  2.67 | LB right  6.75
+   aim +0.0:  2.19 yd | LB left  0.70 | LB right  3.77
+   aim +3.2:  5.21 yd | LB left  8.83 | LB right  1.37
+   aim +5.0:  6.83 yd | LB left  9.91 | LB right  3.56
+   away 3.2:  7.77 yd | LB left  8.74 | LB right  6.75
+   away 5.0:  9.78 yd | LB left  9.96 | LB right  9.59
+   AI: 9.96 yd (LB left 9.93, right 9.98) | crosses left 0% when LB left, 100% when LB right | switch +1.00
+
+== s1 g1 (LB right 49%) read gain +1.83 yd
+   aim -5.0:  5.24 yd | LB left  1.52 | LB right  9.19
+   aim -3.2:  3.42 yd | LB left  1.34 | LB right  5.62
+   aim +0.0:  0.28 yd | LB left  1.17 | LB right -0.67
+   aim +3.2:  5.59 yd | LB left  8.59 | LB right  2.41
+   aim +5.0:  7.68 yd | LB left  9.87 | LB right  5.36
+   away 3.2:  7.32 yd | LB left  8.71 | LB right  5.85
+   away 5.0:  9.51 yd | LB left  9.87 | LB right  9.13
+   AI: 8.43 yd (LB left 9.96, right 6.81) | crosses left 0% when LB left, 0% when LB right | switch +0.00
+
+== s2 g1 (LB right 49%) read gain +2.87 yd
+   aim -5.0:  6.61 yd | LB left  3.43 | LB right  9.98
+   aim -3.2:  4.74 yd | LB left  0.87 | LB right  8.85
+   aim +0.0:  0.50 yd | LB left  0.82 | LB right  0.16
+   aim +3.2:  5.74 yd | LB left  9.11 | LB right  2.16
+   aim +5.0:  7.05 yd | LB left  9.98 | LB right  3.94
+   away 3.2:  8.95 yd | LB left  8.95 | LB right  8.95
+   away 5.0:  9.91 yd | LB left  9.92 | LB right  9.91
+   AI: 9.97 yd (LB left 10.00, right 9.94) | crosses left 0% when LB left, 100% when LB right | switch +1.00
+
+== s0 g2 (LB right 49%) read gain +2.81 yd
+   aim -5.0:  7.13 yd | LB left  4.51 | LB right  9.91
+   aim -3.2:  4.61 yd | LB left  0.99 | LB right  8.46
+   aim +0.0:  2.25 yd | LB left  0.88 | LB right  3.71
+   aim +3.2:  4.57 yd | LB left  9.01 | LB right -0.14
+   aim +5.0:  6.52 yd | LB left  9.90 | LB right  2.93
+   away 3.2:  8.81 yd | LB left  8.91 | LB right  8.70
+   away 5.0:  9.95 yd | LB left  9.91 | LB right  9.99
+   AI: 9.86 yd (LB left 9.83, right 9.88) | crosses left 1% when LB left, 99% when LB right | switch +0.98
+
+== s1 g2 (LB right 49%) read gain +2.15 yd
+   aim -5.0:  6.52 yd | LB left  3.58 | LB right  9.64
+   aim -3.2:  3.77 yd | LB left  0.55 | LB right  7.19
+   aim +0.0:  0.19 yd | LB left  1.02 | LB right -0.68
+   aim +3.2:  5.44 yd | LB left  8.67 | LB right  2.02
+   aim +5.0:  7.67 yd | LB left  9.89 | LB right  5.31
+   away 3.2:  7.47 yd | LB left  8.36 | LB right  6.52
+   away 5.0:  9.81 yd | LB left  9.96 | LB right  9.66
+   AI: 8.56 yd (LB left 10.00, right 7.04) | crosses left 0% when LB left, 0% when LB right | switch +0.00
+
+== s2 g2 (LB right 49%) read gain +3.45 yd
+   aim -5.0:  5.99 yd | LB left  2.25 | LB right  9.96
+   aim -3.2:  4.61 yd | LB left  0.74 | LB right  8.72
+   aim +0.0:  0.39 yd | LB left  0.15 | LB right  0.64
+   aim +3.2:  5.97 yd | LB left  9.26 | LB right  2.48
+   aim +5.0:  6.50 yd | LB left  9.95 | LB right  2.84
+   away 3.2:  9.00 yd | LB left  9.13 | LB right  8.85
+   away 5.0:  9.95 yd | LB left  9.95 | LB right  9.95
+   AI: 9.98 yd (LB left 9.96, right 10.00) | crosses left 0% when LB left, 100% when LB right | switch +1.00

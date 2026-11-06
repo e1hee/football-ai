@@ -1,0 +1,5 @@
+phase,learner,runner_gen,tackler_gen,wall_s,td_latest_vs_latest,oob_latest_vs_latest,yards_latest_vs_latest,td_runner_vs_scripted_tackler,td_champion_runner_vs_tackler,td_scripted_runner_vs_tackler,new_offense_yards,main_yards,replaced,yards_runner_vs_overload
+0,tackler,0,1,222.1,0.0,0.0,-7.7706,0.0,0.0,0.3711,nan,nan,0,-7.8163
+1,runner,1,1,693.6,0.8374,0.0225,7.9763,0.8374,0.0,0.3711,10.0,7.9763,0,9.6307
+2,tackler,1,2,913.9,0.6855,0.0078,6.7086,0.8374,0.0,0.2783,nan,nan,0,9.6307
+3,runner,2,2,1329.1,0.6138,0.0674,6.4187,0.9756,0.0,0.2783,9.014,6.4187,0,9.906

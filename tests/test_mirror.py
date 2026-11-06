@@ -123,3 +123,25 @@ def test_reset_head_keeps_the_hidden_layers():
     w = model.policy.action_net.weight
     assert w.abs().max() < 0.05 and float(model.policy.action_net.bias.abs().max()) == 0.0
     assert all((a == b).all() for a, b in zip(hidden, model.policy.mlp_extractor.parameters()))
+
+
+def test_bounded_push_policy_keeps_the_push_short_and_survives_save(tmp_path):
+    import torch
+    from stable_baselines3 import PPO
+    from train.policies import BoundedPushPolicy, policy_for, squash
+    x = torch.tensor([[30.0, 40.0, 9.0, 0.3, -0.4, -0.1]])        # two players: one long push, one short
+    y = squash(x, 1.25)
+    assert abs(float(y[0, :2].norm()) - 1.25) < 1e-4 and torch.allclose(y[0, :2] / y[0, :2].norm(), x[0, :2] / 50)
+    assert float(y[0, 2]) <= 1.25 and torch.allclose(y[0, 3:], x[0, 3:], atol=0.05)
+    policy, kw = policy_for(1.25, 16)
+    model = PPO(policy, "Pendulum-v1", device="cpu", seed=0, n_steps=64, batch_size=64, policy_kwargs=kw)
+    with torch.no_grad():
+        model.policy.action_net.weight.fill_(100.0)
+    obs = torch.ones(4, 3)
+    mean = model.policy.get_distribution(obs).distribution.mean
+    assert 1.2 < float(mean.abs().max()) <= 1.25 + 1e-6
+    model.save(tmp_path / "m.zip")
+    back = PPO.load(tmp_path / "m.zip", device="cpu")
+    assert isinstance(back.policy, BoundedPushPolicy) and back.policy.push_bound == 1.25
+    assert torch.allclose(back.policy.get_distribution(obs).distribution.mean, mean)
+    assert policy_for(None, 16)[0] == "MlpPolicy"

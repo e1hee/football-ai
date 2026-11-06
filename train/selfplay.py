@@ -35,6 +35,7 @@ from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_off
                                 screen_offense)
 from train.evaluate import evaluate
 from train.mirror import mirror_action, mirror_obs
+from train.policies import policy_for
 from train.run_config import build_config
 from train.vec_env import SideVecEnv
 
@@ -213,6 +214,8 @@ def main() -> None:
     p.add_argument("--timeout-ends", action="store_true", help="team sim: the play clock is a real end (no bootstrap)")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--min-std", type=float, default=None, help="exploration noise never falls below this (EXP-024)")
+    p.add_argument("--push-bound", type=float, default=None,
+                   help="keep each player's mean push no longer than this (train/policies.py, EXP-030)")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -239,8 +242,9 @@ def main() -> None:
         {"experiment": args.exp, "args": {k: str(v) for k, v in vars(args).items()}, "sim": dataclasses.asdict(cfg)})),
         allow_unicode=True, sort_keys=False))
 
+    policy, policy_kwargs = policy_for(args.push_bound, args.net)
     ppo_kw = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=3e-4, gamma=0.995, gae_lambda=0.95,
-                  clip_range=0.2, policy_kwargs={"net_arch": [args.net, args.net]}, device="cpu", verbose=0)
+                  clip_range=0.2, policy_kwargs=policy_kwargs, device="cpu", verbose=0)
 
     # Generation 0 of each side: a given runner (e.g. the EXP-002 champion) or a fresh one,
     # and a fresh tackler.
@@ -250,10 +254,10 @@ def main() -> None:
         runner_model = None
     else:
         venv_r = SideVecEnv(args.n_envs, cfg, script_tackler, side="runner", seed=args.seed)
-        runner_model = PPO("MlpPolicy", venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
+        runner_model = PPO(policy, venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
         runner_model.save(runner_path)
     venv_t = SideVecEnv(args.n_envs, cfg, script_tackler, side="tackler", seed=args.seed)
-    tackler_model = PPO("MlpPolicy", venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
+    tackler_model = PPO(policy, venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw)
     tackler_path = ck / "tackler_g00.zip"
     tackler_model.save(tackler_path)
     runners = [Frozen(runner_path, "runner")]
@@ -310,7 +314,7 @@ def main() -> None:
             # say nothing about either side.
             fresh_env = SideVecEnv(args.n_envs, cfg, Pool(args.n_envs, [tacklers[-1]], [1.0], args.seed + phase),
                                    side="runner", seed=args.seed + phase + 1000)
-            fresh_model = PPO("MlpPolicy", fresh_env, seed=args.seed + phase + 1000, **ppo_kw)
+            fresh_model = PPO(policy, fresh_env, seed=args.seed + phase + 1000, **ppo_kw)
             fresh_model.learn(args.phase_steps, callback=floor())
             fresh_path = ck / f"new_offense_g{gen:02d}.zip"
             fresh_model.save(fresh_path)

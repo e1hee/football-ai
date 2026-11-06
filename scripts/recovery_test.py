@@ -21,6 +21,7 @@ from stable_baselines3 import PPO
 
 from sim.core import OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN
 from sim.team import CARRIER, TeamSim
+from train.policies import policy_for
 from train.run_config import config_from_run
 from train.selfplay import Frozen
 from train.vec_env import SideVecEnv
@@ -103,8 +104,10 @@ def main() -> None:
     else:
         venv = SideVecEnv(512, cfg, opp, side=args.learner, seed=args.seed)
     if args.init_gen is None:
-        net = int(json.loads(json.dumps(__import__("yaml").safe_load((args.run / "config.yaml").read_text())))["args"]["net"])
-        model = PPO("MlpPolicy", venv, seed=args.seed, device="cpu", verbose=0, policy_kwargs={"net_arch": [net, net]}, **PPO_KW)
+        run_args = __import__("yaml").safe_load((args.run / "config.yaml").read_text())["args"]
+        bound = run_args.get("push_bound", "None")     # a new network of the same kind as the run's
+        policy, kw = policy_for(None if bound == "None" else float(bound), int(run_args["net"]))
+        model = PPO(policy, venv, seed=args.seed, device="cpu", verbose=0, policy_kwargs=kw, **PPO_KW)
     else:
         model = PPO.load(str(ck / f"{args.learner}_g{args.init_gen:02d}.zip"), env=venv, device="cpu", **PPO_KW)
     if args.reset_std:

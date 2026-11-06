@@ -1,0 +1,29 @@
+rules: base 3.2, engaged -2.4, overspeed 0.25, sidestep 0.2
+offense / defense                       success success_free success_enga engaged_shar   no_attempt      stuffed  yards attempts
+script read | script gap                    61%          90%          41%          58%          57%          29%   6.25     1181
+script read | script pursuit                60%          90%          43%          63%          10%          73%   1.19     2742
+script read | AI def s0                     58%          90%          41%          64%           5%          71%   0.70     3173
+script read | AI def s1                     59%          88%          42%          63%           4%          74%   0.56     3126
+script read | AI def s2                     59%          89%          42%          64%           4%          72%   0.68     3091
+script snap-decide | script gap             59%          89%          44%          67%           6%          58%   1.69     2872
+script snap-decide | script pursuit          59%          88%          42%          62%           1%          87%  -0.26     3284
+script snap-decide | AI def s0              61%          88%          43%          59%           6%          73%   0.55     3062
+script snap-decide | AI def s1              59%          88%          43%          64%           2%          78%   0.17     3249
+script snap-decide | AI def s2              59%          87%          43%          64%           1%          80%   0.08     3253
+AI off s0 | script gap                      50%          83%          23%          54%          87%           5%   9.27      270
+AI off s0 | script pursuit                  48%          85%          31%          69%          34%          34%   5.81     1518
+AI off s0 | AI def s0                       54%          89%          39%          71%           3%          70%   1.35     2944
+AI off s0 | AI def s1                       58%          88%          44%          68%           2%          71%   1.14     2780
+AI off s0 | AI def s2                       61%          89%          46%          66%           2%          87%  -0.45     3195
+AI off s1 | script gap                      55%          79%          24%          43%          87%           5%   9.14      296
+AI off s1 | script pursuit                  45%          86%          27%          69%          38%          31%   6.23     1452
+AI off s1 | AI def s0                       46%          85%          29%          70%          28%          33%   5.44     1956
+AI off s1 | AI def s1                       54%          87%          35%          62%           3%          64%   1.58     2916
+AI off s1 | AI def s2                       58%          90%          42%          67%           3%          72%   1.02     2865
+AI off s2 | script gap                      46%          79%          17%          53%          81%           6%   9.00      415
+AI off s2 | script pursuit                  48%          87%          31%          70%          25%          40%   5.15     1792
+AI off s2 | AI def s0                       51%          89%          35%          70%           5%          62%   2.47     2836
+AI off s2 | AI def s1                       60%          90%          47%          69%           4%          75%   0.76     2833
+AI off s2 | AI def s2                       56%          91%          41%          70%           4%          71%   1.53     2792
+
+free-defender success, all matchups: 88% expected -> 87% needs base logit -0.13 (3.2 -> 3.07), same attempts, players unchanged

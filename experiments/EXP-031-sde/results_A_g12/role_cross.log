@@ -1,0 +1,19 @@
+                              yards         td backfield_ reblock_1s ol_free_ru   lb_early     inside reach_line lane_ahead
+old off / old def              2.60       0.39       0.70       0.60       0.01       0.10       0.11       0.47       1.83
+new off / old def              1.55       0.24       0.93       0.70       0.00       0.09       0.38       0.33       0.40
+old off / new def              5.67       0.56       0.30       0.60       0.02       0.06       0.16       0.76       1.35
+new off / new def              1.62       0.27       0.94       0.70       0.00       0.08       0.03       0.32       0.38
+old off / script def           9.70       0.97       0.03       0.82       0.01       0.09       0.01       0.98       3.46
+new off / script def           9.21       0.93       0.09       0.71       0.00       0.11       0.00       0.95       1.45
+script off / old def           0.99       0.17       0.90       0.57       0.02       0.04       0.70       0.31       0.49
+script off / new def           0.81       0.16       0.78       0.89       0.00       0.03       0.42       0.29       0.35
+
+per seed (s0 / s1 / s2)
+old off / old def        yards 5.12 / 2.46 / 0.23  contact 0.40 / 0.75 / 0.95  reblock 0.65 / 0.59 / 0.56
+new off / old def        yards 1.27 / 0.77 / 2.61  contact 0.89 / 0.96 / 0.94  reblock 0.79 / 0.76 / 0.55
+old off / new def        yards 8.29 / 5.65 / 3.08  contact 0.11 / 0.37 / 0.42  reblock 0.62 / 0.55 / 0.63
+new off / new def        yards 1.54 / 1.47 / 1.84  contact 0.89 / 0.96 / 0.96  reblock 0.77 / 0.77 / 0.57
+old off / script def     yards 9.83 / 9.67 / 9.61  contact 0.02 / 0.03 / 0.04  reblock 0.81 / 0.88 / 0.77
+new off / script def     yards 9.49 / 9.07 / 9.08  contact 0.07 / 0.11 / 0.09  reblock 0.78 / 0.71 / 0.65
+script off / old def     yards 0.85 / 0.88 / 1.23  contact 0.85 / 0.90 / 0.93  reblock 0.58 / 0.69 / 0.44
+script off / new def     yards 0.82 / 0.73 / 0.88  contact 0.74 / 0.78 / 0.83  reblock 0.91 / 0.89 / 0.86

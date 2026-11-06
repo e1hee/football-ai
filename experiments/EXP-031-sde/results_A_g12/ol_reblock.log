@@ -1,0 +1,4 @@
+스크립트 {'sheds_per_play': 2.807, 'reblock': 0.684, 'reblock_1s': 0.947, 'reblock_median_s': 0.6, 'upfield_after_shed': 1.0, 'upfield_moving_up': 0.765, 'upfield_mean_vx': 0.427}
+s0 {'sheds_per_play': 2.72, 'reblock': 0.565, 'reblock_1s': 0.767, 'reblock_median_s': 0.6, 'upfield_after_shed': 1.0, 'upfield_moving_up': 0.85, 'upfield_mean_vx': 1.436, 'ai_line': 1.345, 'script_line': 4.191}
+s1 {'sheds_per_play': 2.677, 'reblock': 0.555, 'reblock_1s': 0.77, 'reblock_median_s': 0.6, 'upfield_after_shed': 0.937, 'upfield_moving_up': 0.857, 'upfield_mean_vx': 1.572, 'ai_line': 1.585, 'script_line': 4.446}
+s2 {'sheds_per_play': 2.59, 'reblock': 0.452, 'reblock_1s': 0.574, 'reblock_median_s': 0.6, 'upfield_after_shed': 0.974, 'upfield_moving_up': 0.804, 'upfield_mean_vx': 1.272, 'ai_line': 1.532, 'script_line': 5.028}

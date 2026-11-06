@@ -1,0 +1,12 @@
+s0 g01 flip 41.2% | box mean  97% noisy  24% | yd mean -0.67 noisy -0.38 | starts off-middle 9%
+s0 g03 flip 51.7% | box mean  95% noisy  18% | yd mean -1.43 noisy -1.61 | starts off-middle 4%
+s0 g06 flip 42.9% | box mean  44% noisy  12% | yd mean -1.77 noisy -2.14 | starts off-middle 3%
+s0 g12 flip 46.7% | box mean  13% noisy  13% | yd mean 1.54 noisy -1.96 | starts off-middle 30%
+s1 g01 flip 40.2% | box mean  99% noisy  29% | yd mean 0.07 noisy -0.28 | starts off-middle 10%
+s1 g03 flip 46.7% | box mean  97% noisy  18% | yd mean -1.30 noisy -1.59 | starts off-middle 4%
+s1 g06 flip 52.5% | box mean  24% noisy   8% | yd mean -1.47 noisy -1.96 | starts off-middle 6%
+s1 g12 flip 37.4% | box mean  11% noisy   7% | yd mean 1.47 noisy -1.79 | starts off-middle 35%
+s2 g01 flip 42.8% | box mean  99% noisy  22% | yd mean -1.05 noisy -0.41 | starts off-middle 4%
+s2 g03 flip 35.6% | box mean  94% noisy  18% | yd mean -0.64 noisy -0.97 | starts off-middle 8%
+s2 g06 flip 32.2% | box mean  70% noisy  14% | yd mean -1.22 noisy -2.22 | starts off-middle 6%
+s2 g12 flip 47.6% | box mean  18% noisy  13% | yd mean 1.84 noisy -2.18 | starts off-middle 32%

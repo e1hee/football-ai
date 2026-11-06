@@ -1,0 +1,46 @@
+{
+ "스크립트 공격 / 스크립트 갭 수비": {
+  "blocking": 0.8388427672955975,
+  "near_line": 0.1377006289308176,
+  "upfield": 0.018978616352201258,
+  "backfield": 0.004477987421383648,
+  "never_blocked": 0.0,
+  "upfield_near_def": 0.8409331919406151,
+  "free_def_at_line": 1.85997171145686,
+  "free_lb_at_line": 1.2503536067892504,
+  "reached_line": 0.6904296875
+ },
+ "AI s0 / AI s0": {
+  "blocking": 0.7629288621825935,
+  "near_line": 0.0993312657491762,
+  "upfield": 0.0031013762357045937,
+  "backfield": 0.13463849583252568,
+  "never_blocked": 0.0478515625,
+  "upfield_near_def": 0.278125,
+  "free_def_at_line": 2.1483870967741936,
+  "free_lb_at_line": 1.5290322580645161,
+  "reached_line": 0.302734375
+ },
+ "AI s1 / AI s1": {
+  "blocking": 0.7538351911233268,
+  "near_line": 0.13433094111060212,
+  "upfield": 0.00904972769379549,
+  "backfield": 0.10278414007227567,
+  "never_blocked": 0.0443359375,
+  "upfield_near_def": 0.10573678290213723,
+  "free_def_at_line": 2.061111111111111,
+  "free_lb_at_line": 1.4444444444444444,
+  "reached_line": 0.3515625
+ },
+ "AI s2 / AI s2": {
+  "blocking": 0.7801100509869251,
+  "near_line": 0.09275581806249684,
+  "upfield": 0.00746125498510778,
+  "backfield": 0.11967287596547024,
+  "never_blocked": 0.0162109375,
+  "upfield_near_def": 0.23410013531799728,
+  "free_def_at_line": 2.043343653250774,
+  "free_lb_at_line": 1.2879256965944272,
+  "reached_line": 0.3154296875
+ }
+}

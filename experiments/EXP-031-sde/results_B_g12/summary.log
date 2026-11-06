@@ -1,0 +1,12 @@
+fresh_runner_td                  0.14 / 0.32 / 0.04   mean 0.17
+fresh_runner_yards               0.14 / 2.32 / -1.29   mean 0.39
+fresh_tackler_td                 0.45 / 0.46 / 0.29   mean 0.40
+fresh_tackler_yards              4.66 / 4.28 / 2.70   mean 3.88
+fresh_tackler_timeout            0.00 / 0.00 / 0.00   mean 0.00
+same_seed_td                     0.20 / 0.30 / 0.42   mean 0.30
+mirrored_td                      0.31 / 0.22 / 0.34   mean 0.29
+mirror_gap                       0.11 / 0.08 / 0.08   mean 0.09
+other_seed_td                    0.30
+other_seed_spread                0.19 / 0.39   mean 0.29
+scripted_runner_vs_ai_def_td     0.19 / 0.16 / 0.18   mean 0.18
+ai_runner_vs_scripted_def_td     0.89 / 0.89 / 0.89   mean 0.89

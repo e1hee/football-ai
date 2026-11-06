@@ -1,0 +1,266 @@
+{
+ "g1 s0": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.74755859375,
+  "box": 0.0,
+  "yards": 6.496134733548388,
+  "yards_box": NaN,
+  "yards_out": 9.085875448878491,
+  "td_box": NaN,
+  "td_out": 0.9007184846505552,
+  "dumb_middle": {
+   "reach": 0.27099609375,
+   "yards": 1.3844707482494414,
+   "td": 0.24609375
+  },
+  "dumb_side": {
+   "reach": 0.6884765625,
+   "yards": 3.161367137916386,
+   "td": 0.02197265625
+  }
+ },
+ "g1 s1": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.80078125,
+  "box": 0.0,
+  "yards": 7.599757651332766,
+  "yards_box": NaN,
+  "yards_out": 10.0,
+  "td_box": NaN,
+  "td_out": 1.0,
+  "dumb_middle": {
+   "reach": 0.1728515625,
+   "yards": 0.16327337245456874,
+   "td": 0.15576171875
+  },
+  "dumb_side": {
+   "reach": 0.84814453125,
+   "yards": 4.15952246915549,
+   "td": 0.00244140625
+  }
+ },
+ "g1 s2": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.93994140625,
+  "box": 0.0,
+  "yards": 9.270084074232727,
+  "yards_box": NaN,
+  "yards_out": 10.0,
+  "td_box": NaN,
+  "td_out": 1.0,
+  "dumb_middle": {
+   "reach": 0.34423828125,
+   "yards": 2.11334041133523,
+   "td": 0.30712890625
+  },
+  "dumb_side": {
+   "reach": 0.83642578125,
+   "yards": 4.379514605738223,
+   "td": 0.0087890625
+  }
+ },
+ "g3 s0": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.6240234375,
+  "box": 0.0,
+  "yards": 5.132313636597246,
+  "yards_box": NaN,
+  "yards_out": 9.346814786137923,
+  "td_box": NaN,
+  "td_out": 0.9264475743348983,
+  "dumb_middle": {
+   "reach": 0.55224609375,
+   "yards": 4.5405067226383835,
+   "td": 0.5146484375
+  },
+  "dumb_side": {
+   "reach": 0.5927734375,
+   "yards": 2.6048977233003825,
+   "td": 0.0419921875
+  }
+ },
+ "g3 s1": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.87841796875,
+  "box": 0.0,
+  "yards": 8.13713090820238,
+  "yards_box": NaN,
+  "yards_out": 9.670702138034551,
+  "td_box": NaN,
+  "td_out": 0.9577543079488605,
+  "dumb_middle": {
+   "reach": 0.2529296875,
+   "yards": 0.7724275700747967,
+   "td": 0.1630859375
+  },
+  "dumb_side": {
+   "reach": 0.83056640625,
+   "yards": 4.128179700812325,
+   "td": 0.00634765625
+  }
+ },
+ "g3 s2": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.70068359375,
+  "box": 0.0,
+  "yards": 5.565126930363476,
+  "yards_box": NaN,
+  "yards_out": 8.519612363489662,
+  "td_box": NaN,
+  "td_out": 0.8285714285714286,
+  "dumb_middle": {
+   "reach": 0.54541015625,
+   "yards": 4.267147827427834,
+   "td": 0.48828125
+  },
+  "dumb_side": {
+   "reach": 0.68212890625,
+   "yards": 2.5066166897304356,
+   "td": 0.0302734375
+  }
+ },
+ "g6 s0": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.56103515625,
+  "box": 0.0,
+  "yards": 4.38322808011435,
+  "yards_box": NaN,
+  "yards_out": 9.38041942237874,
+  "td_box": NaN,
+  "td_out": 0.9268929503916449,
+  "dumb_middle": {
+   "reach": 0.45849609375,
+   "yards": 3.4310055596288294,
+   "td": 0.42822265625
+  },
+  "dumb_side": {
+   "reach": 0.521484375,
+   "yards": 1.8120264098979533,
+   "td": 0.0244140625
+  }
+ },
+ "g6 s1": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.69189453125,
+  "box": 0.0,
+  "yards": 5.068589875008911,
+  "yards_box": NaN,
+  "yards_out": 7.915184113873338,
+  "td_box": NaN,
+  "td_out": 0.7494707127734651,
+  "dumb_middle": {
+   "reach": 0.1884765625,
+   "yards": 0.030830517411231995,
+   "td": 0.1337890625
+  },
+  "dumb_side": {
+   "reach": 0.61865234375,
+   "yards": 2.521689581219107,
+   "td": 0.0234375
+  }
+ },
+ "g6 s2": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.49365234375,
+  "box": 0.0,
+  "yards": 3.6042414610274136,
+  "yards_box": NaN,
+  "yards_out": 9.022769902509468,
+  "td_box": NaN,
+  "td_out": 0.8803165182987142,
+  "dumb_middle": {
+   "reach": 0.51123046875,
+   "yards": 3.557804493699223,
+   "td": 0.42626953125
+  },
+  "dumb_side": {
+   "reach": 0.5498046875,
+   "yards": 1.893818408017978,
+   "td": 0.033203125
+  }
+ },
+ "g12 s0": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.31689453125,
+  "box": 0.0015408320493066256,
+  "yards": 1.3545475136488676,
+  "yards_box": 10.0,
+  "yards_out": 7.621826893017616,
+  "td_box": 1.0,
+  "td_out": 0.6172839506172839,
+  "dumb_middle": {
+   "reach": 0.52880859375,
+   "yards": 2.9832565917167813,
+   "td": 0.345703125
+  },
+  "dumb_side": {
+   "reach": 0.3642578125,
+   "yards": 0.6245965380221605,
+   "td": 0.02001953125
+  }
+ },
+ "g12 s1": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.4658203125,
+  "box": 0.0,
+  "yards": 2.3513479800894856,
+  "yards_box": NaN,
+  "yards_out": 6.977564837697667,
+  "td_box": NaN,
+  "td_out": 0.6467505241090147,
+  "dumb_middle": {
+   "reach": 0.142578125,
+   "yards": -0.6448136423714459,
+   "td": 0.0673828125
+  },
+  "dumb_side": {
+   "reach": 0.38916015625,
+   "yards": 0.6873329973313957,
+   "td": 0.00537109375
+  }
+ },
+ "g12 s2": {
+  "paid_per_play": 0.0,
+  "paid_share": 0.0,
+  "paid_if_paid": NaN,
+  "reach": 0.4921875,
+  "box": 0.0,
+  "yards": 3.347483587451279,
+  "yards_box": NaN,
+  "yards_out": 8.668083435959286,
+  "td_box": NaN,
+  "td_out": 0.8472222222222222,
+  "dumb_middle": {
+   "reach": 0.47021484375,
+   "yards": 2.8704127417877316,
+   "td": 0.34326171875
+  },
+  "dumb_side": {
+   "reach": 0.41064453125,
+   "yards": 1.0571108092553914,
+   "td": 0.025390625
+  }
+ }
+}

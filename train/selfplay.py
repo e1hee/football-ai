@@ -16,6 +16,7 @@ references, so progress is measured against something that doesn't move.
 from __future__ import annotations
 
 import argparse
+import functools
 import csv
 import dataclasses
 import json
@@ -234,6 +235,8 @@ def main() -> None:
     p.add_argument("--overload-share", type=float, default=0.0,
                    help="box-mix: share of the offense's plays against the scripted defense that floods the "
                         "LBs' side (sim.team_policies.overload_defense), taken from the newest defense's share, EXP-034")
+    p.add_argument("--overload-commit", type=float, default=2.5,
+                   help="s the overload defense floods before it plays its gap (EXP-035)")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -249,6 +252,7 @@ def main() -> None:
     ck = out / "checkpoints"
     ck.mkdir(parents=True, exist_ok=True)
     cfg = build_config(args)
+    overload = functools.partial(overload_defense, commit=args.overload_commit)
     if args.sim == "3v3":
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
@@ -323,7 +327,7 @@ def main() -> None:
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=True,
                                                               mirror_share=args.mirror_share,
-                                                              extra=[overload_defense] if args.overload_share else None,
+                                                              extra=[overload] if args.overload_share else None,
                                                               extra_share=args.overload_share),
                               side="runner", seed=args.seed + phase)
             if runner_model is None:
@@ -395,7 +399,7 @@ def main() -> None:
             "new_offense_yards": new_yards, "main_yards": main_yards, "replaced": int(swapped),
         }
         if args.overload_share:
-            row["yards_runner_vs_overload"] = evaluate(det(r_new), overload_defense, cfg, n_plays=2048)["yards/mean"]
+            row["yards_runner_vs_overload"] = evaluate(det(r_new), overload, cfg, n_plays=2048)["yards/mean"]
         if writer is None:
             writer = csv.DictWriter(log, fieldnames=list(row))
             writer.writeheader()

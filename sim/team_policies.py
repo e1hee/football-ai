@@ -326,15 +326,19 @@ def strong_side(sim: TeamSim) -> np.ndarray:
     return side
 
 
-def overload_defense(sim: TeamSim, commit: float = 2.5, spot: float = 5.0) -> np.ndarray:
+def overload_defense(sim: TeamSim, commit: float = 2.5, spot: float = 5.0, who: str = "all",
+                     toward: str = "lb") -> np.ndarray:
     """A defense that guesses the run goes to the LBs' side (EXP-034). Until `commit` s, or until
     the carrier reaches the line, every free defender runs to a spot on the line `spot` yd to
     that side and every engaged DL fights toward it; then it plays `gap_defense`. The other
     side is left thin, and a runner who sees where the LBs stand can go there. With these
     defaults a runner aimed 5 yd to one side gains ~10 yd away from the LBs and ~0-3 yd toward
-    them; 1.5 s or a 3 yd spot let a wide run get around the flood (`scripts/overload_check.py`)."""
+    them; 1.5 s or a 3 yd spot let a wide run get around the flood (`scripts/overload_check.py`).
+    `who="lb"`: only the two LBs flood, the DL play `gap_defense` (a smaller flow, EXP-035).
+    `toward="away"`: flood the side away from the LBs, to tell a runner who reads where the
+    LBs stand from one who reads where the defense moves (`scripts/flood_cue.py`)."""
     a = gap_defense(sim).reshape(sim.n, sim.n_def, 3)
-    side = strong_side(sim)
+    side = strong_side(sim) * (-1.0 if toward == "away" else 1.0)
     early = (sim.t * sim.cfg.field.dt < commit) & (sim.pos[:, CARRIER, 0] < sim.los)
     if not early.any():
         return a.reshape(sim.n, -1)
@@ -345,11 +349,49 @@ def overload_defense(sim: TeamSim, commit: float = 2.5, spot: float = 5.0) -> np
     fight = _unit(np.stack([np.full(me.shape[:2], -0.3), np.broadcast_to(side[:, None], me.shape[:2])], -1))
     engaged = sim.partner[:, sim.dfn] >= 0
     push = np.where(engaged[..., None], fight, run_to)
-    a[..., :2] = np.where(early[:, None, None], push, a[..., :2])
-    a[..., 2] = np.where(early[:, None], 1.0, a[..., 2])
+    flood = early[:, None] & (np.arange(sim.n_def) >= sim.n_def - 2 if who == "lb" else True)
+    a[..., :2] = np.where(flood[..., None], push, a[..., :2])
+    a[..., 2] = np.where(flood, 1.0, a[..., 2])
     return a.reshape(sim.n, -1)
 
 
+def flow_side(sim: TeamSim, read_at: float = 1.0) -> np.ndarray:
+    """+1 / -1 / 0 per play: the side away from where the defense has moved since the snap
+    (mean y of all defenders, as the offense perceives them), decided at `read_at` s and kept;
+    0 until then."""
+    pos, _, _ = sim.perceived("offense")
+    y = pos[:, sim.dfn, 1].mean(axis=1)
+    if getattr(sim, "_flow_y0", None) is None or sim._flow_y0.shape != (sim.n,):
+        sim._flow_y0 = y.copy()
+        sim._flow_side = np.zeros(sim.n, np.float32)
+    new = sim.t == 0
+    sim._flow_y0[new] = y[new]
+    sim._flow_side[new] = 0.0
+    decide = (sim._flow_side == 0) & (sim.t * sim.cfg.field.dt >= read_at)
+    sim._flow_side[decide] = np.where(y[decide] >= sim._flow_y0[decide], -1.0, 1.0)
+    return sim._flow_side
+
+
+def flow_offense(sim: TeamSim, read_at: float = 1.0, aim: float = 5.0, climb_depth: float = 2.5) -> np.ndarray:
+    """Reads the defense's flow (EXP-036): the RB drifts toward the middle of the line until
+    `read_at` s, then aims `aim` yd to the side away from where the defense has moved since the
+    snap, and runs straight once past the line. Blockers as `box_offense`. A defense that floods
+    one side loses to it; one that leans one way and comes back fools it."""
+    pos, _, _ = sim.perceived("offense")
+    n, mid = sim.n, sim.cfg.field.width / 2
+    side = flow_side(sim, read_at)
+    me, my_v = sim.pos[:, CARRIER], sim.vel[:, CARRIER]
+    wait = _unit(np.stack([sim.los - 2.0 - me[:, 0], mid - me[:, 1]], 1)) * 0.5
+    go = _unit(np.stack([sim.los + 1.0 - me[:, 0], mid + side * aim - me[:, 1]], 1))
+    run = np.stack([np.full(n, 10.0), np.zeros(n)], 1) - my_v
+    run /= np.maximum(np.linalg.norm(run, axis=-1, keepdims=True), 1.0)
+    through = me[:, 0] >= sim.los
+    a = np.zeros((n, sim.n_off, 3), np.float32)
+    a[:, CARRIER, :2] = np.where(through[:, None], run, np.where((side == 0)[:, None], wait, go))
+    a[:, sim.blk] = box_blockers(sim, pos, climb_depth)
+    return a.reshape(n, -1)
+
+
 OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense,
-           "combo": combo_offense, "box": box_offense}
+           "combo": combo_offense, "box": box_offense, "flow": flow_offense}
 DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense, "overload": overload_defense}

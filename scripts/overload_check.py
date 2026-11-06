@@ -85,10 +85,11 @@ def main() -> None:
     p.add_argument("--json", type=Path, default=None)
     p.add_argument("--commit", type=float, default=2.5)
     p.add_argument("--spot", type=float, default=5.0)
+    p.add_argument("--who", choices=["all", "lb"], default="all")
     args = p.parse_args()
     cfg = exp_config(args.exp, None)
-    dfn = lambda s, o=None: overload_defense(s, commit=args.commit, spot=args.spot)
-    print(f"overload commit {args.commit} s, spot {args.spot} yd")
+    dfn = lambda s, o=None: overload_defense(s, commit=args.commit, spot=args.spot, who=args.who)
+    print(f"overload commit {args.commit} s, spot {args.spot} yd, who {args.who}")
     outs = [check("스크립트 블로킹", lambda s, o=None: box_offense(s), cfg, args.n, dfn=dfn, ai=False)]
     show(outs[-1])
     for g in args.gen:

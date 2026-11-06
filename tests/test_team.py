@@ -584,3 +584,26 @@ def test_lb_chase_free_only_drops_the_chasing_lbs_cost():
     _, _, _, info = free.step(_still(free, "runner"), _still(free, "tackler"))
     assert np.isclose(info["tackler_reward"][0], -0.02, atol=1e-4)  # the LB standing still still pays
     assert np.allclose(info["tackler_reward"][1:], -0.04, atol=1e-4)  # other plays: nobody chases
+
+
+def test_overload_defense_floods_the_lb_side_and_a_reader_beats_it():
+    from scripts.lane_check import dumb_runner
+    from scripts.read_value import run
+    from sim.team_policies import box_offense, overload_defense, strong_side
+    cfg = box_config(mix=True, stumble=0.2, carrier_square_ahead=True, timeout_ends=True,
+                     field=FieldConfig(reaction_delay=2))
+    sim = TeamSim(512, cfg, seed=2)
+    sim.reset()
+    lb = np.asarray(sim.dfn)[-2:]
+    side = strong_side(sim).copy()
+    assert np.array_equal(side > 0, sim.pos[:, lb, 1].mean(axis=1) >= cfg.field.width / 2)
+    assert 0.3 < (side > 0).mean() < 0.7
+    for _ in range(5):   # held for the play while the LBs move
+        sim.step(box_offense(sim), overload_defense(sim))
+    assert np.array_equal(strong_side(sim)[sim.t > 0], side[sim.t > 0])
+    off = lambda s, o=None: box_offense(s)
+    dfn = lambda s, o=None: overload_defense(s)
+    mid = cfg.field.width / 2
+    away = run(dumb_runner(off, lambda s: mid - strong_side(s) * 5.0), dfn, cfg, 512, 3)["yards"].mean()
+    toward = run(dumb_runner(off, lambda s: mid + strong_side(s) * 5.0), dfn, cfg, 512, 3)["yards"].mean()
+    assert away > toward + 4.0

@@ -1,0 +1,40 @@
+overload commit 2.5 s, spot 5.0 yd
+
+== 스크립트 블로킹 (LB right 49%) read gain +2.54 yd
+   aim -5.0:  6.34 yd | LB left  2.89 | LB right 10.00
+   aim -3.2:  7.33 yd | LB left  5.09 | LB right  9.71
+   aim +0.0:  4.45 yd | LB left  4.59 | LB right  4.31
+   aim +3.2:  7.46 yd | LB left  9.73 | LB right  5.06
+   aim +5.0:  6.72 yd | LB left 10.00 | LB right  3.25
+   away 3.2:  9.85 yd | LB left  9.85 | LB right  9.84
+   away 5.0: 10.00 yd | LB left 10.00 | LB right 10.00
+
+== s0 g12 (LB right 49%) read gain +3.29 yd
+   aim -5.0:  6.32 yd | LB left  2.84 | LB right 10.00
+   aim -3.2:  5.43 yd | LB left  4.70 | LB right  6.21
+   aim +0.0:  4.72 yd | LB left  2.66 | LB right  6.92
+   aim +3.2:  5.82 yd | LB left  7.69 | LB right  3.85
+   aim +5.0:  6.70 yd | LB left  9.97 | LB right  3.22
+   away 3.2:  6.79 yd | LB left  7.49 | LB right  6.04
+   away 5.0:  9.98 yd | LB left  9.97 | LB right 10.00
+   AI: 5.05 yd (LB left 0.39, right 10.00) | crosses left 100% when LB left, 100% when LB right | switch +0.00
+
+== s1 g12 (LB right 49%) read gain +3.60 yd
+   aim -5.0:  6.19 yd | LB left  2.62 | LB right  9.98
+   aim -3.2:  6.39 yd | LB left  3.15 | LB right  9.84
+   aim +0.0:  4.97 yd | LB left  6.09 | LB right  3.79
+   aim +3.2:  6.22 yd | LB left  8.21 | LB right  4.11
+   aim +5.0:  5.94 yd | LB left  9.99 | LB right  1.64
+   away 3.2:  9.03 yd | LB left  8.40 | LB right  9.70
+   away 5.0: 10.00 yd | LB left  9.99 | LB right 10.00
+   AI: 5.24 yd (LB left 0.74, right 10.00) | crosses left 100% when LB left, 100% when LB right | switch +0.00
+
+== s2 g12 (LB right 49%) read gain +3.21 yd
+   aim -5.0:  6.37 yd | LB left  2.95 | LB right  9.99
+   aim -3.2:  5.66 yd | LB left  4.65 | LB right  6.73
+   aim +0.0:  4.80 yd | LB left  5.12 | LB right  4.46
+   aim +3.2:  6.78 yd | LB left  9.50 | LB right  3.90
+   aim +5.0:  6.44 yd | LB left 10.00 | LB right  2.68
+   away 3.2:  8.51 yd | LB left  9.63 | LB right  7.33
+   away 5.0:  9.99 yd | LB left 10.00 | LB right  9.99
+   AI: 7.26 yd (LB left 10.00, right 4.35) | crosses left 0% when LB left, 0% when LB right | switch +0.00

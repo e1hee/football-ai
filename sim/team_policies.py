@@ -313,6 +313,43 @@ def gap_defense(sim: TeamSim, lead: float = 0.3) -> np.ndarray:
     return a.reshape(sim.n, -1)
 
 
+def strong_side(sim: TeamSim) -> np.ndarray:
+    """+1 / -1 per play: the side of the middle the LBs stand on at the snap (`box-mix` slides
+    both LBs up to 3 yd each play). Read on the play's first step and kept for the play."""
+    lb = np.asarray(sim.dfn)[sim.n_def - 2:]
+    side = getattr(sim, "_strong_side", None)
+    if side is None or side.shape[0] != sim.n:
+        side = sim._strong_side = np.ones(sim.n, np.float32)
+    new = sim.t == 0
+    if new.any():
+        side[new] = np.where(sim.pos[new][:, lb, 1].mean(axis=1) >= sim.cfg.field.width / 2, 1.0, -1.0)
+    return side
+
+
+def overload_defense(sim: TeamSim, commit: float = 2.5, spot: float = 5.0) -> np.ndarray:
+    """A defense that guesses the run goes to the LBs' side (EXP-034). Until `commit` s, or until
+    the carrier reaches the line, every free defender runs to a spot on the line `spot` yd to
+    that side and every engaged DL fights toward it; then it plays `gap_defense`. The other
+    side is left thin, and a runner who sees where the LBs stand can go there. With these
+    defaults a runner aimed 5 yd to one side gains ~10 yd away from the LBs and ~0-3 yd toward
+    them; 1.5 s or a 3 yd spot let a wide run get around the flood (`scripts/overload_check.py`)."""
+    a = gap_defense(sim).reshape(sim.n, sim.n_def, 3)
+    side = strong_side(sim)
+    early = (sim.t * sim.cfg.field.dt < commit) & (sim.pos[:, CARRIER, 0] < sim.los)
+    if not early.any():
+        return a.reshape(sim.n, -1)
+    me = sim.pos[:, sim.dfn]
+    goal = np.stack([np.broadcast_to(sim.los[:, None] + 0.5, me[..., 0].shape),
+                     np.broadcast_to(sim.cfg.field.width / 2 + side[:, None] * spot, me[..., 1].shape)], -1)
+    run_to = _unit(goal - me)
+    fight = _unit(np.stack([np.full(me.shape[:2], -0.3), np.broadcast_to(side[:, None], me.shape[:2])], -1))
+    engaged = sim.partner[:, sim.dfn] >= 0
+    push = np.where(engaged[..., None], fight, run_to)
+    a[..., :2] = np.where(early[:, None, None], push, a[..., :2])
+    a[..., 2] = np.where(early[:, None], 1.0, a[..., 2])
+    return a.reshape(sim.n, -1)
+
+
 OFFENSE = {"screen": screen_offense, "carrier_only": carrier_only_offense, "lane": lane_offense,
            "combo": combo_offense, "box": box_offense}
-DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense}
+DEFENSE = {"pursuit": pursuit_defense, "read": read_defense, "gap": gap_defense, "overload": overload_defense}

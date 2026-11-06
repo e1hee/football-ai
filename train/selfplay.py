@@ -31,8 +31,8 @@ from stable_baselines3.common.callbacks import BaseCallback
 from sim.core import OneVOneSim
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
 from sim.team import SIMS, TeamSim
-from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, pursuit_defense, read_defense,
-                                screen_offense)
+from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, overload_defense, pursuit_defense,
+                                read_defense, screen_offense)
 from train.evaluate import evaluate
 from train.mirror import mirror_action, mirror_obs
 from train.policies import calibrate_sde, policy_for, resample_noise, reset_head
@@ -231,6 +231,9 @@ def main() -> None:
     p.add_argument("--sde-std", type=float, default=1.0, help="gSDE: starting action std of a new network")
     p.add_argument("--reset-head-every", type=int, default=0,
                    help="offense: new action layer and std 1 before generation 2, 2+N, ... (0: never), EXP-033")
+    p.add_argument("--overload-share", type=float, default=0.0,
+                   help="box-mix: share of the offense's plays against the scripted defense that floods the "
+                        "LBs' side (sim.team_policies.overload_defense), taken from the newest defense's share, EXP-034")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -238,6 +241,8 @@ def main() -> None:
     args = p.parse_args()
     if args.mirror_share and args.sim != "box-mix":
         p.error("--mirror-share only knows the box-mix slots")
+    if args.overload_share and (args.sim != "box-mix" or args.scripted_share is None):
+        p.error("--overload-share needs --sim box-mix and a fixed --scripted-share")
 
     torch.set_num_threads(args.threads)
     out = ROOT / "experiments" / args.exp
@@ -317,7 +322,9 @@ def main() -> None:
                                                               args.seed + phase,
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=True,
-                                                              mirror_share=args.mirror_share),
+                                                              mirror_share=args.mirror_share,
+                                                              extra=[overload_defense] if args.overload_share else None,
+                                                              extra_share=args.overload_share),
                               side="runner", seed=args.seed + phase)
             if runner_model is None:
                 runner_model = PPO.load(str(runner_path), env=venv, device="cpu",
@@ -387,6 +394,8 @@ def main() -> None:
             "td_scripted_runner_vs_tackler": t_vs_script["rate/touchdown"],
             "new_offense_yards": new_yards, "main_yards": main_yards, "replaced": int(swapped),
         }
+        if args.overload_share:
+            row["yards_runner_vs_overload"] = evaluate(det(r_new), overload_defense, cfg, n_plays=2048)["yards/mean"]
         if writer is None:
             writer = csv.DictWriter(log, fieldnames=list(row))
             writer.writeheader()

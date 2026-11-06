@@ -76,6 +76,17 @@ def measure(runner, tackler, cfg, n: int = 2048, seed: int = 7, deterministic: b
             "timeout": float((out == OUTCOME_TIMEOUT).mean())}
 
 
+def to_sde(old: PPO, venv, args, obs: np.ndarray) -> PPO:
+    """The same trained network, its per-step noise swapped for held gSDE noise of std `--sde-std`."""
+    model = PPO(type(old.policy), venv, seed=args.seed, device="cpu", verbose=0, policy_kwargs=old.policy_kwargs,
+                use_sde=True, sde_sample_freq=args.sde_freq, **PPO_KW)
+    weights = {k: v for k, v in old.policy.state_dict().items() if k != "log_std"}
+    missing, unexpected = model.policy.load_state_dict(weights, strict=False)
+    assert missing == ["log_std"] and not unexpected, (missing, unexpected)
+    calibrate_sde(model.policy, obs, args.sde_std)
+    return model
+
+
 def reset_head(model: PPO) -> None:
     """The action layer as SB3 builds it for a new policy: orthogonal, gain 0.01, zero bias."""
     with torch.no_grad():
@@ -98,6 +109,10 @@ def main() -> None:
     p.add_argument("--reset-std", action="store_true", help="keep the weights, put exploration noise back to std 1")
     p.add_argument("--reset-head", action="store_true",
                    help="keep the hidden layers, start the action layer again as a new network does (EXP-029)")
+    p.add_argument("--sde-freq", type=int, default=None,
+                   help="with --init-gen: same weights, but held gSDE noise, new every this many steps (EXP-032)")
+    p.add_argument("--sde-std", type=float, default=0.5, help="with --sde-freq: starting action std of the held noise")
+    p.add_argument("--flip", action="store_true", help="also record how often the noise crosses on the other side")
     p.add_argument("--save", type=Path, default=None, help="save the final policy here")
     p.add_argument("--save-each", action="store_true", help="also save <save>_<steps>.zip after every --every steps")
     p.add_argument("--out", type=Path, required=True)
@@ -123,6 +138,8 @@ def main() -> None:
             calibrate_sde(model.policy, start_obs(cfg, args.learner, args.seed), float(run_args.get("sde_std", 1.0)))
     else:
         model = PPO.load(str(ck / f"{args.learner}_g{args.init_gen:02d}.zip"), env=venv, device="cpu", **PPO_KW)
+        if args.sde_freq is not None:
+            model = to_sde(model, venv, args, start_obs(cfg, args.learner, args.seed))
     if args.reset_std:
         with torch.no_grad():
             model.policy.log_std.zero_()
@@ -132,8 +149,13 @@ def main() -> None:
     def row(done_steps: int) -> dict:
         r, t = (model, opp.model) if args.learner == "runner" else (opp.model, model)
         noisy = measure(r, t, cfg, deterministic=False)
-        return {"name": args.name, "steps": done_steps, **measure(r, t, cfg),
-                "td_sto": noisy["td"], "yards_sto": noisy["yards"], "std": float(action_std(model.policy, start_obs(cfg, args.learner, 1, 256)).mean())}
+        out = {"name": args.name, "steps": done_steps, **measure(r, t, cfg),
+               "td_sto": noisy["td"], "yards_sto": noisy["yards"], "end_right_sto": noisy["end_right"],
+               "std": float(action_std(model.policy, start_obs(cfg, args.learner, 1, 256)).mean())}
+        if args.flip and args.learner == "runner":
+            from scripts.explore_side import measure as flips
+            out["flip"] = flips(model, opp.model, cfg, n=1024, draws=2)["flip"]
+        return out
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as f:

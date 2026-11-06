@@ -175,3 +175,17 @@ def test_sde_noise_is_held_calibrated_and_frozen_opponents_can_use_it(tmp_path):
     floor.init_callback(model)
     floor.on_rollout_start()
     assert abs(float(model.policy.log_std.min()) - (log0 + np.log(0.8))) < 1e-5
+
+
+def test_to_sde_keeps_the_trained_mean(tmp_path):
+    import argparse
+    import numpy as np
+    from stable_baselines3 import PPO
+    from scripts.recovery_test import to_sde
+    from train.policies import action_std, policy_for
+    policy, kw = policy_for(1.25, 16)
+    old = PPO(policy, "Pendulum-v1", device="cpu", seed=0, n_steps=64, batch_size=64, policy_kwargs=kw)
+    obs = np.random.default_rng(0).normal(size=(32, 3)).astype(np.float32)
+    new = to_sde(old, old.get_env(), argparse.Namespace(seed=0, sde_freq=-1, sde_std=0.3), obs)
+    assert new.use_sde and np.allclose(new.predict(obs, deterministic=True)[0], old.predict(obs, deterministic=True)[0])
+    assert abs(float(action_std(new.policy, obs).mean()) - 0.3) < 1e-4

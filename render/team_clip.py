@@ -59,6 +59,12 @@ def make_team_policy(name: str):
     if name.startswith("tckpt:"):
         from train.evaluate import ppo_tackler
         return ppo_tackler(name[6:])
+    if name.startswith("mckpt:"):              # the same offense flipped left-right (selfplay_audit's runner_mirrored)
+        from stable_baselines3 import PPO
+        from train.mirror import mirror_action, mirror_obs
+        model = PPO.load(name[6:], device="cpu")
+        return lambda sim, obs: mirror_action(model.predict(mirror_obs(obs, "runner"), deterministic=True)[0],
+                                              "runner").astype(np.float32)
     if name.startswith("middle:"):             # the AI's blockers, with a runner who just aims up the middle
         from scripts.lane_check import dumb_runner, middle
         from train.evaluate import ppo_runner
@@ -72,6 +78,8 @@ def make_team_policy(name: str):
 def team_label(name: str) -> str:
     if name.startswith("middle:"):
         return "가운데 직진 러너"
+    if name.startswith("mckpt:"):
+        return team_label("ckpt:" + name[6:]) + " 좌우 뒤집기"
     if name.startswith(("ckpt:", "tckpt:")):
         path = Path(name.split(":", 1)[1])
         if path.stem.startswith("fresh"):      # a new network from scripts.recovery_test has no generation

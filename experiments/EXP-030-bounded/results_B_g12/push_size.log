@@ -1,0 +1,12 @@
+s0 g01 RB 1.24 (100% >1, turn 40 deg) | OL 0.41 (  0% >1, turn 71 deg) | DL 0.85 ( 26% >1, turn 53 deg) | LB 0.67 (  0% >1, turn 60 deg) | std off 0.95 def 0.95
+s0 g03 RB 1.25 (100% >1, turn 38 deg) | OL 0.80 ( 36% >1, turn 54 deg) | DL 0.97 ( 55% >1, turn 45 deg) | LB 0.72 ( 19% >1, turn 55 deg) | std off 0.92 def 0.86
+s0 g06 RB 1.25 (100% >1, turn 35 deg) | OL 0.99 ( 61% >1, turn 44 deg) | DL 1.14 ( 88% >1, turn 37 deg) | LB 0.97 ( 55% >1, turn 44 deg) | std off 0.83 def 0.80
+s0 g12 RB 1.25 (100% >1, turn 33 deg) | OL 1.15 ( 87% >1, turn 37 deg) | DL 1.18 ( 91% >1, turn 36 deg) | LB 1.00 ( 62% >1, turn 42 deg) | std off 0.80 def 0.80
+s1 g01 RB 1.24 (100% >1, turn 40 deg) | OL 0.48 (  1% >1, turn 68 deg) | DL 0.62 ( 15% >1, turn 62 deg) | LB 0.63 (  0% >1, turn 61 deg) | std off 0.95 def 0.94
+s1 g03 RB 1.25 (100% >1, turn 38 deg) | OL 0.72 ( 28% >1, turn 58 deg) | DL 0.89 ( 48% >1, turn 49 deg) | LB 0.79 ( 25% >1, turn 52 deg) | std off 0.91 def 0.85
+s1 g06 RB 1.25 (100% >1, turn 35 deg) | OL 0.92 ( 55% >1, turn 47 deg) | DL 1.10 ( 80% >1, turn 39 deg) | LB 0.96 ( 56% >1, turn 44 deg) | std off 0.83 def 0.81
+s1 g12 RB 1.24 (100% >1, turn 34 deg) | OL 1.09 ( 78% >1, turn 39 deg) | DL 1.20 ( 95% >1, turn 35 deg) | LB 0.86 ( 42% >1, turn 48 deg) | std off 0.80 def 0.80
+s2 g01 RB 1.24 (100% >1, turn 39 deg) | OL 0.58 (  9% >1, turn 64 deg) | DL 0.80 ( 22% >1, turn 54 deg) | LB 0.41 (  0% >1, turn 71 deg) | std off 0.94 def 0.94
+s2 g03 RB 1.25 (100% >1, turn 37 deg) | OL 0.76 ( 39% >1, turn 56 deg) | DL 0.95 ( 58% >1, turn 46 deg) | LB 0.77 ( 22% >1, turn 53 deg) | std off 0.89 def 0.85
+s2 g06 RB 1.25 (100% >1, turn 34 deg) | OL 0.95 ( 57% >1, turn 45 deg) | DL 1.12 ( 83% >1, turn 38 deg) | LB 0.90 ( 40% >1, turn 46 deg) | std off 0.82 def 0.81
+s2 g12 RB 1.19 ( 93% >1, turn 35 deg) | OL 1.09 ( 78% >1, turn 39 deg) | DL 1.21 ( 97% >1, turn 35 deg) | LB 0.91 ( 51% >1, turn 46 deg) | std off 0.80 def 0.80

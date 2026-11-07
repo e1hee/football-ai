@@ -114,10 +114,23 @@ def _grid_fit(v: np.ndarray, y: np.ndarray, f, grids: list[np.ndarray]):
     return arg, float(np.sqrt(best / np.isfinite(y).sum()))
 
 
+def _fit_brake(v: np.ndarray, y: np.ndarray, V: float):
+    """brake(v) = B0 * (1 - d (v/V)^kb), least squares over a 3-D grid (vectorized).
+    d < 1 keeps some stopping power at top speed: real big players still shed
+    ~2 yd/s in 0.5 s from 7-9 yd/s (`analysis/real_brake.py`), which the old
+    d = 1 form (power gone at V) could not."""
+    B0 = np.arange(3, 11, 0.05)[:, None, None, None]
+    kb = np.arange(0.5, 6, 0.05)[None, :, None, None]
+    d = np.arange(0, 1.001, 0.02)[None, None, :, None]
+    err = ((B0 * (1 - d * (v / V) ** kb) - y) ** 2).sum(-1)
+    i = np.unravel_index(np.argmin(err), err.shape)
+    return (float(B0.ravel()[i[0]]), float(kb.ravel()[i[1]]), float(d.ravel()[i[2]])), float(np.sqrt(err[i] / len(y)))
+
+
 def fit_profile(r: dict) -> dict:
     """Fit smooth curves the sim can evaluate per step:
         accel(v)   = A0 * (1 - (v/V)^k)        forward push left at speed v
-        brake(v)   = B0 * (1 - (v/V)^kb)       stopping power
+        brake(v)   = B0 * (1 - d (v/V)^kb)     stopping power (d <= 1: some left at top speed)
         lateral(v) = L0 * (1 - c (v/V)^2)      sideways grip = how hard you can cut
     V sits just above the p99 top speed so the accel curve reaches 0 there."""
     V = r["top_speed_p99"] + 0.3
@@ -129,11 +142,11 @@ def fit_profile(r: dict) -> dict:
     lat = np.array(r["lateral_p99_by_speed"])[keep]
     power = lambda v, a0, k: a0 * (1 - (v / V) ** k)
     (A0, k), acc_rmse = _grid_fit(v, acc, power, [np.arange(3, 11, 0.05), np.arange(0.5, 4, 0.05)])
-    (B0, kb), brk_rmse = _grid_fit(v, brk, power, [np.arange(3, 11, 0.05), np.arange(0.5, 4, 0.05)])
+    (B0, kb, bd), brk_rmse = _fit_brake(v, brk, V)
     (L0, c), lat_rmse = _grid_fit(v, lat, lambda v, l0, c: l0 * (1 - c * (v / V) ** 2),
                                   [np.arange(2, 10, 0.05), np.arange(0, 0.9, 0.01)])
     return {"max_speed": round(V, 2), "accel": round(float(A0), 2), "accel_k": round(float(k), 2),
-            "brake": round(float(B0), 2), "brake_k": round(float(kb), 2),
+            "brake": round(float(B0), 2), "brake_k": round(float(kb), 2), "brake_drop": round(float(bd), 2),
             "agility": round(float(L0), 2), "agility_drop": round(float(c), 2),
             "mass_lb": round(r["weight_lb_median"]),
             "rmse": {"accel": round(acc_rmse, 2), "brake": round(brk_rmse, 2), "lateral": round(lat_rmse, 2)}}

@@ -1,0 +1,11 @@
+WR 3-5 yd/s n=185804: NFL speed shed in 0.5s p99 3.1 p99.9 3.8 | sim best 3.4 (RB) || NFL heading change in 0.5s p99 57.0 p99.9 82.0 deg | sim best 58 deg
+WR 5-7 yd/s n=203269: NFL speed shed in 0.5s p99 3.2 p99.9 4.0 | sim best 3.1 (RB) || NFL heading change in 0.5s p99 35.4 p99.9 44.7 deg | sim best 33 deg
+WR 7-9 yd/s n=130504: NFL speed shed in 0.5s p99 2.5 p99.9 3.5 | sim best 2.5 (RB) || NFL heading change in 0.5s p99 26.0 p99.9 30.4 deg | sim best 23 deg
+LB 3-5 yd/s n=117272: NFL speed shed in 0.5s p99 2.6 p99.9 3.4 | sim best 2.8 (LB) || NFL heading change in 0.5s p99 48.6 p99.9 67.2 deg | sim best 47 deg
+LB 5-7 yd/s n=39024: NFL speed shed in 0.5s p99 2.7 p99.9 3.6 | sim best 2.7 (LB) || NFL heading change in 0.5s p99 32.4 p99.9 40.8 deg | sim best 29 deg
+LB 7-9 yd/s n=5234: NFL speed shed in 0.5s p99 2.7 p99.9 3.7 | sim best 2.6 (LB) || NFL heading change in 0.5s p99 21.0 p99.9 29.3 deg | sim best 21 deg
+DL 3-5 yd/s n=179570: NFL speed shed in 0.5s p99 2.3 p99.9 2.9 | sim best 2.3 (DL) || NFL heading change in 0.5s p99 42.5 p99.9 58.4 deg | sim best 40 deg
+DL 5-7 yd/s n=47755: NFL speed shed in 0.5s p99 2.3 p99.9 3.1 | sim best 2.2 (DL) || NFL heading change in 0.5s p99 28.6 p99.9 35.6 deg | sim best 26 deg
+DL 7-9 yd/s n=4378: NFL speed shed in 0.5s p99 2.1 p99.9 2.7 | sim best 2.1 (DL) || NFL heading change in 0.5s p99 18.4 p99.9 25.5 deg | sim best 19 deg
+OL 3-5 yd/s n=275653: NFL speed shed in 0.5s p99 1.9 p99.9 2.4 | sim best 1.8 (OL) || NFL heading change in 0.5s p99 33.5 p99.9 44.6 deg | sim best 30 deg
+OL 5-7 yd/s n=27375: NFL speed shed in 0.5s p99 1.7 p99.9 2.4 | sim best 1.8 (OL) || NFL heading change in 0.5s p99 21.6 p99.9 28.4 deg | sim best 20 deg

@@ -37,7 +37,7 @@ import numpy as np
 
 from .core import (OUTCOME_OUT_OF_BOUNDS, OUTCOME_TACKLED, OUTCOME_TIMEOUT, OUTCOME_TOUCHDOWN, FieldConfig,
                    OneVOneSim, RewardConfig, SimConfig, TackleConfig)
-from .physics import PROFILES, Bodies, apply_controls, resolve_collisions, turn_facing
+from .physics import Bodies, apply_controls, profiles, resolve_collisions, turn_facing
 
 CARRIER = 0
 PER_PLAYER_OBS = 8       # rel x, rel y, vx, vy, facing x, facing y, blockers on him (0-2), stunned
@@ -148,6 +148,9 @@ class TeamConfig:
     # Seconds the snap takes to reach the carrier (EXP-018; 0 = he has the ball at
     # the start). Until then he stands still, and everyone else is already playing.
     snap_time: float = 0.0
+    # Brake curve version (EXP-038; see `sim.physics.profiles`). 1 = big players
+    # could barely stop near top speed; 2 = calibrated to NFL 0.5 s speed shed.
+    brake: int = 2
 
 
 def lane_drill_config(width: float = 5.0, linebacker: bool = False, past_los: float = 10.0,
@@ -246,7 +249,8 @@ class TeamSim:
         self.off = np.arange(self.n_off)
         self.dfn = np.arange(self.n_off, self.p)
         self.blk = np.arange(1, self.n_off)
-        self.bodies = Bodies(n, [PROFILES[r] for r in (*self.cfg.offense, *self.cfg.defense)])
+        prof = profiles(self.cfg.brake)
+        self.bodies = Bodies(n, [prof[r] for r in (*self.cfg.offense, *self.cfg.defense)])
         self.roles = (*self.cfg.offense, *self.cfg.defense)
 
         p = self.p

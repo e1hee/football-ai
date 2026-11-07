@@ -19,7 +19,16 @@ def test_rebuilds_a_saved_run_exactly():
     now = json.loads(json.dumps(dataclasses.asdict(config_from_run(EXP019))))
     for later in ("ol_run_cost", "lb_rush_cost", "lb_chase_free", "lane_bonus", "lane_cap", "lane_box"):    # added after EXP-019
         assert now["reward"].pop(later) == dataclasses.asdict(RewardConfig())[later]
+    assert now.pop("brake") == 1        # added in EXP-038: older runs keep the old brake curve
     assert now == saved
+
+
+def test_old_runs_keep_the_old_brake_and_new_runs_get_the_new_one():
+    old = TeamSim(1, config_from_run(EXP019), seed=0)
+    new = TeamSim(1, build_config(argparse.Namespace(**{**vars(run_args(EXP019)), "brake": 2})), seed=0)
+    dl = old.cfg.offense.__len__()      # first defender is a DL
+    assert old.bodies.brake_drop[0, dl] == 1.0
+    assert new.bodies.brake_drop[0, dl] < 0.5
 
 
 def test_engaged_tackle_arg_only_moves_the_engaged_offset():

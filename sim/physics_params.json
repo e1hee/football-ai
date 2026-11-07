@@ -399,14 +399,15 @@
       "max_speed": 9.65,
       "accel": 5.95,
       "accel_k": 2.7,
-      "brake": 6.25,
-      "brake_k": 3.95,
+      "brake": 6.2,
+      "brake_k": 2.5,
+      "brake_drop": 0.28,
       "agility": 7.0,
       "agility_drop": 0.28,
       "mass_lb": 194,
       "rmse": {
         "accel": 0.63,
-        "brake": 0.94,
+        "brake": 0.14,
         "lateral": 0.38
       }
     },
@@ -414,14 +415,15 @@
       "max_speed": 7.98,
       "accel": 4.9,
       "accel_k": 3.95,
-      "brake": 4.75,
-      "brake_k": 3.95,
+      "brake": 4.65,
+      "brake_k": 1.85,
+      "brake_drop": 0.12,
       "agility": 5.25,
       "agility_drop": 0.0,
       "mass_lb": 285,
       "rmse": {
         "accel": 0.67,
-        "brake": 0.87,
+        "brake": 0.05,
         "lateral": 0.34
       }
     },
@@ -429,14 +431,15 @@
       "max_speed": 8.68,
       "accel": 5.65,
       "accel_k": 3.1,
-      "brake": 5.65,
-      "brake_k": 3.95,
+      "brake": 5.75,
+      "brake_k": 1.65,
+      "brake_drop": 0.12,
       "agility": 5.95,
       "agility_drop": 0.02,
       "mass_lb": 254,
       "rmse": {
         "accel": 0.82,
-        "brake": 1.12,
+        "brake": 0.1,
         "lateral": 0.27
       }
     },
@@ -444,14 +447,15 @@
       "max_speed": 6.53,
       "accel": 4.0,
       "accel_k": 3.95,
-      "brake": 3.8,
-      "brake_k": 3.95,
+      "brake": 3.85,
+      "brake_k": 1.1,
+      "brake_drop": 0.14,
       "agility": 4.05,
       "agility_drop": 0.0,
       "mass_lb": 315,
       "rmse": {
         "accel": 1.05,
-        "brake": 1.17,
+        "brake": 0.04,
         "lateral": 0.17
       }
     },
@@ -459,14 +463,15 @@
       "max_speed": 8.92,
       "accel": 6.05,
       "accel_k": 2.4,
-      "brake": 6.1,
-      "brake_k": 3.6,
+      "brake": 6.45,
+      "brake_k": 2.1,
+      "brake_drop": 0.56,
       "agility": 6.35,
       "agility_drop": 0.11,
       "mass_lb": 250,
       "rmse": {
         "accel": 0.48,
-        "brake": 0.56,
+        "brake": 0.26,
         "lateral": 0.18
       }
     },
@@ -474,15 +479,161 @@
       "max_speed": 10.02,
       "accel": 6.75,
       "accel_k": 2.35,
-      "brake": 6.9,
-      "brake_k": 3.4,
+      "brake": 7.0,
+      "brake_k": 2.7,
+      "brake_drop": 0.7,
       "agility": 6.95,
       "agility_drop": 0.16,
       "mass_lb": 198,
       "rmse": {
         "accel": 0.43,
-        "brake": 0.53,
+        "brake": 0.43,
         "lateral": 0.54
+      }
+    }
+  },
+  "brake_calibration": {
+    "what": "best 0.5 s speed shed (yd/s) by starting-speed bin; NFL = p99 of real windows",
+    "groups": {
+      "DB": {
+        "nfl_p99": {
+          "3-5": 2.83,
+          "5-7": 2.97,
+          "7-9": 2.73
+        },
+        "n": {
+          "3-5": 412424,
+          "5-7": 243553,
+          "7-9": 68638
+        },
+        "sim_old_form": {
+          "3-5": 2.93,
+          "5-7": 2.46,
+          "7-9": 1.45
+        },
+        "sim_calibrated": {
+          "3-5": 3.05,
+          "5-7": 2.94,
+          "7-9": 2.71
+        },
+        "frame_fit_drop": 0.56,
+        "brake_drop": 0.28
+      },
+      "DL": {
+        "nfl_p99": {
+          "3-5": 2.27,
+          "5-7": 2.28,
+          "7-9": 2.08
+        },
+        "n": {
+          "3-5": 179570,
+          "5-7": 47755,
+          "7-9": 4378
+        },
+        "sim_old_form": {
+          "3-5": 1.89,
+          "5-7": 1.2,
+          "7-9": 0.35
+        },
+        "sim_calibrated": {
+          "3-5": 2.28,
+          "5-7": 2.21,
+          "7-9": 2.11
+        },
+        "frame_fit_drop": 0.38,
+        "brake_drop": 0.12
+      },
+      "LB": {
+        "nfl_p99": {
+          "3-5": 2.61,
+          "5-7": 2.73,
+          "7-9": 2.67
+        },
+        "n": {
+          "3-5": 117272,
+          "5-7": 39024,
+          "7-9": 5234
+        },
+        "sim_old_form": {
+          "3-5": 2.33,
+          "5-7": 1.54,
+          "7-9": 0.47
+        },
+        "sim_calibrated": {
+          "3-5": 2.82,
+          "5-7": 2.74,
+          "7-9": 2.63
+        },
+        "frame_fit_drop": 0.44,
+        "brake_drop": 0.12
+      },
+      "OL": {
+        "nfl_p99": {
+          "3-5": 1.86,
+          "5-7": 1.73
+        },
+        "n": {
+          "3-5": 275653,
+          "5-7": 27375
+        },
+        "sim_old_form": {
+          "3-5": 1.17,
+          "5-7": 0.65
+        },
+        "sim_calibrated": {
+          "3-5": 1.83,
+          "5-7": 1.76
+        },
+        "frame_fit_drop": 0.3,
+        "brake_drop": 0.14
+      },
+      "TE": {
+        "nfl_p99": {
+          "3-5": 2.78,
+          "5-7": 2.68,
+          "7-9": 2.08
+        },
+        "n": {
+          "3-5": 56980,
+          "5-7": 51034,
+          "7-9": 13300
+        },
+        "sim_old_form": {
+          "3-5": 2.9,
+          "5-7": 2.17,
+          "7-9": 0.86
+        },
+        "sim_calibrated": {
+          "3-5": 3.05,
+          "5-7": 2.68,
+          "7-9": 2.05
+        },
+        "frame_fit_drop": 0.74,
+        "brake_drop": 0.56
+      },
+      "WR": {
+        "nfl_p99": {
+          "3-5": 3.08,
+          "5-7": 3.21,
+          "7-9": 2.52
+        },
+        "n": {
+          "3-5": 185804,
+          "5-7": 203269,
+          "7-9": 130504
+        },
+        "sim_old_form": {
+          "3-5": 3.37,
+          "5-7": 2.97,
+          "7-9": 2.0
+        },
+        "sim_calibrated": {
+          "3-5": 3.41,
+          "5-7": 3.14,
+          "7-9": 2.53
+        },
+        "frame_fit_drop": 0.84,
+        "brake_drop": 0.7
       }
     }
   }

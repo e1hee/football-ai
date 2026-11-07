@@ -60,6 +60,19 @@ def test_cannot_cut_sharply_at_top_speed():
     assert time_to_turn(9.5) > 1.5 * time_to_turn(3.0)
 
 
+def test_big_players_can_still_brake_near_top_speed():
+    """NFL DL / LB shed ~2.1 / 2.7 yd/s in 0.5 s from 7-9 yd/s (p99, EXP-038);
+    the old brake form left them ~0.4 / 1.1."""
+    from sim.physics import Bodies, apply_controls
+    for name, want in (("DL", 1.8), ("LB", 2.3)):
+        b = Bodies(1, [PROFILES[name]])
+        pos = np.zeros((1, 1, 2), np.float32)
+        vel = np.array([[[8.0, 0.0]]], np.float32)
+        for _ in range(5):
+            apply_controls(pos, vel, np.array([[[-1.0, 0.0]]], np.float32), b, 0.1)
+        assert 8.0 - vel[0, 0, 0] > want, name
+
+
 def test_players_do_not_pass_through_each_other():
     sim = OneVOneSim(1, SimConfig(tackle=SimConfig().tackle.__class__(reach=-10.0)), seed=5)
     sim.reset()

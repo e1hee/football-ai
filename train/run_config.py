@@ -14,11 +14,13 @@ from pathlib import Path
 import yaml
 
 from sim.core import FieldConfig, RewardConfig, SimConfig, TackleConfig
+from sim.physics import profiles
 from sim.team import config_for
 
 # Args added after older runs were trained, with the value those runs used.
 LATER_ARGS = {"engaged_tackle": None, "shed_rate": None, "reengage_cooldown": None,
-              "ol_run_cost": 0.0, "lb_rush_cost": 0.0, "lane_bonus": 0.0, "lb_chase_free": False}
+              "ol_run_cost": 0.0, "lb_rush_cost": 0.0, "lane_bonus": 0.0, "lb_chase_free": False,
+              "brake": 1}
 
 
 def build_config(args):
@@ -40,6 +42,12 @@ def build_config(args):
                                ("reengage_cooldown", getattr(args, "reengage_cooldown", None))) if v is not None}
     if block:
         cfg = dataclasses.replace(cfg, block=dataclasses.replace(cfg.block, **block))
+    brake = getattr(args, "brake", 2)
+    if isinstance(cfg, SimConfig):
+        prof = profiles(brake)
+        cfg = dataclasses.replace(cfg, runner=prof["WR"], tackler=prof["DB"])
+    else:
+        cfg = dataclasses.replace(cfg, brake=brake)
     return cfg
 
 

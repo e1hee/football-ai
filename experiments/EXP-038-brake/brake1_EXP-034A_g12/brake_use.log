@@ -1,0 +1,15 @@
+s0 g12:
+  RB: >=6 yd/s 30.0%  >=7 19.4%  hard brake (fast, free) 3.9%  achieved 3.29 yd/s^2
+  OL: >=6 yd/s 2.1%  >=7 1.1%  hard brake (fast, free) 1.2%  achieved 1.82 yd/s^2
+  DL: >=6 yd/s 1.5%  >=7 0.7%  hard brake (fast, free) 4.9%  achieved 2.31 yd/s^2
+  LB: >=6 yd/s 4.2%  >=7 1.4%  hard brake (fast, free) 5.8%  achieved 3.28 yd/s^2
+s1 g12:
+  RB: >=6 yd/s 36.4%  >=7 25.9%  hard brake (fast, free) 6.0%  achieved 2.85 yd/s^2
+  OL: >=6 yd/s 0.8%  >=7 0.3%  hard brake (fast, free) 1.8%  achieved 2.06 yd/s^2
+  DL: >=6 yd/s 1.3%  >=7 0.4%  hard brake (fast, free) 7.6%  achieved 2.44 yd/s^2
+  LB: >=6 yd/s 8.9%  >=7 1.9%  hard brake (fast, free) 21.8%  achieved 3.12 yd/s^2
+s2 g12:
+  RB: >=6 yd/s 40.5%  >=7 31.0%  hard brake (fast, free) 2.7%  achieved 3.08 yd/s^2
+  OL: >=6 yd/s 1.1%  >=7 0.5%  hard brake (fast, free) 3.5%  achieved 2.23 yd/s^2
+  DL: >=6 yd/s 2.7%  >=7 1.2%  hard brake (fast, free) 5.4%  achieved 2.5 yd/s^2
+  LB: >=6 yd/s 5.6%  >=7 1.6%  hard brake (fast, free) 16.6%  achieved 3.19 yd/s^2

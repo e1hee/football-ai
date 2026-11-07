@@ -251,6 +251,8 @@ def main() -> None:
     p.add_argument("--stumble", type=float, default=0.0, help="team sim: s off balance per yd/s of hard collision")
     p.add_argument("--square-ahead", action="store_true", help="team sim: carrier squares up only to defenders ahead")
     p.add_argument("--timeout-ends", action="store_true", help="team sim: the play clock is a real end (no bootstrap)")
+    p.add_argument("--brake", type=int, default=2, choices=(1, 2),
+                   help="brake curve version: 1 = runs through EXP-037, 2 = NFL-calibrated stops at speed (EXP-038)")
     p.add_argument("--net", type=int, default=128, help="hidden units per layer (2 layers)")
     p.add_argument("--min-std", type=float, default=None, help="exploration noise never falls below this (EXP-024)")
     p.add_argument("--push-bound", type=float, default=None,

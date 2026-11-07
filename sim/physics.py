@@ -7,7 +7,7 @@ Arrays are shaped (N plays, P players, ...). Three pieces:
    direction relative to their motion, using curves fitted to real NFL
    tracking (see `analysis/physics_from_bdb.py`):
      - forward:  accel(v) = A0 (1 - (v/V)^k)   -> fast to start, nothing left at top speed
-     - braking:  brake(v) = B0 (1 - (v/V)^kb)
+     - braking:  brake(v) = B0 (1 - d (v/V)^kb)  -> d < 1: big players can still stop at speed
      - sideways: lateral(v) = L0 (1 - c (v/V)^2) -> sharp cuts only at low speed
    Turning at speed therefore costs: the lateral cap bends the path slowly,
    and slowing down first to cut harder is a real trade-off.
@@ -24,6 +24,7 @@ Arrays are shaped (N plays, P players, ...). Three pieces:
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,6 +52,7 @@ class Profile:
     back_accel: float = 0.78     # push strength straight backwards / forwards
     turn_rate: float = 250.0     # deg/s the hips can turn when slow ...
     turn_rate_top: float = 150.0 # ... and at top speed
+    brake_drop: float = 1.0      # share of braking power gone at top speed (1 = old fit form)
 
     def scaled(self, **mult: float) -> "Profile":
         """Copy with some fields multiplied, e.g. scaled(max_speed=0.9)."""
@@ -85,9 +87,9 @@ def load_profiles(path: Path = PARAMS_PATH, orient_path: Path = ORIENT_PATH) -> 
 
 # Fallback numbers (from the 2024 fit) so the sim runs without the json.
 DEFAULT_PROFILES = {
-    "WR": Profile(10.02, 6.75, 2.35, 6.9, 3.4, 6.95, 0.16, 198,
-                  back_speed=0.78, back_accel=0.87, turn_rate=335, turn_rate_top=174),
-    "DB": Profile(9.65, 5.95, 2.7, 6.25, 3.95, 7.0, 0.28, 194),
+    "WR": Profile(10.02, 6.75, 2.35, 7.0, 2.7, 6.95, 0.16, 198,
+                  back_speed=0.78, back_accel=0.87, turn_rate=335, turn_rate_top=174, brake_drop=0.7),
+    "DB": Profile(9.65, 5.95, 2.7, 6.2, 2.5, 7.0, 0.28, 194, brake_drop=0.28),
 }
 try:
     PROFILES = {**DEFAULT_PROFILES, **load_profiles()}
@@ -109,13 +111,31 @@ if "OL" in PROFILES:
 if "DL" in PROFILES:
     PROFILES["DL"] = PROFILES["DL"].scaled(max_speed=1.03, accel=1.16)
 
+# Brake version 1 (every run through EXP-037): brake(v) = B0 (1 - (v/V)^kb) from
+# the per-frame fit, so big players had almost no stopping power near top speed
+# (DL from 8 yd/s shed 0.4 yd/s in 0.5 s, NFL p99 2.1). Version 2 (EXP-038+) is
+# the json fit plus `analysis/brake_calibrate.py`. Runs record which one they
+# used (`TeamConfig.brake`; older config.yaml files mean 1), so re-measuring an
+# old checkpoint keeps its own physics.
+_BRAKE_V1 = {"DB": (6.25, 3.95), "DL": (4.75, 3.95), "LB": (5.65, 3.95), "OL": (3.8, 3.95),
+             "TE": (6.1, 3.6), "WR": (6.9, 3.4)}
+PROFILES_V1 = {g: dataclasses.replace(p, brake=_BRAKE_V1[g][0], brake_k=_BRAKE_V1[g][1], brake_drop=1.0)
+               for g, p in PROFILES.items() if g in _BRAKE_V1}
+PROFILES_V1["RB"] = dataclasses.replace(PROFILES["RB"], brake=_BRAKE_V1["WR"][0], brake_k=_BRAKE_V1["WR"][1],
+                                        brake_drop=1.0)
+
+
+def profiles(brake: int = 2) -> dict[str, Profile]:
+    """Player profiles for a brake version (see `_BRAKE_V1`)."""
+    return PROFILES if brake >= 2 else PROFILES_V1
+
 
 class Bodies:
     """Per-player physical attributes as (N, P) arrays, so every play and
     every player can differ (roster experiments edit these)."""
 
     FIELDS = ("max_speed", "accel", "accel_k", "brake", "brake_k", "agility", "agility_drop", "mass_lb", "radius",
-              "back_speed", "back_accel", "turn_rate", "turn_rate_top")
+              "back_speed", "back_accel", "turn_rate", "turn_rate_top", "brake_drop")
 
     def __init__(self, n: int, profiles: list[Profile]):
         self.n, self.p = n, len(profiles)
@@ -132,7 +152,7 @@ class Bodies:
 def _caps(speed: np.ndarray, b: Bodies):
     r = np.clip(speed / b.max_speed, 0.0, 1.0)
     fwd = b.accel * np.maximum(0.0, 1.0 - r ** b.accel_k)
-    brk = b.brake * np.maximum(0.15, 1.0 - r ** b.brake_k)  # you can always slow down a little
+    brk = b.brake * np.maximum(0.15, 1.0 - b.brake_drop * r ** b.brake_k)  # you can always slow down a little
     lat = b.agility * np.maximum(0.2, 1.0 - b.agility_drop * r ** 2)
     return fwd, brk, lat
 

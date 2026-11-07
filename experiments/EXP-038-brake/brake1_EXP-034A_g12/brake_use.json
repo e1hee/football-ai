@@ -1,0 +1,80 @@
+{
+ "s0": {
+  "RB": {
+   "share_ge6": 0.3002,
+   "share_ge7": 0.1942,
+   "hard_brake_share_of_fast": 0.0393,
+   "hard_brake_mean_yds2": 3.29
+  },
+  "OL": {
+   "share_ge6": 0.0208,
+   "share_ge7": 0.0107,
+   "hard_brake_share_of_fast": 0.0118,
+   "hard_brake_mean_yds2": 1.82
+  },
+  "DL": {
+   "share_ge6": 0.0151,
+   "share_ge7": 0.007,
+   "hard_brake_share_of_fast": 0.0485,
+   "hard_brake_mean_yds2": 2.31
+  },
+  "LB": {
+   "share_ge6": 0.042,
+   "share_ge7": 0.0141,
+   "hard_brake_share_of_fast": 0.0577,
+   "hard_brake_mean_yds2": 3.28
+  }
+ },
+ "s1": {
+  "RB": {
+   "share_ge6": 0.3641,
+   "share_ge7": 0.2585,
+   "hard_brake_share_of_fast": 0.0603,
+   "hard_brake_mean_yds2": 2.85
+  },
+  "OL": {
+   "share_ge6": 0.0084,
+   "share_ge7": 0.0029,
+   "hard_brake_share_of_fast": 0.0182,
+   "hard_brake_mean_yds2": 2.06
+  },
+  "DL": {
+   "share_ge6": 0.0134,
+   "share_ge7": 0.004,
+   "hard_brake_share_of_fast": 0.0765,
+   "hard_brake_mean_yds2": 2.44
+  },
+  "LB": {
+   "share_ge6": 0.0887,
+   "share_ge7": 0.0187,
+   "hard_brake_share_of_fast": 0.2177,
+   "hard_brake_mean_yds2": 3.12
+  }
+ },
+ "s2": {
+  "RB": {
+   "share_ge6": 0.405,
+   "share_ge7": 0.3096,
+   "hard_brake_share_of_fast": 0.0272,
+   "hard_brake_mean_yds2": 3.08
+  },
+  "OL": {
+   "share_ge6": 0.0112,
+   "share_ge7": 0.0055,
+   "hard_brake_share_of_fast": 0.0351,
+   "hard_brake_mean_yds2": 2.23
+  },
+  "DL": {
+   "share_ge6": 0.0268,
+   "share_ge7": 0.012,
+   "hard_brake_share_of_fast": 0.0544,
+   "hard_brake_mean_yds2": 2.5
+  },
+  "LB": {
+   "share_ge6": 0.0557,
+   "share_ge7": 0.0163,
+   "hard_brake_share_of_fast": 0.1656,
+   "hard_brake_mean_yds2": 3.19
+  }
+ }
+}

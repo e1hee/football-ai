@@ -275,6 +275,11 @@ def main() -> None:
                    help="yd the defense must have moved by 1 s for that offense to cut away from it")
     p.add_argument("--bait-mirror", action="store_true",
                    help="flip that offense on the pool's mirrored slots too (EXP-037; EXP-036 did not)")
+    p.add_argument("--def-catch-sep", type=float, default=None,
+                   help="pass: while the defense learns its first --def-catch-gens generations, no catch dice: a catch "
+                        "only at this separation or more (PassConfig.catch_sep), EXP-042; evaluations keep the real rules")
+    p.add_argument("--def-catch-gens", type=int, default=0)
+    p.add_argument("--def-lam", type=float, default=None, help="GAE lambda for the defense only (default: 0.95), EXP-042")
     p.add_argument("--mirror-share", type=float, default=0.0,
                    help="box-mix: share of plays against a left-right flipped frozen opponent (EXP-024)")
     p.add_argument("--seed", type=int, default=0)
@@ -331,7 +336,8 @@ def main() -> None:
         runner_model = calibrate(PPO(policy, venv_r, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw), "runner")
         runner_model.save(runner_path)
     venv_t = SideVecEnv(args.n_envs, cfg, script_tackler, side="tackler", seed=args.seed)
-    tackler_model = calibrate(PPO(policy, venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **ppo_kw), "tackler")
+    t_kw = {**ppo_kw, "gae_lambda": args.def_lam} if args.def_lam is not None else ppo_kw
+    tackler_model = calibrate(PPO(policy, venv_t, seed=args.seed, tensorboard_log=str(out / "tb"), **t_kw), "tackler")
     tackler_path = ck / "tackler_g00.zip"
     tackler_model.save(tackler_path)
     runners = [Frozen(runner_path, "runner")]
@@ -348,7 +354,10 @@ def main() -> None:
         first_is_tackler = args.first == "tackler"
         side = "tackler" if (phase % 2 == 0) == first_is_tackler else "runner"
         if side == "tackler":
-            venv = SideVecEnv(args.n_envs, cfg, make_pool(args.n_envs, runners, script_runner, args.seed + phase,
+            # EXP-042: the defense's first generations without catch dice (EXP-041: with them it learns nothing).
+            t_cfg = (dataclasses.replace(cfg, catch_sep=args.def_catch_sep)
+                     if args.def_catch_sep is not None and len(tacklers) <= args.def_catch_gens else cfg)
+            venv = SideVecEnv(args.n_envs, t_cfg, make_pool(args.n_envs, runners, script_runner, args.seed + phase,
                                                               scripted_share=args.scripted_share,
                                                               skip_untrained=args.runner_init is None,
                                                               mirror_share=args.mirror_share,

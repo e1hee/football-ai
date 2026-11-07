@@ -1,0 +1,44 @@
+[
+ {
+  "sim_steps": 0,
+  "yards_own_rules": 29.69,
+  "yards_exp039_rules": 22.06,
+  "tackled_exp039_rules": 0.009,
+  "std": 1.0
+ },
+ {
+  "sim_steps": 2000000,
+  "yards_own_rules": 25.97,
+  "yards_exp039_rules": 18.68,
+  "tackled_exp039_rules": 0.205,
+  "std": 0.921
+ },
+ {
+  "sim_steps": 4000000,
+  "yards_own_rules": -6.81,
+  "yards_exp039_rules": 6.18,
+  "tackled_exp039_rules": 0.321,
+  "std": 0.745
+ },
+ {
+  "sim_steps": 6000000,
+  "yards_own_rules": -11.32,
+  "yards_exp039_rules": 4.52,
+  "tackled_exp039_rules": 0.334,
+  "std": 0.631
+ },
+ {
+  "sim_steps": 8000000,
+  "yards_own_rules": -12.55,
+  "yards_exp039_rules": 5.39,
+  "tackled_exp039_rules": 0.364,
+  "std": 0.56
+ },
+ {
+  "sim_steps": 10000000,
+  "yards_own_rules": -13.37,
+  "yards_exp039_rules": 6.06,
+  "tackled_exp039_rules": 0.382,
+  "std": 0.514
+ }
+]

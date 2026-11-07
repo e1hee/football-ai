@@ -1,0 +1,7 @@
+/Users/wonheelee/projects/football-ai/experiments/EXP-041-cblambda/cb_check.py:106: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:821.)
+  "tackled_exp039_rules": round(r_039["rate/tackled"], 3), "std": round(float(m.policy.log_std.exp().mean()), 3)}
+lam1 {'sim_steps': 0, 'yards_own_rules': 22.06, 'yards_exp039_rules': 22.06, 'tackled_exp039_rules': 0.009, 'std': 1.0}
+lam1 {'sim_steps': 1000000, 'yards_own_rules': 21.32, 'yards_exp039_rules': 21.32, 'tackled_exp039_rules': 0.014, 'std': 0.959}
+lam1 {'sim_steps': 2000000, 'yards_own_rules': 21.44, 'yards_exp039_rules': 21.44, 'tackled_exp039_rules': 0.021, 'std': 0.908}
+lam1 {'sim_steps': 3000000, 'yards_own_rules': 21.32, 'yards_exp039_rules': 21.32, 'tackled_exp039_rules': 0.074, 'std': 0.873}

@@ -1,0 +1,9 @@
+/Users/wonheelee/projects/football-ai/experiments/EXP-041-cblambda/cb_check.py:106: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /Users/runner/work/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:821.)
+  "tackled_exp039_rules": round(r_039["rate/tackled"], 3), "std": round(float(m.policy.log_std.exp().mean()), 3)}
+rep3lam1_10M {'sim_steps': 0, 'yards_own_rules': 22.06, 'yards_exp039_rules': 22.06, 'tackled_exp039_rules': 0.009, 'std': 1.0}
+rep3lam1_10M {'sim_steps': 2000000, 'yards_own_rules': 21.65, 'yards_exp039_rules': 21.65, 'tackled_exp039_rules': 0.005, 'std': 0.98}
+rep3lam1_10M {'sim_steps': 4000000, 'yards_own_rules': 21.85, 'yards_exp039_rules': 21.85, 'tackled_exp039_rules': 0.005, 'std': 0.969}
+rep3lam1_10M {'sim_steps': 6000000, 'yards_own_rules': 20.9, 'yards_exp039_rules': 20.9, 'tackled_exp039_rules': 0.023, 'std': 0.946}
+rep3lam1_10M {'sim_steps': 8000000, 'yards_own_rules': 21.18, 'yards_exp039_rules': 21.18, 'tackled_exp039_rules': 0.053, 'std': 0.916}
+rep3lam1_10M {'sim_steps': 10000000, 'yards_own_rules': 20.92, 'yards_exp039_rules': 20.92, 'tackled_exp039_rules': 0.072, 'std': 0.893}

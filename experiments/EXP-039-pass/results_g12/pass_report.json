@@ -1,0 +1,1468 @@
+{
+ "script_vs_script": {
+  "all": {
+   "plays": 2048,
+   "completion": 0.536,
+   "interception": 0.069,
+   "sack": 0.0,
+   "yards": 11.56,
+   "throw_s_q": [
+    2.0,
+    2.3,
+    2.7
+   ],
+   "depth_at_throw_q": [
+    9.61,
+    12.8,
+    17.57
+   ],
+   "sep_at_arrival_q": [
+    0.9,
+    0.9,
+    1.01
+   ],
+   "cb_cushion_at_throw_q": [
+    0.01,
+    0.82,
+    2.28
+   ],
+   "downfield_at_arrival_q": [
+    15.57,
+    22.65,
+    37.29
+   ],
+   "inside_at_arrival_q": [
+    -1.39,
+    -0.23,
+    1.67
+   ],
+   "lateral_3yd": {
+    "inside": 0.155,
+    "outside": 0.201
+   },
+   "break_before_arrival": 0.039,
+   "dir_at_arrival": {
+    "up": 0.262,
+    "inside": 0.048,
+    "outside": 0.025,
+    "back": 0.665
+   }
+  },
+  "press": {
+   "plays": 1023,
+   "completion": 0.531,
+   "interception": 0.076,
+   "sack": 0.0,
+   "yards": 11.41,
+   "throw_s_q": [
+    2.0,
+    2.3,
+    2.7
+   ],
+   "depth_at_throw_q": [
+    9.37,
+    12.59,
+    17.35
+   ],
+   "sep_at_arrival_q": [
+    0.9,
+    0.9,
+    1.23
+   ],
+   "cb_cushion_at_throw_q": [
+    -0.87,
+    0.07,
+    0.73
+   ],
+   "downfield_at_arrival_q": [
+    14.89,
+    21.85,
+    36.13
+   ],
+   "inside_at_arrival_q": [
+    -1.54,
+    -1.0,
+    0.6
+   ],
+   "lateral_3yd": {
+    "inside": 0.085,
+    "outside": 0.21
+   },
+   "break_before_arrival": 0.072,
+   "dir_at_arrival": {
+    "up": 0.237,
+    "inside": 0.039,
+    "outside": 0.03,
+    "back": 0.694
+   }
+  },
+  "off": {
+   "plays": 1025,
+   "completion": 0.54,
+   "interception": 0.061,
+   "sack": 0.0,
+   "yards": 11.71,
+   "throw_s_q": [
+    2.0,
+    2.4,
+    2.7
+   ],
+   "depth_at_throw_q": [
+    9.61,
+    13.86,
+    17.77
+   ],
+   "sep_at_arrival_q": [
+    0.9,
+    0.9,
+    1.0
+   ],
+   "cb_cushion_at_throw_q": [
+    1.02,
+    2.28,
+    4.01
+   ],
+   "downfield_at_arrival_q": [
+    15.9,
+    23.1,
+    37.47
+   ],
+   "inside_at_arrival_q": [
+    -0.57,
+    -0.01,
+    2.96
+   ],
+   "lateral_3yd": {
+    "inside": 0.224,
+    "outside": 0.191
+   },
+   "break_before_arrival": 0.006,
+   "dir_at_arrival": {
+    "up": 0.287,
+    "inside": 0.057,
+    "outside": 0.02,
+    "back": 0.636
+   }
+  }
+ },
+ "s0": {
+  "ai_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.706,
+    "interception": 0.001,
+    "sack": 0.0,
+    "yards": 21.12,
+    "throw_s_q": [
+     1.9,
+     2.1,
+     2.4
+    ],
+    "depth_at_throw_q": [
+     2.57,
+     3.44,
+     4.96
+    ],
+    "sep_at_arrival_q": [
+     3.68,
+     6.44,
+     32.8
+    ],
+    "cb_cushion_at_throw_q": [
+     -9.49,
+     -1.65,
+     -0.1
+    ],
+    "downfield_at_arrival_q": [
+     5.69,
+     7.79,
+     9.44
+    ],
+    "inside_at_arrival_q": [
+     11.05,
+     14.17,
+     18.43
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.18,
+    "dir_at_arrival": {
+     "up": 0.09,
+     "inside": 0.607,
+     "outside": 0.008,
+     "back": 0.294
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.698,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 20.89,
+    "throw_s_q": [
+     1.9,
+     2.2,
+     2.4
+    ],
+    "depth_at_throw_q": [
+     2.47,
+     3.72,
+     4.9
+    ],
+    "sep_at_arrival_q": [
+     4.07,
+     6.69,
+     33.99
+    ],
+    "cb_cushion_at_throw_q": [
+     -10.22,
+     -3.18,
+     -1.55
+    ],
+    "downfield_at_arrival_q": [
+     5.63,
+     7.51,
+     9.38
+    ],
+    "inside_at_arrival_q": [
+     12.68,
+     16.36,
+     18.92
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.048,
+    "dir_at_arrival": {
+     "up": 0.009,
+     "inside": 0.687,
+     "outside": 0.002,
+     "back": 0.302
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.714,
+    "interception": 0.002,
+    "sack": 0.0,
+    "yards": 21.35,
+    "throw_s_q": [
+     2.0,
+     2.1,
+     2.3
+    ],
+    "depth_at_throw_q": [
+     2.88,
+     3.4,
+     5.12
+    ],
+    "sep_at_arrival_q": [
+     3.29,
+     6.29,
+     31.19
+    ],
+    "cb_cushion_at_throw_q": [
+     -7.77,
+     -0.12,
+     0.9
+    ],
+    "downfield_at_arrival_q": [
+     5.81,
+     7.88,
+     9.58
+    ],
+    "inside_at_arrival_q": [
+     10.04,
+     12.76,
+     17.28
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.311,
+    "dir_at_arrival": {
+     "up": 0.172,
+     "inside": 0.528,
+     "outside": 0.015,
+     "back": 0.286
+    }
+   }
+  },
+  "ai_vs_script_cb": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.688,
+    "interception": 0.02,
+    "sack": 0.0,
+    "yards": 19.29,
+    "throw_s_q": [
+     2.3,
+     2.5,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     -0.27,
+     1.07,
+     3.34
+    ],
+    "sep_at_arrival_q": [
+     2.38,
+     4.19,
+     6.92
+    ],
+    "cb_cushion_at_throw_q": [
+     1.61,
+     3.61,
+     6.81
+    ],
+    "downfield_at_arrival_q": [
+     0.41,
+     2.31,
+     7.03
+    ],
+    "inside_at_arrival_q": [
+     9.36,
+     13.01,
+     20.69
+    ],
+    "lateral_3yd": {
+     "inside": 0.988,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.259,
+    "dir_at_arrival": {
+     "up": 0.014,
+     "inside": 0.498,
+     "outside": 0.178,
+     "back": 0.311
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.639,
+    "interception": 0.039,
+    "sack": 0.0,
+    "yards": 16.51,
+    "throw_s_q": [
+     2.5,
+     2.7,
+     2.8
+    ],
+    "depth_at_throw_q": [
+     -1.23,
+     4.28,
+     5.63
+    ],
+    "sep_at_arrival_q": [
+     0.97,
+     2.65,
+     3.48
+    ],
+    "cb_cushion_at_throw_q": [
+     0.02,
+     1.13,
+     2.75
+    ],
+    "downfield_at_arrival_q": [
+     -0.54,
+     8.44,
+     10.84
+    ],
+    "inside_at_arrival_q": [
+     18.78,
+     20.69,
+     21.74
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.008,
+     "inside": 0.635,
+     "outside": 0.0,
+     "back": 0.357
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.736,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 22.07,
+    "throw_s_q": [
+     1.6,
+     2.3,
+     2.5
+    ],
+    "depth_at_throw_q": [
+     0.16,
+     1.04,
+     1.62
+    ],
+    "sep_at_arrival_q": [
+     6.07,
+     6.92,
+     7.79
+    ],
+    "cb_cushion_at_throw_q": [
+     5.82,
+     6.81,
+     7.8
+    ],
+    "downfield_at_arrival_q": [
+     0.94,
+     2.31,
+     3.32
+    ],
+    "inside_at_arrival_q": [
+     6.41,
+     9.36,
+     11.16
+    ],
+    "lateral_3yd": {
+     "inside": 0.977,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.517,
+    "dir_at_arrival": {
+     "up": 0.02,
+     "inside": 0.36,
+     "outside": 0.356,
+     "back": 0.264
+    }
+   }
+  },
+  "script_routes_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.749,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 22.44,
+    "throw_s_q": [
+     2.0,
+     2.4,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.19,
+     17.62
+    ],
+    "sep_at_arrival_q": [
+     19.87,
+     26.43,
+     35.82
+    ],
+    "cb_cushion_at_throw_q": [
+     -14.05,
+     -10.82,
+     -7.47
+    ],
+    "downfield_at_arrival_q": [
+     15.78,
+     22.05,
+     32.68
+    ],
+    "inside_at_arrival_q": [
+     -0.49,
+     0.0,
+     2.99
+    ],
+    "lateral_3yd": {
+     "inside": 0.248,
+     "outside": 0.184
+    },
+    "break_before_arrival": 0.128,
+    "dir_at_arrival": {
+     "up": 0.453,
+     "inside": 0.065,
+     "outside": 0.002,
+     "back": 0.48
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.743,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 22.26,
+    "throw_s_q": [
+     2.1,
+     2.5,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     11.69,
+     16.03
+    ],
+    "sep_at_arrival_q": [
+     20.53,
+     26.71,
+     35.02
+    ],
+    "cb_cushion_at_throw_q": [
+     -14.45,
+     -11.84,
+     -8.27
+    ],
+    "downfield_at_arrival_q": [
+     15.63,
+     20.95,
+     30.84
+    ],
+    "inside_at_arrival_q": [
+     -2.06,
+     0.0,
+     2.89
+    ],
+    "lateral_3yd": {
+     "inside": 0.229,
+     "outside": 0.209
+    },
+    "break_before_arrival": 0.236,
+    "dir_at_arrival": {
+     "up": 0.473,
+     "inside": 0.073,
+     "outside": 0.003,
+     "back": 0.451
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.754,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 22.62,
+    "throw_s_q": [
+     2.0,
+     2.4,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.8,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     19.27,
+     26.03,
+     36.04
+    ],
+    "cb_cushion_at_throw_q": [
+     -12.37,
+     -10.09,
+     -5.75
+    ],
+    "downfield_at_arrival_q": [
+     16.12,
+     22.67,
+     37.72
+    ],
+    "inside_at_arrival_q": [
+     0.0,
+     0.0,
+     3.03
+    ],
+    "lateral_3yd": {
+     "inside": 0.267,
+     "outside": 0.159
+    },
+    "break_before_arrival": 0.02,
+    "dir_at_arrival": {
+     "up": 0.433,
+     "inside": 0.057,
+     "outside": 0.001,
+     "back": 0.509
+    }
+   }
+  }
+ },
+ "s1": {
+  "ai_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.724,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.71,
+    "throw_s_q": [
+     2.9,
+     3.1,
+     3.2
+    ],
+    "depth_at_throw_q": [
+     9.82,
+     10.98,
+     16.53
+    ],
+    "sep_at_arrival_q": [
+     3.79,
+     4.05,
+     4.57
+    ],
+    "cb_cushion_at_throw_q": [
+     -1.19,
+     -0.27,
+     1.32
+    ],
+    "downfield_at_arrival_q": [
+     16.42,
+     18.51,
+     29.94
+    ],
+    "inside_at_arrival_q": [
+     19.73,
+     27.74,
+     29.94
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.208,
+     "inside": 0.361,
+     "outside": 0.0,
+     "back": 0.431
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.725,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.76,
+    "throw_s_q": [
+     2.9,
+     2.9,
+     3.2
+    ],
+    "depth_at_throw_q": [
+     10.31,
+     11.35,
+     16.18
+    ],
+    "sep_at_arrival_q": [
+     3.87,
+     4.04,
+     4.22
+    ],
+    "cb_cushion_at_throw_q": [
+     -2.58,
+     -1.14,
+     -0.47
+    ],
+    "downfield_at_arrival_q": [
+     17.15,
+     19.02,
+     28.55
+    ],
+    "inside_at_arrival_q": [
+     18.65,
+     26.66,
+     30.66
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.353,
+     "inside": 0.37,
+     "outside": 0.0,
+     "back": 0.278
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.722,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.66,
+    "throw_s_q": [
+     3.0,
+     3.1,
+     3.1
+    ],
+    "depth_at_throw_q": [
+     9.55,
+     9.89,
+     18.01
+    ],
+    "sep_at_arrival_q": [
+     3.55,
+     4.06,
+     5.33
+    ],
+    "cb_cushion_at_throw_q": [
+     0.4,
+     1.32,
+     2.03
+    ],
+    "downfield_at_arrival_q": [
+     15.68,
+     16.69,
+     31.68
+    ],
+    "inside_at_arrival_q": [
+     20.68,
+     27.98,
+     29.29
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.062,
+     "inside": 0.353,
+     "outside": 0.0,
+     "back": 0.584
+    }
+   }
+  },
+  "ai_vs_script_cb": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.629,
+    "interception": 0.004,
+    "sack": 0.0,
+    "yards": 18.8,
+    "throw_s_q": [
+     3.1,
+     3.2,
+     3.4
+    ],
+    "depth_at_throw_q": [
+     12.08,
+     14.16,
+     17.06
+    ],
+    "sep_at_arrival_q": [
+     1.03,
+     1.71,
+     3.42
+    ],
+    "cb_cushion_at_throw_q": [
+     -0.55,
+     0.36,
+     1.42
+    ],
+    "downfield_at_arrival_q": [
+     21.51,
+     24.93,
+     31.09
+    ],
+    "inside_at_arrival_q": [
+     18.87,
+     29.74,
+     32.95
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.077,
+     "inside": 0.352,
+     "outside": 0.0,
+     "back": 0.572
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.624,
+    "interception": 0.004,
+    "sack": 0.0,
+    "yards": 18.65,
+    "throw_s_q": [
+     3.1,
+     3.4,
+     3.5
+    ],
+    "depth_at_throw_q": [
+     13.67,
+     14.35,
+     16.59
+    ],
+    "sep_at_arrival_q": [
+     1.23,
+     1.68,
+     2.3
+    ],
+    "cb_cushion_at_throw_q": [
+     -0.86,
+     -0.55,
+     -0.2
+    ],
+    "downfield_at_arrival_q": [
+     23.64,
+     25.89,
+     30.74
+    ],
+    "inside_at_arrival_q": [
+     18.15,
+     31.34,
+     34.02
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.118,
+     "inside": 0.331,
+     "outside": 0.0,
+     "back": 0.55
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.634,
+    "interception": 0.004,
+    "sack": 0.0,
+    "yards": 18.95,
+    "throw_s_q": [
+     3.1,
+     3.2,
+     3.2
+    ],
+    "depth_at_throw_q": [
+     9.85,
+     12.09,
+     17.8
+    ],
+    "sep_at_arrival_q": [
+     0.96,
+     3.21,
+     4.22
+    ],
+    "cb_cushion_at_throw_q": [
+     0.7,
+     1.42,
+     3.1
+    ],
+    "downfield_at_arrival_q": [
+     16.39,
+     21.53,
+     32.06
+    ],
+    "inside_at_arrival_q": [
+     19.48,
+     29.73,
+     31.3
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.035,
+     "inside": 0.372,
+     "outside": 0.0,
+     "back": 0.593
+    }
+   }
+  },
+  "script_routes_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.66,
+    "interception": 0.011,
+    "sack": 0.0,
+    "yards": 18.01,
+    "throw_s_q": [
+     2.0,
+     2.3,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.8,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     1.89,
+     5.53,
+     10.82
+    ],
+    "cb_cushion_at_throw_q": [
+     -1.15,
+     0.61,
+     2.56
+    ],
+    "downfield_at_arrival_q": [
+     15.79,
+     22.53,
+     35.42
+    ],
+    "inside_at_arrival_q": [
+     -1.07,
+     0.0,
+     2.95
+    ],
+    "lateral_3yd": {
+     "inside": 0.226,
+     "outside": 0.186
+    },
+    "break_before_arrival": 0.001,
+    "dir_at_arrival": {
+     "up": 0.374,
+     "inside": 0.068,
+     "outside": 0.0,
+     "back": 0.557
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.708,
+    "interception": 0.013,
+    "sack": 0.0,
+    "yards": 19.29,
+    "throw_s_q": [
+     2.0,
+     2.3,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.75,
+     17.54
+    ],
+    "sep_at_arrival_q": [
+     1.8,
+     5.41,
+     10.46
+    ],
+    "cb_cushion_at_throw_q": [
+     -1.97,
+     -0.67,
+     0.65
+    ],
+    "downfield_at_arrival_q": [
+     15.78,
+     21.42,
+     36.01
+    ],
+    "inside_at_arrival_q": [
+     -1.3,
+     0.0,
+     2.83
+    ],
+    "lateral_3yd": {
+     "inside": 0.214,
+     "outside": 0.196
+    },
+    "break_before_arrival": 0.002,
+    "dir_at_arrival": {
+     "up": 0.378,
+     "inside": 0.076,
+     "outside": 0.001,
+     "back": 0.544
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.613,
+    "interception": 0.009,
+    "sack": 0.0,
+    "yards": 16.74,
+    "throw_s_q": [
+     2.0,
+     2.4,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     13.86,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     1.94,
+     6.15,
+     11.21
+    ],
+    "cb_cushion_at_throw_q": [
+     0.53,
+     2.47,
+     4.3
+    ],
+    "downfield_at_arrival_q": [
+     16.26,
+     23.18,
+     35.28
+    ],
+    "inside_at_arrival_q": [
+     -0.05,
+     0.0,
+     2.96
+    ],
+    "lateral_3yd": {
+     "inside": 0.238,
+     "outside": 0.175
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.37,
+     "inside": 0.06,
+     "outside": 0.0,
+     "back": 0.57
+    }
+   }
+  }
+ },
+ "s2": {
+  "ai_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.573,
+    "interception": 0.002,
+    "sack": 0.051,
+    "yards": 12.07,
+    "throw_s_q": [
+     1.8,
+     2.7,
+     2.8
+    ],
+    "depth_at_throw_q": [
+     -0.46,
+     3.53,
+     4.26
+    ],
+    "sep_at_arrival_q": [
+     1.42,
+     1.92,
+     2.54
+    ],
+    "cb_cushion_at_throw_q": [
+     0.9,
+     1.81,
+     3.05
+    ],
+    "downfield_at_arrival_q": [
+     0.29,
+     5.29,
+     6.04
+    ],
+    "inside_at_arrival_q": [
+     13.35,
+     23.46,
+     25.29
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.044,
+    "dir_at_arrival": {
+     "up": 0.001,
+     "inside": 0.602,
+     "outside": 0.0,
+     "back": 0.397
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.543,
+    "interception": 0.005,
+    "sack": 0.03,
+    "yards": 12.42,
+    "throw_s_q": [
+     1.8,
+     2.7,
+     2.9
+    ],
+    "depth_at_throw_q": [
+     -0.48,
+     3.37,
+     4.13
+    ],
+    "sep_at_arrival_q": [
+     1.12,
+     1.52,
+     2.0
+    ],
+    "cb_cushion_at_throw_q": [
+     0.61,
+     0.93,
+     1.35
+    ],
+    "downfield_at_arrival_q": [
+     0.21,
+     5.08,
+     5.83
+    ],
+    "inside_at_arrival_q": [
+     12.45,
+     24.49,
+     25.5
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.06,
+    "dir_at_arrival": {
+     "up": 0.0,
+     "inside": 0.56,
+     "outside": 0.0,
+     "back": 0.44
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.602,
+    "interception": 0.0,
+    "sack": 0.071,
+    "yards": 11.73,
+    "throw_s_q": [
+     1.8,
+     2.6,
+     2.8
+    ],
+    "depth_at_throw_q": [
+     -0.38,
+     3.65,
+     4.38
+    ],
+    "sep_at_arrival_q": [
+     1.86,
+     2.3,
+     4.4
+    ],
+    "cb_cushion_at_throw_q": [
+     2.32,
+     3.09,
+     4.86
+    ],
+    "downfield_at_arrival_q": [
+     0.42,
+     5.53,
+     6.28
+    ],
+    "inside_at_arrival_q": [
+     13.37,
+     23.34,
+     24.4
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.027,
+    "dir_at_arrival": {
+     "up": 0.002,
+     "inside": 0.646,
+     "outside": 0.0,
+     "back": 0.352
+    }
+   }
+  },
+  "ai_vs_script_cb": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.688,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 20.62,
+    "throw_s_q": [
+     1.7,
+     2.3,
+     2.8
+    ],
+    "depth_at_throw_q": [
+     0.16,
+     2.42,
+     3.24
+    ],
+    "sep_at_arrival_q": [
+     3.31,
+     5.25,
+     7.12
+    ],
+    "cb_cushion_at_throw_q": [
+     2.35,
+     4.21,
+     6.71
+    ],
+    "downfield_at_arrival_q": [
+     1.2,
+     3.39,
+     4.38
+    ],
+    "inside_at_arrival_q": [
+     12.43,
+     18.88,
+     24.65
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.044,
+    "dir_at_arrival": {
+     "up": 0.0,
+     "inside": 0.688,
+     "outside": 0.0,
+     "back": 0.312
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.638,
+    "interception": 0.0,
+    "sack": 0.001,
+    "yards": 19.14,
+    "throw_s_q": [
+     1.8,
+     2.8,
+     2.9
+    ],
+    "depth_at_throw_q": [
+     -0.38,
+     2.67,
+     3.5
+    ],
+    "sep_at_arrival_q": [
+     3.04,
+     3.31,
+     3.68
+    ],
+    "cb_cushion_at_throw_q": [
+     1.87,
+     2.35,
+     2.74
+    ],
+    "downfield_at_arrival_q": [
+     0.42,
+     3.89,
+     4.72
+    ],
+    "inside_at_arrival_q": [
+     13.36,
+     24.66,
+     25.67
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.088,
+    "dir_at_arrival": {
+     "up": 0.0,
+     "inside": 0.639,
+     "outside": 0.0,
+     "back": 0.361
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.737,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 22.1,
+    "throw_s_q": [
+     1.6,
+     2.3,
+     2.5
+    ],
+    "depth_at_throw_q": [
+     0.28,
+     2.21,
+     2.97
+    ],
+    "sep_at_arrival_q": [
+     6.3,
+     7.12,
+     7.89
+    ],
+    "cb_cushion_at_throw_q": [
+     5.72,
+     6.71,
+     7.72
+    ],
+    "downfield_at_arrival_q": [
+     1.41,
+     3.11,
+     4.01
+    ],
+    "inside_at_arrival_q": [
+     11.44,
+     18.82,
+     20.66
+    ],
+    "lateral_3yd": {
+     "inside": 1.0,
+     "outside": 0.0
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.0,
+     "inside": 0.737,
+     "outside": 0.0,
+     "back": 0.263
+    }
+   }
+  },
+  "script_routes_vs_ai": {
+   "all": {
+    "plays": 2048,
+    "completion": 0.735,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.79,
+    "throw_s_q": [
+     2.0,
+     2.3,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.8,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     5.38,
+     9.39,
+     29.66
+    ],
+    "cb_cushion_at_throw_q": [
+     -9.27,
+     -1.67,
+     1.11
+    ],
+    "downfield_at_arrival_q": [
+     15.85,
+     22.68,
+     37.72
+    ],
+    "inside_at_arrival_q": [
+     0.0,
+     0.0,
+     2.98
+    ],
+    "lateral_3yd": {
+     "inside": 0.244,
+     "outside": 0.182
+    },
+    "break_before_arrival": 0.001,
+    "dir_at_arrival": {
+     "up": 0.421,
+     "inside": 0.061,
+     "outside": 0.0,
+     "back": 0.518
+    }
+   },
+   "press": {
+    "plays": 1023,
+    "completion": 0.741,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.86,
+    "throw_s_q": [
+     2.0,
+     2.3,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     12.8,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     4.54,
+     9.4,
+     30.65
+    ],
+    "cb_cushion_at_throw_q": [
+     -10.86,
+     -2.3,
+     0.06
+    ],
+    "downfield_at_arrival_q": [
+     15.78,
+     22.09,
+     37.72
+    ],
+    "inside_at_arrival_q": [
+     -1.14,
+     0.0,
+     2.96
+    ],
+    "lateral_3yd": {
+     "inside": 0.241,
+     "outside": 0.19
+    },
+    "break_before_arrival": 0.002,
+    "dir_at_arrival": {
+     "up": 0.421,
+     "inside": 0.067,
+     "outside": 0.0,
+     "back": 0.511
+    }
+   },
+   "off": {
+    "plays": 1025,
+    "completion": 0.73,
+    "interception": 0.0,
+    "sack": 0.0,
+    "yards": 21.73,
+    "throw_s_q": [
+     2.0,
+     2.4,
+     2.7
+    ],
+    "depth_at_throw_q": [
+     9.61,
+     13.86,
+     17.77
+    ],
+    "sep_at_arrival_q": [
+     6.8,
+     9.38,
+     28.87
+    ],
+    "cb_cushion_at_throw_q": [
+     -7.27,
+     0.46,
+     2.75
+    ],
+    "downfield_at_arrival_q": [
+     16.26,
+     23.63,
+     37.72
+    ],
+    "inside_at_arrival_q": [
+     0.0,
+     0.0,
+     2.99
+    ],
+    "lateral_3yd": {
+     "inside": 0.246,
+     "outside": 0.175
+    },
+    "break_before_arrival": 0.0,
+    "dir_at_arrival": {
+     "up": 0.421,
+     "inside": 0.055,
+     "outside": 0.0,
+     "back": 0.524
+    }
+   }
+  }
+ }
+}

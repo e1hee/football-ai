@@ -1,0 +1,12 @@
+9:torch.set_num_threads(6)
+17:ppo = dict(n_steps=64, batch_size=8192, n_epochs=5, learning_rate=1e-3 if v == "lr" else 3e-4,
+26:for k in range(6):
+31:        m.learn(2_000_000, reset_num_timesteps=False)
+base 0 M: yd 22.06 comp 0.736
+base 2 M: yd 22.71 comp 0.754
+base 4 M: yd 22.61 comp 0.753
+base 6 M: yd 22.07 comp 0.731
+base 8 M: yd 22.28 comp 0.74
+base 10 M: yd 22.04 comp 0.733
+
+[exited with code 0]

@@ -278,7 +278,8 @@ class PassSim(TeamSim):
             "tackle_engaged": self.last_tackle_engaged, "wrapped": self.wrap > 0, "breakaway": np.zeros(self.n, bool),
             "thrown_now": throw_now, "caught_now": catch, "arrived": arrive,
             "pos": self.pos.copy(), "facing": self.facing.copy(), "partner": self.partner.copy(),
-            "r_pos": self.pos[:, WR].copy(), "ball": self.ball_pos(),
+            "r_pos": self.pos[:, WR].copy(), "ball": self.ball_pos(), "target": self.target.copy(),
+            "in_flight": self.thrown & ~self.resolved, "has_ball": self.caught.copy(),
             "terminal_obs": self.observe() if done.any() else None,
             "terminal_obs_tackler": self.observe_tackler() if done.any() else None,
         }

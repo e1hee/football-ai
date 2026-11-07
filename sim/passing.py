@@ -68,6 +68,9 @@ class PassConfig(TeamConfig):
     int_at: float = 0.54
     int_width: float = 0.25
     int_yards: float = 15.0
+    # EXP-040 check: None = the odds above. A number: no dice, a catch when separation >= this
+    # (and the receiver at the ball), a pick when the CB is within int_at of the ball.
+    catch_sep: float | None = None
     throw_threshold: float = 1.0        # exploration noise (std >= 0.8, mean <= 1.25) rarely crosses it by accident
 
 
@@ -217,6 +220,9 @@ class PassSim(TeamSim):
             inb = (tgt[:, 1] >= 0.5) & (tgt[:, 1] <= f.width - 0.5) & (tgt[:, 0] <= f.length + END_ZONE - 0.5)
             p_int = c.int_max / (1.0 + np.exp(-(c.int_at - d_cb) / c.int_width)) * inb
             p_catch = (c.catch_base + c.catch_gain * (1.0 - np.exp(-sep / c.catch_scale))) * ((d_wr <= c.catch_radius) & inb)
+            if c.catch_sep is not None:
+                p_int = ((d_cb <= c.int_at) & inb).astype(np.float64)
+                p_catch = ((sep >= c.catch_sep) & (d_wr <= c.catch_radius) & inb).astype(np.float64)
             u = self.rng.random(rows.size)
             pk = u < p_int
             ct = ~pk & (u < p_int + (1.0 - p_int) * p_catch)

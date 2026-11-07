@@ -98,6 +98,8 @@ except (FileNotFoundError, KeyError):
 # No running back is tracked in the BDB 2027 data (pass plays; 1 RB in 2024), so
 # the RB moves like a WR but carries a RB's weight (combine median, 210 lb).
 PROFILES["RB"] = PROFILES["WR"].scaled(mass_lb=210 / PROFILES["WR"].mass_lb)
+# The pass sim keeps the QB in place (no rush yet), so only his weight matters (~220 lb).
+PROFILES["QB"] = PROFILES["WR"].scaled(mass_lb=220 / PROFILES["WR"].mass_lb)
 # Pass-play tracking undercounts how fast linemen can run (they pass-protect,
 # rarely sprint): the fitted OL needs 7.05 s for 40 yd, 1.37x its combine 40
 # (5.15 s), while WR/DB/TE fits run 1.14x theirs. Scale OL top speed and
@@ -121,8 +123,9 @@ _BRAKE_V1 = {"DB": (6.25, 3.95), "DL": (4.75, 3.95), "LB": (5.65, 3.95), "OL": (
              "TE": (6.1, 3.6), "WR": (6.9, 3.4)}
 PROFILES_V1 = {g: dataclasses.replace(p, brake=_BRAKE_V1[g][0], brake_k=_BRAKE_V1[g][1], brake_drop=1.0)
                for g, p in PROFILES.items() if g in _BRAKE_V1}
-PROFILES_V1["RB"] = dataclasses.replace(PROFILES["RB"], brake=_BRAKE_V1["WR"][0], brake_k=_BRAKE_V1["WR"][1],
-                                        brake_drop=1.0)
+for _g in ("RB", "QB"):
+    PROFILES_V1[_g] = dataclasses.replace(PROFILES[_g], brake=_BRAKE_V1["WR"][0], brake_k=_BRAKE_V1["WR"][1],
+                                          brake_drop=1.0)
 
 
 def profiles(brake: int = 2) -> dict[str, Profile]:

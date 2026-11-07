@@ -216,7 +216,7 @@ def box_config(width: float = 20.0, past_los: float = 10.0, snap: bool = False, 
                       defense=("DL",) * 4 + ("LB",) * 2, **kw)
 
 
-SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box", "box-snap", "box-mix")
+SIMS = ("1v1", "3v3", "lane", "lane-lb", "combo", "box", "box-snap", "box-mix", "pass")
 
 
 def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
@@ -224,6 +224,9 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
     `team` sets TeamConfig-only fields (stumble, carrier_square_ahead)."""
     if sim == "1v1":
         return base
+    if sim == "pass":
+        from .passing import pass_config
+        return pass_config(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     if sim == "3v3":
         return TeamConfig(field=base.field, tackle=base.tackle, reward=base.reward, facing=base.facing, **team)
     if sim in ("box", "box-snap", "box-mix"):
@@ -233,7 +236,10 @@ def config_for(sim: str, base: SimConfig, lane_width: float = 5.0, **team):
 
 
 def make_sim(n: int, cfg, seed: int = 0):
-    """The sim that matches a config: TeamConfig -> TeamSim, SimConfig -> OneVOneSim."""
+    """The sim that matches a config: PassConfig -> PassSim, TeamConfig -> TeamSim, SimConfig -> OneVOneSim."""
+    from .passing import PassConfig, PassSim
+    if isinstance(cfg, PassConfig):
+        return PassSim(n, cfg, seed=seed)
     return TeamSim(n, cfg, seed=seed) if isinstance(cfg, TeamConfig) else OneVOneSim(n, cfg, seed=seed)
 
 

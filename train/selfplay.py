@@ -31,7 +31,8 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from sim.core import OneVOneSim
 from sim.policies import angle_tackler, evasive_runner, read_react_tackler
-from sim.team import SIMS, TeamSim
+from sim.pass_policies import man_coverage, route_offense
+from sim.team import SIMS, make_sim
 from sim.team_policies import (box_offense, combo_offense, gap_defense, lane_offense, overload_defense, pursuit_defense,
                                 read_defense, screen_offense, with_flow_read)
 from train.evaluate import evaluate
@@ -290,7 +291,9 @@ def main() -> None:
     ck.mkdir(parents=True, exist_ok=True)
     cfg = build_config(args)
     overload = functools.partial(overload_defense, commit=args.overload_commit)
-    if args.sim == "3v3":
+    if args.sim == "pass":
+        script_runner, script_tackler = route_offense, man_coverage
+    elif args.sim == "3v3":
         script_runner = screen_offense
         script_tackler = {"angle": pursuit_defense, "read": read_defense}[args.scripted_tackler]
     elif args.sim.startswith("lane") or args.sim in ("combo", "box", "box-snap", "box-mix"):
@@ -312,7 +315,7 @@ def main() -> None:
     def calibrate(model: PPO, side: str) -> PPO:
         """gSDE: start the new network's noise at --sde-std on starting positions."""
         if args.sde_freq is not None:
-            sim = TeamSim(1024, cfg, seed=args.seed)
+            sim = make_sim(1024, cfg, seed=args.seed)
             ob = sim.reset()
             calibrate_sde(model.policy, ob if side == "runner" else sim.observe_tackler(), args.sde_std)
         return model
@@ -442,6 +445,12 @@ def main() -> None:
         if args.bait_share:
             bait = with_flow_read(lambda sim: det(r_new)(sim), min_lean=args.bait_min_lean)
             row["yards_bait_reader_vs_tackler"] = evaluate(lambda sim, *a: bait(sim), det(t_new), cfg, n_plays=2048)["yards/mean"]
+        if args.sim == "pass":      # EXP-039: completions, picks and sacks say more than touchdowns
+            for name, res in (("latest", head), ("vs_script_cb", r_vs_script), ("script_routes", t_vs_script)):
+                row[f"comp_{name}"] = res["rate/touchdown"] + res["rate/tackled"] + res["rate/out_of_bounds"]
+                row[f"int_{name}"] = res["rate/interception"]
+                row[f"sack_{name}"] = res["rate/sack"]
+                row[f"yards_{name}"] = res["yards/mean"]
         if args.overload_share:
             row["yards_runner_vs_overload"] = evaluate(det(r_new), overload, cfg, n_plays=2048)["yards/mean"]
         if writer is None:

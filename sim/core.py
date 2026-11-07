@@ -133,7 +133,8 @@ RUNNER_OBS_NAMES = [
 ]
 
 OUTCOME_RUNNING, OUTCOME_TOUCHDOWN, OUTCOME_TACKLED, OUTCOME_OUT_OF_BOUNDS, OUTCOME_TIMEOUT = 0, 1, 2, 3, 4
-OUTCOME_NAMES = ["running", "touchdown", "tackled", "out_of_bounds", "timeout"]
+OUTCOME_INCOMPLETE, OUTCOME_INTERCEPTION, OUTCOME_SACK = 5, 6, 7       # pass plays (sim/passing.py)
+OUTCOME_NAMES = ["running", "touchdown", "tackled", "out_of_bounds", "timeout", "incomplete", "interception", "sack"]
 
 
 class OneVOneSim:

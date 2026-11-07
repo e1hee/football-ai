@@ -187,6 +187,7 @@ def main() -> None:
     ap.add_argument("--run", type=Path, required=True)
     ap.add_argument("--panel", action="append", required=True, help="OFFENSE:DEFENSE:title (generation or 'script')")
     ap.add_argument("--play-index", type=int, default=None)
+    ap.add_argument("--indices", default=None, help="a play index per panel, comma separated (different starts)")
     ap.add_argument("--pick", choices=["caught_last", "caught_all", "any"], default="caught_last",
                     help="caught_last / caught_all: first slot where the last / every panel's pass is completed")
     ap.add_argument("--seed", type=int, default=11)
@@ -203,6 +204,9 @@ def main() -> None:
         ok = [i for i in range(args.n) if all(caught(r[i]) for r in need)]
         idx = ok[0] if (ok and args.pick != "any") else 0
     plays = [r[idx] for r in recs]
+    if args.indices:
+        plays = [r[int(i)] for r, i in zip(recs, args.indices.split(","))]
+        idx = args.indices
     pw = min(880, (1920 - 30 * (len(plays) - 1)) // len(plays) - 20)
     pw = min(pw, int(840 * cfg.field.width / (cfg.field.length + END_ZONE)))   # fit the field's height
     renderers = [PassPanel(cfg, pw) for _ in plays]
